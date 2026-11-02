@@ -29,22 +29,22 @@ Every source in this plan, including the paid vendors, is therefore automated ac
 
 ### 3.1 Value objects
 
-| Type       | Built from                                                                   | Normalization                                                                            |
-| ---------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `Handle`   | `@name`, `name`, `https://www.tiktok.com/@name`                              | Strip scheme, host, `@`, trailing path; lowercase. Character rules UNCONFIRMED (see 12). |
-| `SecUid`   | Provider payloads only                                                       | Opaque string, never constructed from user input.                                        |
-| `VideoId`  | Numeric id, `https://www.tiktok.com/@x/video/<id>`, vm.tiktok.com short link | Numeric id extracted; short links resolved by the source that supports it.               |
-| `BioToken` | Platform-generated string                                                    | Matched as a whole token inside the bio, case-sensitive.                                 |
+| Type        | Built from                                                                                 | Normalization                                                                                                                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Handle`    | `@name`, `name`, `https://www.tiktok.com/@name`, profile URL with a trailing path or query | Strip scheme, host, `@`, trailing path and query; lowercase; 1 to 24 characters from `a-z0-9_.`. The 24-character limit and character set are PARTIALLY CONFIRMED (third-party pages only, see 12). |
+| `AccountId` | Provider payloads only                                                                     | Opaque platform identifier, never constructed from user input. TikTok's is the `secUid`.                                                                                                            |
+| `ContentId` | Numeric id, `https://www.tiktok.com/@x/video/<id>`, `tiktok.com/video/<id>`                | Numeric id extracted. `vm.tiktok.com`, `vt.tiktok.com` and `tiktok.com/t/` short links are rejected with reason `short_link_unsupported` until a source resolves them.                              |
+| `BioToken`  | Platform-generated string                                                                  | One non-blank token of at most 64 characters. Matched as a whole whitespace-delimited token in the bio, case-sensitive; a token with punctuation attached counts as absent.                         |
 
-All four are parsed with Zod at the library boundary (`parseHandle`, `parseVideoId`, ...) and are plain branded types afterwards.
+Every value object carries its `platform`. `parseHandle`, `parseContentId` and `parseBioToken` validate once with Zod and return a `Result` with an `InvalidInput` on failure; `accountId` is built by adapters from a parsed provider payload. Platform-specific rules live in `src/domain/platforms/<platform>.ts`.
 
 ### 3.2 Checks
 
 | Check     | Input                               | Question answered                                       |
 | --------- | ----------------------------------- | ------------------------------------------------------- |
-| `profile` | `Handle`                            | Who is this account: secUid, bio, privacy flags.        |
+| `profile` | subject `Handle`                    | Who is this account: account id, bio, privacy flags.    |
 | `follows` | performer `Handle`, target `Handle` | Does the performer's following list contain the target? |
-| `liked`   | performer `Handle`, `VideoId`       | Does the performer's liked list contain the video?      |
+| `liked`   | performer `Handle`, `ContentId`     | Does the performer's liked list contain the content?    |
 
 `owns` is not a source check: it is `profile` followed by a token match inside the library. `watch` is not a source check either: it is `follows` or `liked` repeated on a schedule by the caller.
 
@@ -69,32 +69,52 @@ Two rules are not negotiable:
 
 ### 3.4 Contract
 
+The contract as implemented in `packages/verification` (names from `docs/glossary.md`):
+
 ```ts
-interface VerificationSource {
-  readonly name: SourceName;
-  readonly supports: ReadonlySet<CheckKind>;
-  profile(handle: Handle, ctx: CallContext): Promise<SourceResult<ProfileEvidence>>;
-  follows(performer: Handle, target: Handle, ctx: CallContext): Promise<SourceResult<ListEvidence>>;
-  liked(performer: Handle, video: VideoId, ctx: CallContext): Promise<SourceResult<ListEvidence>>;
-}
+type Check =
+  | { kind: 'profile'; subject: Handle }
+  | { kind: 'follows'; performer: Handle; target: Handle }
+  | { kind: 'liked'; performer: Handle; content: ContentId };
 
 interface CallContext {
   signal: AbortSignal;
   pageCap: number;
 }
 
-interface SourceResult<E> {
-  outcome: Outcome;
-  evidence: E | undefined;
-  source: SourceName;
-  cost: { unit: 'request' | 'units' | 'usd'; amount: number };
-  latencyMs: number;
-  checkedAt: string;
-  error?: { kind: SourceErrorKind; httpStatus?: number; providerStatus?: number; message: string };
+type Answer<K extends CheckKind> =
+  | { outcome: 'verified' | 'not_following'; evidence: EvidenceByKind[K]; cost: Cost }
+  | { outcome: 'private' | 'not_found'; cost: Cost }
+  | { outcome: 'source_error'; error: SourceError; cost?: Cost };
+
+interface VerificationSource {
+  readonly name: SourceName;
+  readonly platform: Platform;
+  readonly supports: ReadonlySet<CheckKind>;
+  answer<K extends CheckKind>(check: CheckOf<K>, context: CallContext): Promise<Answer<K>>;
 }
+
+interface Attempt {
+  source: SourceName;
+  platform: Platform;
+  check: CheckKind;
+  outcome: Outcome;
+  error?: SourceError;
+  cost?: Cost;
+  startedAt: number;
+  latencyMs: number;
+}
+
+type Verdict<K extends CheckKind> = (
+  | { outcome: 'verified' | 'not_following'; evidence: EvidenceByKind[K]; source: SourceName }
+  | { outcome: 'private' | 'not_found'; source: SourceName }
+  | { outcome: 'source_error' }
+) & { check: CheckOf<K>; attempts: readonly Attempt[] };
 ```
 
-`SourceErrorKind` is a closed union too: `timeout | network | http | auth | rate_limited | blocked | parse | unknown_status`. `blocked` is a bot wall or captcha page.
+A source answers one method for every check kind it supports; adapters build it with `defineSource(identity, handlers)` from per-kind handlers. `ProfileEvidence` is `accountId`, `bio`, `isPrivate` and the optional `followingVisible` and `likesVisible`; `ListEvidence` is `pagesRead` and `listExhausted`. Latency and start time are measured by the chain, not reported by the source. `Cost` is `{ unit: 'request' | 'units' | 'usd'; amount }`.
+
+`SourceErrorKind` is a closed union too: `timeout | network | http | auth | rate_limited | blocked | parse | unknown_status | unexpected`. `blocked` is a bot wall or captcha page; `unexpected` is an error a source threw instead of answering.
 
 The package follows ADR 0001 (`docs/adr/0001-verification-context-architecture.md`): `src/domain/` holds the value objects, the outcome model and pure rules; `src/ports/` holds `VerificationSource`, `Clock` and `MeasurementSink`; `src/application/` holds the chain and the use cases; `src/adapters/<provider>/` holds one adapter per provider and `src/adapters/resilience/` the decorators; `src/testing/` holds in-memory fakes. Vocabulary is in `docs/glossary.md`.
 
@@ -102,13 +122,14 @@ The package follows ADR 0001 (`docs/adr/0001-verification-context-architecture.m
 
 The chain is a strategy (which source answers) plus chain of responsibility (who gets asked next).
 
-- Order comes from `VERIFICATION_SOURCE_ORDER`, a comma-separated list of source names, parsed once by the composition root. Unknown names fail at startup.
-- For a check, the chain walks the order, skipping sources whose `supports` lacks the check kind.
-- The first result whose outcome is not `source_error` is final. The chain stops there.
-- If every source returns `source_error`, the chain result is `source_error` with every attempt attached.
+- Order comes from `VERIFICATION_SOURCE_ORDER`, a comma-separated list of source names. The CLI turns it into the `order` field of the verifier config; the composition root validates the config once (`order` non-empty without duplicates, `timeoutMs` and `pageCap` positive integers) and fails at startup on an unknown or duplicate name.
+- For a check, the chain walks the order, skipping sources that serve another platform or whose `supports` lacks the check kind. If no source serves the check, the verdict is `source_error` with zero attempts.
+- The first answer whose outcome is not `source_error` is final. The chain stops there.
+- If every source answers `source_error`, the verdict is `source_error` with every attempt attached.
 - `private` and `not_found` are final answers, not reasons to try another source. A second source cannot see a hidden list either, and trying it only spends money.
-- Each call runs under a timeout policy from cockatiel (`timeout(OUTBOUND_TIMEOUT_MS, TimeoutStrategy.Aggressive)`), which passes the `AbortSignal` the adapter must forward to `fetch`. One retry on `timeout`, `network`, `rate_limited` and 5xx `http`; no retry on anything else. A circuit breaker per source is deferred until the measurement log shows a source failing in bursts.
-- The chain result carries `attempts: SourceResult[]` so the measurement log sees every call, including the failed ones.
+- A source that throws instead of answering is recorded as `source_error` with kind `unexpected`, and the chain moves on. A cancellation requested by the caller through `options.signal` is propagated as a rejection, not recorded as an outcome.
+- Each source is wrapped by `withTimeout` at the composition root, a decorator built on cockatiel's aggressive timeout policy. It hands the source an `AbortSignal` that the adapter must forward to `fetch`; when the time runs out, the attempt becomes `source_error` with kind `timeout` whatever the source does next. Retry is deferred: retrying a timeout doubles worst-case latency and retrying a rate limit makes it worse, so the measurement log decides whether a retry decorator earns its place. A circuit breaker per source is deferred for the same reason.
+- Every attempt carries `startedAt` and `latencyMs` from the `Clock` port and is reported to the `MeasurementSink` port as it happens; the verdict carries all of them so the measurement log sees every call, including the failed ones.
 
 The composition root is one function, `createVerifier(config, deps)`, in `packages/verification/src/create-verifier.ts`. The caller constructs the adapters with their credentials and passes them in `deps.sources`; the root validates `config` once with Zod, wraps every source with the decorators, and returns the use cases. Nothing else in the library reads configuration.
 
@@ -238,13 +259,20 @@ Measurement panel (owned test accounts, created before the scraper session): one
 
 Unit tests, no network:
 
-- Value objects: `@name`, `name`, profile URL, mixed case all parse to the same `Handle`; a video URL and a numeric id parse to the same `VideoId`; invalid inputs fail at the boundary with a Zod error.
+In place (session 1):
+
+- Value objects: `@name`, `name`, profile URL, mixed case all parse to the same `Handle`; a video URL and a numeric id parse to the same `ContentId`; short links and invalid inputs fail at the boundary with an `InvalidInput` reason.
+- Timeout decorator: fake timers, a source that never settles yields `source_error` with kind `timeout` exactly at the configured duration; the signal handed to the source is aborted; a cancellation requested by the caller propagates instead.
+- Chain: `source_error` then `verified` yields `verified` with two attempts; `not_following`, `private` and `not_found` each stop the chain; all `source_error` yields `source_error` with every attempt; a source without `liked` support is skipped for `liked`; no eligible source yields `source_error` with no attempts; a thrown error becomes an `unexpected` attempt; latency and start time come from the clock; the page cap reaches the source.
+- Chain invariants, property-based over arbitrary answer sequences: the verdict is never `not_following` unless a source answered it; the verdict is the first definitive answer and the attempts are exactly the sources consulted; every error kind in every position yields `source_error`.
+- Ownership: token present, absent, present as part of a longer word (absent), `private`, `not_found` and `source_error` passed through.
+- Composition root: configured order wins over argument order; unknown, duplicate or empty order and non-positive numbers are rejected at creation; the timeout applies to every source; the system clock is the default.
+- Layer rule: a domain file importing from adapters, a non-test file importing from `testing`, or a domain file importing cockatiel fails `pnpm lint`.
+
+Still to write with the adapters and the CLI:
+
 - Each adapter: one test per row of its mapping table, driven by a sanitized fixture file; unknown provider status code yields `source_error` with kind `unknown_status`; unparseable body yields `source_error` with kind `parse`.
-- Timeout: fake timers, adapter never resolves, result is `source_error` with kind `timeout` within `OUTBOUND_TIMEOUT_MS`.
 - Pagination: target on page 2 with `pageCap` 3 yields `verified` with `pagesRead` 2; target absent with `pageCap` 1 and `hasMore` true yields `not_following` with `listExhausted` false.
-- Chain: `source_error` then `verified` yields `verified` with two attempts; `not_following` first stops the chain; `private` first stops the chain; all `source_error` yields `source_error` with every attempt; a source without `liked` support is skipped for `liked`.
-- Chain never maps a failure to `not_following`: a property-style test runs the chain over every `SourceErrorKind` and asserts the outcome is `source_error`.
-- Owns: token present, absent, present as a substring of a longer word (absent), private account (`private`).
 - CLI: each command maps outcomes to the documented exit codes; `--source` disables fallback; the log line schema validates.
 
 Live tests, skipped unless the provider's key name is present in the environment: one `profile`, one `follows` and one `liked` per source against the measurement panel.
@@ -293,21 +321,24 @@ Live tests, skipped unless the provider's key name is present in the environment
 ## 12. Open questions
 
 1. Outcome naming: `not_following` is also used for an absent like and an absent bio token. Keep the five names as given, or rename to `absent` before the API phase freezes the vocabulary.
-2. Handle character rules and maximum length (letters, digits, underscore, period, 24 characters is the common claim, UNCONFIRMED).
-3. Whether a plain Node `fetch` with a browser user agent gets the profile HTML, or whether a Chrome TLS fingerprint is required.
-4. Whether the carcabot sidecar mints `msToken` and loads TikTok's SDK live.
-5. LamaTok response shapes for lists and private accounts; whether LamaTok charges a 403 on a hidden list as a successful response (its pricing says 403 is charged).
-6. EnsembleData unit costs for followings and liked posts, and its behavior on hidden lists.
-7. Page cap default: 3 pages of the following list is a guess until the measurement log shows the page distribution of `verified`.
-8. Re-check schedule for `watch` (24 h, 72 h, 7 d is the working assumption) and the payout hold that depends on it: a product decision.
-9. Whether the measurement panel accounts can be created and kept without TikTok suspending them.
+2. Handle character rules: the code enforces `a-z0-9_.` and at most 24 characters, the rule every third-party page repeats, but TikTok's own help page answered fetches with a bot wall, so it stays PARTIALLY CONFIRMED. The minimum length is left at 1 so that no real account is rejected.
+3. Short links (`vm.tiktok.com`, `vt.tiktok.com`, `tiktok.com/t/`) are rejected at parse time. Resolving them needs a network call, so it belongs to a source; decide in the CLI session whether the CLI resolves them before building the check.
+4. The chain skips sources that serve another platform, but with one platform in the union that branch cannot be exercised by a test; the first second-platform session adds that test.
+5. Whether a plain Node `fetch` with a browser user agent gets the profile HTML, or whether a Chrome TLS fingerprint is required.
+6. Whether the carcabot sidecar mints `msToken` and loads TikTok's SDK live.
+7. LamaTok response shapes for lists and private accounts; whether LamaTok charges a 403 on a hidden list as a successful response (its pricing says 403 is charged).
+8. EnsembleData unit costs for followings and liked posts, and its behavior on hidden lists.
+9. Page cap default: 3 pages of the following list is a guess until the measurement log shows the page distribution of `verified`.
+10. Re-check schedule for `watch` (24 h, 72 h, 7 d is the working assumption) and the payout hold that depends on it: a product decision.
+11. Whether the measurement panel accounts can be created and kept without TikTok suspending them.
 
 ## 13. Next sessions
 
-1. **Domain and contract**: create the value objects, the `Outcome` and `SourceResult` types, the `VerificationSource` port and the chain with its tests, plus the composition root. First action: add `zod` and `cockatiel` to `packages/verification` from the catalog and write `src/domain/handle.ts` with its test.
-2. **LamaTok adapter**: record fixtures with the 100 free requests against the measurement panel, write the schemas, mapping and tests, fill the first row of the results table. First action: confirm the key name exists with `grep -oE "^LAMATOK_ACCESS_KEY=" .env` and call `/sys/balance` through the shared client.
-3. **EnsembleData adapter**: same procedure with the 50 daily trial units; settle open question 6. First action: record a `/tt/user/info` fixture and read `unitsCharged`.
-4. **CLI**: implement the five commands, exit codes and the measurement log against the two paid adapters. First action: decide commander versus `util.parseArgs` by writing the `follows` command both ways in a scratch file and keeping the shorter one.
-5. **Scraper, profile only**: measure plain-fetch success on the profile HTML, write the HTML adapter for `profile` and `owns`, settle open question 3 and facts 10 and 11. First action: fetch one panel profile with Node `fetch` and record whether the rehydration script is present.
-6. **Scraper, lists and signer**: run carcabot/tiktok-signature in Docker, implement the signer port and the following and liked list reads, settle open questions 4 and 7, complete the results table. First action: `docker compose up` the sidecar and sign one `/api/user/list/` URL.
-7. **Watch and results**: implement `watch`, run the 30-attempt panel against every source, write the results table and the recommended default order. First action: run `watch follows` against the panel while unfollowing from the performer account.
+Done: **Domain and contract** (value objects, outcome model, ports, timeout decorator, chain, ownership use case, composition root, ADR 0001, glossary).
+
+1. **LamaTok adapter**: add the shared HTTP client (Node `fetch` with the context signal, auth header injection, Zod parsing of the body) under `src/adapters/http/`, record fixtures with the 100 free requests against the measurement panel, write the schemas, mapping and tests, fill the first row of the results table. First action: confirm the key name exists with `grep -oE "^LAMATOK_ACCESS_KEY=" .env` and call `/sys/balance` through the shared client.
+2. **EnsembleData adapter**: same procedure with the 50 daily trial units; settle open question 6. First action: record a `/tt/user/info` fixture and read `unitsCharged`.
+3. **CLI**: implement the five commands, exit codes and the measurement log against the two paid adapters; the CLI parses the environment once, builds the sources with their keys, and calls `createVerifier`. First action: decide commander versus `util.parseArgs` by writing the `follows` command both ways in a scratch file and keeping the shorter one.
+4. **Scraper, profile only**: measure plain-fetch success on the profile HTML, write the HTML adapter for `profile` and `owns`, settle open question 3 and facts 10 and 11. First action: fetch one panel profile with Node `fetch` and record whether the rehydration script is present.
+5. **Scraper, lists and signer**: run carcabot/tiktok-signature in Docker, implement the signer port and the following and liked list reads, settle open questions 4 and 7, complete the results table. First action: `docker compose up` the sidecar and sign one `/api/user/list/` URL.
+6. **Watch and results**: implement `watch`, run the 30-attempt panel against every source, write the results table and the recommended default order. First action: run `watch follows` against the panel while unfollowing from the performer account.
