@@ -1,0 +1,21 @@
+{
+  "statusCode": 0,
+  "status_code": 0,
+  "status_msg": "",
+  "hasMore": false,
+  "minCursor": 1447292191,
+  "maxCursor": 0,
+  "total": 1,
+  "isTruncated": false,
+  "userList": [
+    {
+      "user": {
+        "id": "6551237489917432832",
+        "uniqueId": "tiktokcreators",
+        "nickname": "tiktok creators",
+        "secUid": "MS4wLjABAAAAXqqA-cLDC0hfQPIrS5APYNsg04zkl-socWCkqkI3UIOaEe6_Qnokg0GcWpLnMNQP",
+        "privateAccount": false
+      }
+    }
+  ]
+}

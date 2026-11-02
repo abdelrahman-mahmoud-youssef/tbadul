@@ -1,5 +1,7 @@
 export interface TransportInit {
+  readonly method: 'GET' | 'POST';
   readonly headers: Readonly<Record<string, string>>;
+  readonly body?: string;
   readonly signal: AbortSignal;
 }
 
