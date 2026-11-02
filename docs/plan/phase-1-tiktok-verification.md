@@ -96,7 +96,7 @@ interface SourceResult<E> {
 
 `SourceErrorKind` is a closed union too: `timeout | network | http | auth | rate_limited | blocked | parse | unknown_status`. `blocked` is a bot wall or captcha page.
 
-Sources are ports and adapters: `packages/verification/src/sources/` holds the port, the outcome types and the shared policies; `packages/verification/src/adapters/<provider>/` holds one adapter per provider. `packages/verification/src/domain/` holds the value objects. `packages/verification/src/chain/` holds the chain.
+The package follows ADR 0001 (`docs/adr/0001-verification-context-architecture.md`): `src/domain/` holds the value objects, the outcome model and pure rules; `src/ports/` holds `VerificationSource`, `Clock` and `MeasurementSink`; `src/application/` holds the chain and the use cases; `src/adapters/<provider>/` holds one adapter per provider and `src/adapters/resilience/` the decorators; `src/testing/` holds in-memory fakes. Vocabulary is in `docs/glossary.md`.
 
 ## 4. Chain and fallback
 
@@ -110,7 +110,7 @@ The chain is a strategy (which source answers) plus chain of responsibility (who
 - Each call runs under a timeout policy from cockatiel (`timeout(OUTBOUND_TIMEOUT_MS, TimeoutStrategy.Aggressive)`), which passes the `AbortSignal` the adapter must forward to `fetch`. One retry on `timeout`, `network`, `rate_limited` and 5xx `http`; no retry on anything else. A circuit breaker per source is deferred until the measurement log shows a source failing in bursts.
 - The chain result carries `attempts: SourceResult[]` so the measurement log sees every call, including the failed ones.
 
-The composition root is one function, `createVerifier(config, deps)`, in `packages/verification/src/index.ts`. It builds the adapters from config, wires the policies, and returns the chain. Nothing else in the library reads configuration.
+The composition root is one function, `createVerifier(config, deps)`, in `packages/verification/src/create-verifier.ts`. The caller constructs the adapters with their credentials and passes them in `deps.sources`; the root validates `config` once with Zod, wraps every source with the decorators, and returns the use cases. Nothing else in the library reads configuration.
 
 ## 5. Scraper source
 
