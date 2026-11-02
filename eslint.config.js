@@ -1,18 +1,86 @@
 import js from '@eslint/js';
+import boundaries from 'eslint-plugin-boundaries';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
-export default defineConfig(globalIgnores(['**/dist/', '**/.turbo/']), {
-  files: ['**/*.ts'],
-  extends: [
-    js.configs.recommended,
-    tseslint.configs.strictTypeChecked,
-    tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    parserOptions: {
-      projectService: true,
-      tsconfigRootDir: import.meta.dirname,
+const layers = ['domain', 'ports', 'application', 'adapters', 'testing', 'root'];
+
+export default defineConfig(
+  globalIgnores(['**/dist/', '**/.turbo/']),
+  {
+    files: ['**/*.ts'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.strictTypeChecked,
+      tseslint.configs.stylisticTypeChecked,
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
-});
+  {
+    files: ['packages/verification/src/**/*.ts'],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': layers.map((type) => ({
+        type,
+        pattern: type === 'root' ? 'src' : `src/${type}`,
+      })),
+      'boundaries/files': [{ pattern: '**/*.test.ts', category: 'test' }],
+    },
+    rules: {
+      ...boundaries.configs.strict.rules,
+      'boundaries/dependencies': [
+        2,
+        {
+          default: 'disallow',
+          checkAllOrigins: true,
+          policies: [
+            { from: { element: { type: '*' } }, allow: { to: { module: { origin: 'core' } } } },
+            {
+              from: { element: { type: ['domain', 'root'] } },
+              allow: { to: { module: { source: 'zod' } } },
+            },
+            {
+              from: { element: { type: 'adapters' } },
+              allow: { to: { module: { source: 'cockatiel' } } },
+            },
+            {
+              from: { element: { type: 'ports' } },
+              allow: { to: { element: { type: 'domain' } } },
+            },
+            {
+              from: { element: { type: 'application' } },
+              allow: { to: { element: { type: ['domain', 'ports'] } } },
+            },
+            {
+              from: { element: { type: 'adapters' } },
+              allow: { to: { element: { type: ['domain', 'ports'] } } },
+            },
+            {
+              from: { element: { type: 'testing' } },
+              allow: { to: { element: { type: ['domain', 'ports', 'adapters'] } } },
+            },
+            {
+              from: { element: { type: 'root' } },
+              allow: { to: { element: { type: ['domain', 'ports', 'application', 'adapters'] } } },
+            },
+            {
+              from: { file: { categories: 'test' } },
+              allow: {
+                to: [
+                  { element: { type: 'testing' } },
+                  { module: { source: ['vitest', 'fast-check'] } },
+                ],
+              },
+            },
+            { disallow: { to: { file: { categories: 'test' } } } },
+          ],
+        },
+      ],
+    },
+  },
+);
