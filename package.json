@@ -23,6 +23,7 @@
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-boundaries": "catalog:",
+    "lefthook": "catalog:",
     "prettier": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
