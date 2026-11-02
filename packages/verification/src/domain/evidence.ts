@@ -7,6 +7,11 @@ export interface ProfileEvidence {
   readonly isPrivate: boolean;
   readonly followingVisible?: boolean;
   readonly likesVisible?: boolean;
+  readonly followerCount?: number;
+  readonly videoCount?: number;
+  readonly avatarUrl?: string;
+  readonly createdAt?: number;
+  readonly latestPostAt?: number;
 }
 
 export interface ListEvidence {

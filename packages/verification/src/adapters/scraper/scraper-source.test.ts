@@ -107,6 +107,11 @@ describe('scraperSource', () => {
           isPrivate: false,
           followingVisible: true,
           likesVisible: false,
+          followerCount: 96530997,
+          videoCount: 1516,
+          avatarUrl:
+            'https://p16-common-sign.tiktokcdn.com/tos-maliva-avt-0068/ba67b11de451691939223e9d978e613a~tplv-tiktokx-cropcenter:100:100.jpeg',
+          createdAt: 1425144149000,
         },
         cost: { unit: 'request', amount: 1 },
       });

@@ -4,6 +4,8 @@ import { err, ok, type Result } from '../../domain/result.ts';
 
 const scriptId = '__UNIVERSAL_DATA_FOR_REHYDRATION__';
 
+const count = z.coerce.number().int().nonnegative();
+
 export const userDetailSchema = z.object({
   statusCode: z.number().int(),
   userInfo: z
@@ -16,7 +18,10 @@ export const userDetailSchema = z.object({
         privateAccount: z.boolean(),
         followingVisibility: z.number().int().optional(),
         openFavorite: z.boolean().optional(),
+        createTime: z.number().int().optional(),
+        avatarThumb: z.string().optional(),
       }),
+      statsV2: z.object({ followerCount: count, videoCount: count }).optional(),
     })
     .optional(),
 });

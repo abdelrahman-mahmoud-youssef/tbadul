@@ -92,6 +92,12 @@ const profileAnswer = (detail: UserDetail, handle: Handle): Answer<'profile'> =>
         followingVisible: user.followingVisibility === 1,
       }),
       ...(user.openFavorite !== undefined && { likesVisible: user.openFavorite }),
+      ...(detail.userInfo.statsV2 && {
+        followerCount: detail.userInfo.statsV2.followerCount,
+        videoCount: detail.userInfo.statsV2.videoCount,
+      }),
+      ...(user.avatarThumb !== undefined && { avatarUrl: user.avatarThumb.split('?')[0] }),
+      ...(user.createTime !== undefined && { createdAt: user.createTime * 1000 }),
     },
     cost: requests(1),
   };
