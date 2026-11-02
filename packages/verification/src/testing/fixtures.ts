@@ -4,9 +4,10 @@ import type { Check } from '../domain/check.ts';
 import { parseContentId, type ContentId } from '../domain/content-id.ts';
 import type { ListEvidence, ProfileEvidence } from '../domain/evidence.ts';
 import { parseHandle, type Handle } from '../domain/handle.ts';
+import type { Result } from '../domain/result.ts';
 import type { CallContext } from '../ports/verification-source.ts';
 
-const unwrap = <T>(result: { ok: true; value: T } | { ok: false; error: unknown }): T => {
+const unwrap = <T>(result: Result<T, unknown>): T => {
   if (!result.ok) throw new Error(`fixture does not parse: ${JSON.stringify(result.error)}`);
   return result.value;
 };

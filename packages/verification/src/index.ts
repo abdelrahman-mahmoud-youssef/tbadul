@@ -1,5 +1,3 @@
-export { defineSource, type CheckHandler, type CheckHandlers } from './adapters/define-source.ts';
-export { withTimeout } from './adapters/resilience/with-timeout.ts';
 export type { Verify, VerifyOptions } from './application/chain.ts';
 export type { VerifyOwnership } from './application/ownership.ts';
 export {
