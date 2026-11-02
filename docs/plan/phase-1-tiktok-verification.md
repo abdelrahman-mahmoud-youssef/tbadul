@@ -394,6 +394,8 @@ Live tests, skipped unless the provider's key name is present in the environment
 
 Done: **Domain and contract** (value objects, outcome model, ports, timeout decorator, chain, ownership use case, composition root, ADR 0001, glossary).
 
+Done: **Shared HTTP client**, **Scraper** (profile, following, liked, signer sidecar), **Account linking** (ADR 0002, `packages/social-accounts`, `link start` and `link verify` in the CLI).
+
 1. **LamaTok adapter**: add the shared HTTP client (Node `fetch` with the context signal, auth header injection, Zod parsing of the body) under `src/adapters/http/`, record fixtures with the 100 free requests against the measurement panel, write the schemas, mapping and tests, fill the first row of the results table. First action: confirm the key name exists with `grep -oE "^LAMATOK_ACCESS_KEY=" .env` and call `/sys/balance` through the shared client.
 2. **EnsembleData adapter**: same procedure with the 50 daily trial units; settle open question 6. First action: record a `/tt/user/info` fixture and read `unitsCharged`.
 3. **CLI**: implement the five commands, exit codes and the measurement log against the two paid adapters; the CLI parses the environment once, builds the sources with their keys, and calls `createVerifier`. First action: decide commander versus `util.parseArgs` by writing the `follows` command both ways in a scratch file and keeping the shorter one.
