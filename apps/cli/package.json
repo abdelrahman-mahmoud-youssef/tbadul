@@ -1,0 +1,21 @@
+{
+  "name": "@engagement-exchange/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "dev": "node src/main.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@engagement-exchange/verification": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+*.tsbuildinfo
+*.log
+*.jsonl
+
+.env
+.env.*
+!.env.example
+
+.notes/
+.claude/settings.local.json
+CLAUDE.local.md
