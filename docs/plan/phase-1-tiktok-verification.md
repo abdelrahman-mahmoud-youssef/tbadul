@@ -407,15 +407,19 @@ Done: **Shared HTTP client**, **Scraper** (profile, following, liked, signer sid
 
 Measured on 2026-11-02 through the chain with the scraper as the only source, against well-known public accounts (recorded in the untracked notes). Paid sources have no keys yet.
 
-| Case                                | Source                | Outcome       | Latency                           | Cost       | Note                                          |
-| ----------------------------------- | --------------------- | ------------- | --------------------------------- | ---------- | --------------------------------------------- |
-| profile, public account             | scraper               | verified      | 0.7 to 1.7 s                      | 1 request  | Evidence: secUid, bio, privacy flags          |
-| profile, missing handle             | scraper               | not_found     | 0.7 s                             | 1 request  | `statusCode 10221`                            |
-| follows, known pair                 | scraper               | verified      | 0.5 s list page after the profile | 2 requests | Target on page 1, `listExhausted` false       |
-| follows, large account not followed | scraper               | not_following | 0.5 s list page after the profile | 2 requests | Single page, `listExhausted` true             |
-| follows, hidden following list      | scraper               | private       | profile only                      | 1 request  | `followingVisibility` 2; list call skipped    |
-| liked, hidden likes                 | scraper               | private       | profile only                      | 1 request  | `openFavorite` false; list call skipped       |
-| liked, public likes                 | scraper               | pending       |                                   |            | No public-likes account found among the panel |
-| watch after a fresh follow          | scraper               | pending       |                                   |            | Needs an account the operator controls        |
-| unfollow re-check                   | scraper               | pending       |                                   |            | Needs an account the operator controls        |
-| every case                          | lamatok, ensembledata | pending       |                                   |            | No key configured                             |
+| Case                                | Source                | Outcome            | Latency                           | Cost       | Note                                                                                   |
+| ----------------------------------- | --------------------- | ------------------ | --------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| profile, public account             | scraper               | verified           | 0.7 to 1.7 s                      | 1 request  | Evidence: secUid, bio, privacy flags                                                   |
+| profile, missing handle             | scraper               | not_found          | 0.7 s                             | 1 request  | `statusCode 10221`                                                                     |
+| follows, known pair                 | scraper               | verified           | 0.5 s list page after the profile | 2 requests | Target on page 1, `listExhausted` false                                                |
+| follows, large account not followed | scraper               | not_following      | 0.5 s list page after the profile | 2 requests | Single page, `listExhausted` true                                                      |
+| follows, hidden following list      | scraper               | private            | profile only                      | 1 request  | `followingVisibility` 2; list call skipped                                             |
+| liked, hidden likes                 | scraper               | private            | profile only                      | 1 request  | `openFavorite` false; list call skipped                                                |
+| liked, public likes                 | scraper               | pending            |                                   |            | No public-likes account found among the panel                                          |
+| watch after a fresh follow          | scraper               | pending            |                                   |            | Needs an account the operator controls                                                 |
+| unfollow re-check                   | scraper               | pending            |                                   |            | Needs an account the operator controls                                                 |
+| every case                          | lamatok, ensembledata | pending            |                                   |            | No key configured                                                                      |
+| link start, eligible public account | scraper               | awaiting_follow    | 2 page loads, 1 list call         | 3 requests | Verification account assigned from the pool after the baseline                         |
+| link start, following list hidden   | scraper               | eligibility_failed | 1 page load                       | 1 request  | Reason `following_hidden`; no baseline call                                            |
+| link verify before the follow       | scraper               | not_following      | 1 page load, 1 list call          | 2 requests | Attempt recorded, next verify in 30 s; the early-call refusal is covered by unit tests |
+| link verify after the follow        | scraper               | pending            |                                   |            | Needs an account the operator controls                                                 |
