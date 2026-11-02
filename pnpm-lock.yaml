@@ -206,6 +206,9 @@ catalogs:
     typescript-eslint:
       specifier: ^8.72.1
       version: 8.72.1
+    undici:
+      specifier: ^8.12.3
+      version: 8.12.3
     vitest:
       specifier: ^5.0.5
       version: 5.0.5
@@ -288,6 +291,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      undici:
+        specifier: 'catalog:'
+        version: 8.12.3
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1862,6 +1868,10 @@ packages:
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
+  undici@8.12.3:
+    resolution: {integrity: sha512-+fdndUTwBP86cVjihTp21hZHo7d6oj1c/47XPA3lL8mM0XHs+C4EkcjmgRsFnFk2f/UONGDy9ItBItmXsLOQHw==}
+    engines: {node: '>=22.19.0'}
+
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
@@ -3297,6 +3307,8 @@ snapshots:
   unbash@6.0.3: {}
 
   undici-types@8.9.0: {}
+
+  undici@8.12.3: {}
 
   uri-js@4.4.1:
     dependencies:

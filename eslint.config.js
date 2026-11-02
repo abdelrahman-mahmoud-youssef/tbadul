@@ -76,7 +76,7 @@ export default defineConfig(
               allow: {
                 to: [
                   { element: { type: 'testing' } },
-                  { module: { source: ['vitest', 'fast-check'] } },
+                  { module: { source: ['vitest', 'fast-check', 'undici'] } },
                 ],
               },
             },
