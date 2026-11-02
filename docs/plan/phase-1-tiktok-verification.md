@@ -204,6 +204,45 @@ Tradeoff: a browser-executed signer survives SDK rotation because it runs whatev
 
 Mapping draft, to be confirmed against recorded fixtures: 404 on profile is `not_found`; 403 on a list is `private`; a list page is scanned for the target; 5xx, timeouts and unknown bodies are `source_error`. Cost unit is `request`, converted to USD with the tier price recorded in the measurement table.
 
+#### Fixture recording plan, from the live spec
+
+Read from `https://api.lamatok.com/openapi.json` on 2026-11-02 (OpenAPI 3.1.0, API version 1.4.5). The spec wins over earlier wording in this plan; the differences are listed after the table. Budget: 23 planned requests of the 100 free ones, hard stop at 40. Every call records the status code, the JSON body, the response headers (the spec names an `x-lamatok-info` billing header) and the wall-clock latency.
+
+| #   | Endpoint                       | Input                                  | Purpose                                                   |
+| --- | ------------------------------ | -------------------------------------- | --------------------------------------------------------- |
+| 1   | `/sys/balance`                 | none                                   | Balance before recording; confirms the key                |
+| 2   | `/v1/user/by/username`         | public performer                       | Profile shape: `secUid`, bio, privacy flags               |
+| 3   | `/v1/user/by/username`         | private performer                      | Private profile shape                                     |
+| 4   | `/v1/user/by/username`         | username that does not exist           | 404 body for `not_found`                                  |
+| 5   | `/v3/user/by/username`         | private performer                      | Compare with 3; v3 is billed 1 to 3 requests              |
+| 6   | `/v3/user/by/username`         | username that does not exist           | 404 body for `not_found` on v3                            |
+| 7   | `/v1/user/following/by/secUid` | public performer, `count` 30           | Page 1 shape, `next_page_id`                              |
+| 8   | `/v1/user/following/by/secUid` | same, `page_id` from 7                 | Page 2, pagination contract                               |
+| 9   | `/v1/user/following/by/secUid` | performer with hidden following        | Hidden-list status code and body for `private`            |
+| 10  | `/v2/user/following/by/secUid` | public performer, `count` 20           | Page 1 shape under v2                                     |
+| 11  | `/v2/user/following/by/secUid` | same, `max_time` from 10               | Pagination contract under v2                              |
+| 12  | `/v2/user/following/by/secUid` | performer with hidden following        | Hidden-list behavior under v2, which declares no 404      |
+| 13  | `/v2/user/likes/by/secUid`     | public performer, `count` 20           | Page 1 shape, `cursor`                                    |
+| 14  | `/v2/user/likes/by/secUid`     | same, `cursor` from 13                 | Pagination contract                                       |
+| 15  | `/v2/user/likes/by/secUid`     | performer with hidden likes            | Hidden-likes status code and body for `private`           |
+| 16  | `/v1/media/by/url`             | full video URL of the target video     | Media shape, the id for `ContentId`                       |
+| 17  | `/v1/media/by/url`             | `vm.tiktok.com` short link to the same | Short-link resolution, settles open question 10           |
+| 18  | `/v1/media/by/url`             | a profile URL                          | Declared 400 for a non-media link                         |
+| 19  | `/v1/media/by/id`              | 19-digit id from 16                    | Media shape by id                                         |
+| 20  | `/v1/media/by/id`              | an 18-digit id                         | 422 validation body, and whether 422 is charged           |
+| 21  | `/v1/user/by/username`         | a one-character username               | 422 for input the domain accepts but the vendor rejects   |
+| 22  | `/sys/balance`                 | wrong key                              | Real auth failure status, which the spec does not declare |
+| 23  | `/sys/balance`                 | none                                   | Balance after recording; gives the charged total          |
+
+Where the spec and the session brief disagree:
+
+- The brief named `/v1/user/by/username` for profiles. The spec adds `/v3/user/by/username`, which also returns profiles v1 answers with `404 ProfileUnavailable`, and bills 1 request per call or 2 to 3 for a restored profile. Calls 3 to 6 record both; the measurement decides which the adapter uses.
+- The brief described v2 pagination as cursors. The spec gives each v2 endpoint its own parameter: `max_time` for following, `cursor` for likes, `max_cursor` for medias. v1 list endpoints use `page_id` and return `next_page_id`.
+- The brief mapped 401 and 403 to `auth`. The spec declares no 401 or 403 response on any endpoint, only 200, 404 and 422. Call 22 establishes the real code for a bad key.
+- The brief treated short links as unsupported. `/v1/media/by/url` accepts `vm.tiktok.com`, `vt.tiktok.com` and `tiktok.com/t/` links and answers 400 for a profile, hashtag or non-TikTok link. The LamaTok source can therefore resolve short links; see open question 10.
+- Input constraints the spec declares and the domain does not: `username` 2 to 24 characters; `secUid` 55 to 76 characters matching `^[a-zA-Z0-9_/-]+$` on v1; media `id` exactly 19 digits; v2 `count` 1 to 50. Call 21 shows what a one-character handle yields.
+- Billing for a 422 validation error is not stated. The balance delta across calls 1 to 23 gives the charged total.
+
 ### 6.2 EnsembleData
 
 - Official npm package `ensembledata` 0.1.12, MIT, published 2026-01-22, ships TypeScript types, repo EnsembleData/ensembledata-node (2 stars). CONFIRMED, https://registry.npmjs.org/ensembledata.
