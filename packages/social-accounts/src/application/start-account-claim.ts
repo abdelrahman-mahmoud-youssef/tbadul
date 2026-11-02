@@ -1,0 +1,122 @@
+import {
+  err,
+  ok,
+  parseHandle,
+  type AccountId,
+  type Handle,
+  type Platform,
+  type Result,
+} from '@engagement-exchange/verification';
+import {
+  awaitingFollow,
+  eligibilityFailed,
+  holdsAccount,
+  rejected,
+  type AccountClaim,
+  type ClaimDraft,
+} from '../domain/claim.ts';
+import type { ClaimError } from '../domain/claim-error.ts';
+import { evaluateEligibility } from '../domain/eligibility.ts';
+import { claimId, type UserId } from '../domain/ids.ts';
+import type { UseCaseDeps } from './deps.ts';
+import { factsFrom } from './profile-facts.ts';
+
+export interface StartClaimInput {
+  readonly userId: UserId;
+  readonly platform: Platform;
+  readonly account: string;
+}
+
+export type StartAccountClaim = (
+  input: StartClaimInput,
+) => Promise<Result<AccountClaim, ClaimError>>;
+
+type Baseline =
+  | { readonly kind: 'assigned'; readonly account: Handle }
+  | { readonly kind: 'exhausted' }
+  | { readonly kind: 'unavailable' };
+
+const pickVerificationAccount = async (
+  deps: UseCaseDeps,
+  claimed: Handle,
+  candidates: readonly Handle[],
+): Promise<Baseline> => {
+  for (const candidate of candidates) {
+    const verdict = await deps.verifier.verify({
+      kind: 'follows',
+      performer: claimed,
+      target: candidate,
+    });
+    if (verdict.outcome === 'not_following') return { kind: 'assigned', account: candidate };
+    if (verdict.outcome !== 'verified') return { kind: 'unavailable' };
+  }
+  return { kind: 'exhausted' };
+};
+
+export const startAccountClaimWith =
+  (deps: UseCaseDeps): StartAccountClaim =>
+  async ({ userId, platform, account }) => {
+    const handle = parseHandle(platform, account);
+    if (!handle.ok) return err({ kind: 'invalid_handle', reason: handle.error.reason });
+
+    const held = await deps.repository.countHeldBy(userId, platform);
+    if (held >= deps.policy.maxAccountsPerPlatform) {
+      return err({ kind: 'claim_limit_reached', limit: deps.policy.maxAccountsPerPlatform });
+    }
+    const holder = await deps.repository.findHolder(handle.value);
+    if (holder !== undefined && holder.userId !== userId && holdsAccount(holder)) {
+      return err({ kind: 'account_already_claimed' });
+    }
+
+    const profile = await deps.verifier.verify({ kind: 'profile', subject: handle.value });
+    switch (profile.outcome) {
+      case 'source_error':
+      case 'not_following':
+        return err({ kind: 'source_unavailable' });
+      case 'private':
+      case 'not_found':
+        return err({ kind: 'account_unavailable', outcome: profile.outcome });
+      case 'verified': {
+        const now = deps.clock.now();
+        const draft: ClaimDraft = {
+          id: claimId(deps.ids.next()),
+          userId,
+          handle: handle.value,
+          eligibility: evaluateEligibility(
+            factsFrom(profile.evidence),
+            now,
+            deps.policy.eligibility,
+          ),
+          startedAt: now,
+          ttlMs: deps.policy.claimTtlMs,
+        };
+        const claim = draft.eligibility.eligible
+          ? await settleBaseline(deps, draft, profile.evidence.accountId, platform)
+          : ok(eligibilityFailed(draft));
+        if (!claim.ok) return claim;
+        await deps.repository.save(claim.value);
+        return claim;
+      }
+    }
+  };
+
+const settleBaseline = async (
+  deps: UseCaseDeps,
+  draft: ClaimDraft,
+  accountId: AccountId,
+  platform: Platform,
+): Promise<Result<AccountClaim, ClaimError>> => {
+  const baseline = await pickVerificationAccount(
+    deps,
+    draft.handle,
+    deps.pool.candidates(platform),
+  );
+  switch (baseline.kind) {
+    case 'assigned':
+      return ok(awaitingFollow(draft, accountId, baseline.account));
+    case 'exhausted':
+      return ok(rejected(draft, accountId, 'pool_exhausted'));
+    case 'unavailable':
+      return err({ kind: 'source_unavailable' });
+  }
+};

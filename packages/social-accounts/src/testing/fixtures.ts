@@ -1,0 +1,56 @@
+import { handle, manualClock, type ManualClock } from '@engagement-exchange/verification/testing';
+import { configVerificationAccountPool } from '../adapters/config-verification-account-pool.ts';
+import { inMemoryClaimRepository } from '../adapters/in-memory-claim-repository.ts';
+import type { ClaimPolicy, UseCaseDeps } from '../application/deps.ts';
+import { userId } from '../domain/ids.ts';
+import type { AccountClaimRepository } from '../ports/account-claim-repository.ts';
+import { fakeVerifier, type FakeVerifier, type FakeVerifierScript } from './fake-verifier.ts';
+
+export const policy: ClaimPolicy = {
+  eligibility: {
+    minFollowers: 10,
+    minPosts: 1,
+    minAccountAgeDays: 30,
+    activeWithinDays: 90,
+    defaultAvatarMarkers: [],
+    inconclusiveBlocks: false,
+  },
+  cooldown: { stepsMs: [30_000, 60_000, 120_000, 300_000], afterwardsMs: 600_000 },
+  claimTtlMs: 86_400_000,
+  maxAccountsPerPlatform: 5,
+};
+
+export const alice = userId('alice');
+export const bob = userId('bob');
+export const creator = handle('some.creator');
+export const poolAccounts = [handle('verify.one'), handle('verify.two')];
+
+export interface Harness {
+  readonly deps: UseCaseDeps;
+  readonly verifier: FakeVerifier;
+  readonly clock: ManualClock;
+  readonly repository: AccountClaimRepository;
+}
+
+export const harness = (
+  script: FakeVerifierScript = {},
+  overrides: Partial<ClaimPolicy> = {},
+): Harness => {
+  const verifier = fakeVerifier(script);
+  const clock = manualClock(Date.UTC(2026, 10, 2));
+  const repository = inMemoryClaimRepository();
+  let counter = 0;
+  return {
+    verifier,
+    clock,
+    repository,
+    deps: {
+      verifier,
+      repository,
+      pool: configVerificationAccountPool(poolAccounts, () => 0),
+      clock,
+      ids: { next: () => `claim-${String(++counter)}` },
+      policy: { ...policy, ...overrides },
+    },
+  };
+};
