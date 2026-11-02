@@ -25,7 +25,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['packages/verification/src/**/*.ts'],
+    files: ['packages/*/src/**/*.ts'],
     plugins: { boundaries },
     settings: {
       'boundaries/elements': layers.map((type) => ({
@@ -43,6 +43,26 @@ export default defineConfig(
           checkAllOrigins: true,
           policies: [
             { from: { element: { type: '*' } }, allow: { to: { module: { origin: 'core' } } } },
+            {
+              from: { element: { type: ['application', 'ports', 'adapters', 'testing', 'root'] } },
+              allow: {
+                to: {
+                  module: {
+                    source: [
+                      '@engagement-exchange/verification',
+                      '@engagement-exchange/verification/testing',
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              from: { element: { type: 'domain' } },
+              allow: {
+                to: { module: { source: '@engagement-exchange/verification' } },
+                dependency: { kind: 'type' },
+              },
+            },
             {
               from: { element: { type: ['domain', 'adapters', 'root'] } },
               allow: { to: { module: { source: 'zod' } } },
@@ -76,9 +96,23 @@ export default defineConfig(
               allow: {
                 to: [
                   { element: { type: 'testing' } },
-                  { module: { source: ['vitest', 'fast-check', 'undici'] } },
+                  {
+                    module: {
+                      source: [
+                        'vitest',
+                        'fast-check',
+                        'undici',
+                        '@engagement-exchange/verification',
+                        '@engagement-exchange/verification/testing',
+                      ],
+                    },
+                  },
                 ],
               },
+            },
+            {
+              from: { element: { type: 'testing' } },
+              allow: { to: { element: { type: 'application' } }, dependency: { kind: 'type' } },
             },
             { disallow: { to: { file: { categories: 'test' } } } },
           ],

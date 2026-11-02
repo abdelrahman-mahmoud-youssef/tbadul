@@ -1,7 +1,7 @@
 import { failed, type Answer } from '../domain/answer.ts';
 import type { Attempt } from '../domain/attempt.ts';
 import { checkPlatform, type CheckKind, type CheckOf } from '../domain/check.ts';
-import type { Platform } from '../domain/platform.ts';
+import { samePlatform, type Platform } from '../domain/platform.ts';
 import type { SourceName } from '../domain/source-name.ts';
 import type { Verdict } from '../domain/verdict.ts';
 import type { Clock } from '../ports/clock.ts';
@@ -25,7 +25,7 @@ export type Verify = <K extends CheckKind>(
 ) => Promise<Verdict<K>>;
 
 const serves = (source: VerificationSource, platform: Platform, kind: CheckKind): boolean =>
-  Object.is(source.platform, platform) && source.supports.has(kind);
+  samePlatform(source.platform, platform) && source.supports.has(kind);
 
 const askSource = async <K extends CheckKind>(
   source: VerificationSource,

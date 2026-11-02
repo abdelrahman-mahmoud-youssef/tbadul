@@ -35,7 +35,7 @@ export {
   type SourceError,
   type SourceErrorKind,
 } from './domain/outcome.ts';
-export { platforms, type Platform } from './domain/platform.ts';
+export { platforms, samePlatform, type Platform } from './domain/platform.ts';
 export { identityKey, sameIdentity, type PlatformScoped } from './domain/platform-scoped.ts';
 export { err, ok, type Result } from './domain/result.ts';
 export type { SourceName } from './domain/source-name.ts';
