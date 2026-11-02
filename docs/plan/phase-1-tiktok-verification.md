@@ -327,35 +327,39 @@ Live tests, skipped unless the provider's key name is present in the environment
 
 ## 11. Facts register
 
-| #   | Fact                                                                                  | Mark                | Source                                                                                    |
-| --- | ------------------------------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------- |
-| 1   | LamaTok auth is the `x-access-key` header                                             | CONFIRMED           | https://api.lamatok.com/openapi.json                                                      |
-| 2   | LamaTok has `/v1/user/following/by/username` and `/v2/user/likes/by/secUid`           | CONFIRMED           | https://api.lamatok.com/openapi.json                                                      |
-| 3   | LamaTok charges per successful response; 100 free requests                            | CONFIRMED           | https://lamatok.com, https://lamatok.com/faq                                              |
-| 4   | LamaTok response schemas (pagination fields, private flag)                            | UNCONFIRMED         | Spec declares empty schemas                                                               |
-| 5   | LamaTok rate limits                                                                   | UNCONFIRMED         | Mentioned without numbers                                                                 |
-| 6   | `ensembledata` npm package exists, 0.1.12, MIT, typed                                 | CONFIRMED           | https://registry.npmjs.org/ensembledata                                                   |
-| 7   | EnsembleData returns `unitsCharged`                                                   | CONFIRMED           | `types/requester.d.ts` in EnsembleData/ensembledata-node                                  |
-| 8   | EnsembleData endpoints for user info, followings, liked posts, post info              | CONFIRMED           | `src/client.js` in EnsembleData/ensembledata-node                                         |
-| 9   | EnsembleData units for followings and liked posts; likes-must-be-public rule          | UNCONFIRMED         | Not found in the docs read                                                                |
-| 10  | Profile HTML carries `__UNIVERSAL_DATA_FOR_REHYDRATION__` with `__DEFAULT_SCOPE__`    | PARTIALLY CONFIRMED | davidteather/TikTok-Api `video.py`; sangzun-han `app-context.ts`; not seen against TikTok |
-| 11  | `webapp.user-detail`, `signature`, `privateAccount` field names                       | UNCONFIRMED         | Third-party payload samples only                                                          |
-| 12  | `/api/user/list/?scene=21` is the following list, 67 followers                        | PARTIALLY CONFIRMED | sangzun-han `tiktok.service.ts`                                                           |
-| 13  | Content endpoints need `X-Gnarly`, `X-Dynosaur`, `msToken`; `X-Bogus` sent as `1`     | PARTIALLY CONFIRMED | sangzun-han `tiktok-sign.ts`, `session.service.ts`                                        |
-| 14  | X-Gnarly SDK versions 5.1.0 (2025-05) to 5.3.2 (2026-09)                              | PARTIALLY CONFIRMED | justscrapeme/tiktok-web-reverse-engineering                                               |
-| 15  | Hidden following list answers `statusCode 10222`                                      | PARTIALLY CONFIRMED | sangzun-han README                                                                        |
-| 16  | `statusCode 10221` means hidden likes                                                 | REFUTED             | sangzun-han README: 10221 is user not found; hidden likes answer `statusCode 0`, no list  |
-| 17  | Liked list is `/api/favorite/item_list/` with `cursor` and `hasMore`                  | PARTIALLY CONFIRMED | davidteather `user.py`; sangzun-han README                                                |
-| 18  | Display API cannot return following or liked lists                                    | CONFIRMED           | https://developers.tiktok.com/doc/tiktok-api-scopes/                                      |
-| 19  | Research API exposes the lists but is limited to academic and not-for-profit research | CONFIRMED           | https://developers.tiktok.com/products/research-api/                                      |
-| 20  | sangzun-han/Tiktok-Api: MIT, one commit 2026-10-14, 1 star, pure-TS signer, Docker    | CONFIRMED           | https://github.com/sangzun-han/Tiktok-Api                                                 |
-| 21  | carcabot/tiktok-signature: MIT, 1,049 stars, pushed 2026-10-16, puppeteer-based       | CONFIRMED           | https://github.com/carcabot/tiktok-signature                                              |
-| 22  | carcabot sidecar handles `msToken` and loads the SDK live                             | UNCONFIRMED         | Not stated in the README read                                                             |
-| 23  | TikTok terms prohibit automated collection                                            | CONFIRMED           | ROW and US terms, section 2                                                               |
-| 24  | tfa3al.com is a live Arabic platform paying for verified TikTok follows and likes     | CONFIRMED           | https://tfa3al.com                                                                        |
-| 25  | cockatiel 4.0.0: MIT, ESM, node >= 22, zero dependencies, last commit 2026-10-29      | CONFIRMED           | npm registry; https://github.com/connor4312/cockatiel                                     |
-| 26  | Zod 4.6.7 is the `zod` package; `zod/mini` exists                                     | CONFIRMED           | npm registry; https://zod.dev/v4                                                          |
-| 27  | commander 15.0.0 requires node >= 22.12                                               | CONFIRMED           | npm registry                                                                              |
+| #   | Fact                                                                                        | Mark                 | Source                                                                                    |
+| --- | ------------------------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| 1   | LamaTok auth is the `x-access-key` header                                                   | CONFIRMED            | https://api.lamatok.com/openapi.json                                                      |
+| 2   | LamaTok has `/v1/user/following/by/username` and `/v2/user/likes/by/secUid`                 | CONFIRMED            | https://api.lamatok.com/openapi.json                                                      |
+| 3   | LamaTok charges per successful response; 100 free requests                                  | CONFIRMED            | https://lamatok.com, https://lamatok.com/faq                                              |
+| 4   | LamaTok response schemas (pagination fields, private flag)                                  | UNCONFIRMED          | Spec declares empty schemas                                                               |
+| 5   | LamaTok rate limits                                                                         | UNCONFIRMED          | Mentioned without numbers                                                                 |
+| 6   | `ensembledata` npm package exists, 0.1.12, MIT, typed                                       | CONFIRMED            | https://registry.npmjs.org/ensembledata                                                   |
+| 7   | EnsembleData returns `unitsCharged`                                                         | CONFIRMED            | `types/requester.d.ts` in EnsembleData/ensembledata-node                                  |
+| 8   | EnsembleData endpoints for user info, followings, liked posts, post info                    | CONFIRMED            | `src/client.js` in EnsembleData/ensembledata-node                                         |
+| 9   | EnsembleData units for followings and liked posts; likes-must-be-public rule                | UNCONFIRMED          | Not found in the docs read                                                                |
+| 10  | Profile HTML carries `__UNIVERSAL_DATA_FOR_REHYDRATION__` with `__DEFAULT_SCOPE__`          | PARTIALLY CONFIRMED  | davidteather/TikTok-Api `video.py`; sangzun-han `app-context.ts`; not seen against TikTok |
+| 11  | `webapp.user-detail`, `signature`, `privateAccount` field names                             | UNCONFIRMED          | Third-party payload samples only                                                          |
+| 12  | `/api/user/list/?scene=21` is the following list, 67 followers                              | PARTIALLY CONFIRMED  | sangzun-han `tiktok.service.ts`                                                           |
+| 13  | Content endpoints need `X-Gnarly`, `X-Dynosaur`, `msToken`; `X-Bogus` sent as `1`           | PARTIALLY CONFIRMED  | sangzun-han `tiktok-sign.ts`, `session.service.ts`                                        |
+| 14  | X-Gnarly SDK versions 5.1.0 (2025-05) to 5.3.2 (2026-09)                                    | PARTIALLY CONFIRMED  | justscrapeme/tiktok-web-reverse-engineering                                               |
+| 15  | Hidden following list answers `statusCode 10222`                                            | PARTIALLY CONFIRMED  | sangzun-han README                                                                        |
+| 16  | `statusCode 10221` means hidden likes                                                       | REFUTED              | sangzun-han README: 10221 is user not found; hidden likes answer `statusCode 0`, no list  |
+| 17  | Liked list is `/api/favorite/item_list/` with `cursor` and `hasMore`                        | PARTIALLY CONFIRMED  | davidteather `user.py`; sangzun-han README                                                |
+| 18  | Display API cannot return following or liked lists                                          | CONFIRMED            | https://developers.tiktok.com/doc/tiktok-api-scopes/                                      |
+| 19  | Research API exposes the lists but is limited to academic and not-for-profit research       | CONFIRMED            | https://developers.tiktok.com/products/research-api/                                      |
+| 20  | sangzun-han/Tiktok-Api: MIT, one commit 2026-10-14, 1 star, pure-TS signer, Docker          | CONFIRMED            | https://github.com/sangzun-han/Tiktok-Api                                                 |
+| 21  | carcabot/tiktok-signature: MIT, 1,049 stars, pushed 2026-10-16, puppeteer-based             | CONFIRMED            | https://github.com/carcabot/tiktok-signature                                              |
+| 22  | carcabot sidecar handles `msToken` and loads the SDK live                                   | UNCONFIRMED          | Not stated in the README read                                                             |
+| 23  | TikTok terms prohibit automated collection                                                  | CONFIRMED            | ROW and US terms, section 2                                                               |
+| 24  | tfa3al.com is a live Arabic platform paying for verified TikTok follows and likes           | CONFIRMED            | https://tfa3al.com                                                                        |
+| 25  | cockatiel 4.0.0: MIT, ESM, node >= 22, zero dependencies, last commit 2026-10-29            | CONFIRMED            | npm registry; https://github.com/connor4312/cockatiel                                     |
+| 26  | Zod 4.6.7 is the `zod` package; `zod/mini` exists                                           | CONFIRMED            | npm registry; https://zod.dev/v4                                                          |
+| 27  | commander 15.0.0 requires node >= 22.12                                                     | CONFIRMED            | npm registry                                                                              |
+| 28  | LamaTok `/v1/media/by/url` accepts `vm.tiktok.com`, `vt.tiktok.com` and `/t/` links         | CONFIRMED            | https://api.lamatok.com/openapi.json, API version 1.4.5                                   |
+| 29  | LamaTok `/v3/user/by/username` returns profiles v1 answers with 404; billed 1 to 3 requests | CONFIRMED (declared) | https://api.lamatok.com/openapi.json; billing via the `x-lamatok-info` header             |
+| 30  | LamaTok declares no 401 or 403 response on any endpoint                                     | CONFIRMED            | https://api.lamatok.com/openapi.json; the real code is recorded by fixture call 22        |
+| 31  | LamaTok `username` is 2 to 24 characters, media `id` exactly 19 digits                      | CONFIRMED            | https://api.lamatok.com/openapi.json parameter schemas                                    |
 
 ## 12. Open questions
 
