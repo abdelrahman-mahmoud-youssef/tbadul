@@ -44,7 +44,7 @@ export default defineConfig(
           policies: [
             { from: { element: { type: '*' } }, allow: { to: { module: { origin: 'core' } } } },
             {
-              from: { element: { type: ['domain', 'root'] } },
+              from: { element: { type: ['domain', 'adapters', 'root'] } },
               allow: { to: { module: { source: 'zod' } } },
             },
             {
