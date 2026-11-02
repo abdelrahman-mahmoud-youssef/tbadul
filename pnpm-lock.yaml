@@ -271,10 +271,35 @@ importers:
 
   apps/cli:
     dependencies:
+      '@engagement-exchange/social-accounts':
+        specifier: workspace:*
+        version: link:../../packages/social-accounts
       '@engagement-exchange/verification':
         specifier: workspace:*
         version: link:../../packages/verification
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
     devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@types/node@26.6.6)(@vitest/coverage-v8@5.0.5)(vite@8.3.5(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/social-accounts:
+    dependencies:
+      '@engagement-exchange/verification':
+        specifier: workspace:*
+        version: link:../verification
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      fast-check:
+        specifier: 'catalog:'
+        version: 4.10.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

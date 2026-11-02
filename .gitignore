@@ -5,6 +5,7 @@ coverage/
 *.tsbuildinfo
 *.log
 *.jsonl
+*.local.json
 
 .env
 .env.*

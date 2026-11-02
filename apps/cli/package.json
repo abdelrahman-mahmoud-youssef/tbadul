@@ -8,11 +8,13 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
-    "dev": "node src/main.ts",
-    "start": "node dist/main.js"
+    "dev": "node --env-file-if-exists=../../.env src/main.ts",
+    "start": "node --env-file-if-exists=../../.env dist/main.js"
   },
   "dependencies": {
-    "@engagement-exchange/verification": "workspace:*"
+    "@engagement-exchange/social-accounts": "workspace:*",
+    "@engagement-exchange/verification": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

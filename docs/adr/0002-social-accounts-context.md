@@ -10,7 +10,7 @@ A user links a social account by handle or URL. The platform must know the accou
 
 ### A separate package, depending on Verification through its public surface
 
-`packages/social-accounts` holds the Social Accounts context with the same layers as ADR 0001: `domain`, `ports`, `application`, `adapters`, `testing`, and a composition root. It imports `@engagement-exchange/verification` only for the `Verifier` use cases, the value objects (`Handle`, `AccountId`, `Platform`) and the verdict types. It never imports a verification adapter. The boundary lint policy allows that one external import from every layer except `domain`, which keeps the two contexts' domains apart: the Social Accounts domain speaks about profiles through its own `ProfileFacts` type, mapped from `ProfileEvidence` in the application layer.
+`packages/social-accounts` holds the Social Accounts context with the same layers as ADR 0001: `domain`, `ports`, `application`, `adapters`, `testing`, and a composition root. It imports `@engagement-exchange/verification` only for the `Verifier` use cases, the value objects (`Handle`, `AccountId`, `Platform`) and the verdict types. It never imports a verification adapter. The boundary lint policy allows that one external import from every layer; the `domain` layer may import only types from it (the shared value objects `Handle`, `AccountId`, `Platform`), never a value. The Social Accounts domain speaks about profiles through its own `ProfileFacts` type, mapped from `ProfileEvidence` in the application layer.
 
 ### Aggregate: AccountClaim
 
