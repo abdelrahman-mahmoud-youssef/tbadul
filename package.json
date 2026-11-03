@@ -15,7 +15,8 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "test:coverage": "vitest run --coverage",
+    "test:live": "turbo run test:live",
+    "test:coverage": "vitest run --coverage --exclude \"**/*.live.test.ts\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip"
