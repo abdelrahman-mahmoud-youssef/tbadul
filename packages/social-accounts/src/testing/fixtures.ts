@@ -2,6 +2,7 @@ import { handle, manualClock, type ManualClock } from '@engagement-exchange/veri
 import { configVerificationAccountPool } from '../adapters/config-verification-account-pool.ts';
 import { inMemoryClaimRepository } from '../adapters/in-memory-claim-repository.ts';
 import type { ClaimPolicy, UseCaseDeps } from '../application/deps.ts';
+import { markVerified, type AccountClaim } from '../domain/claim.ts';
 import { userId } from '../domain/ids.ts';
 import type { AccountClaimRepository } from '../ports/account-claim-repository.ts';
 import { fakeVerifier, type FakeVerifier, type FakeVerifierScript } from './fake-verifier.ts';
@@ -54,3 +55,20 @@ export const harness = (
     },
   };
 };
+
+const value = <T>(result: { ok: true; value: T } | { ok: false; error: unknown }): T => {
+  if (!result.ok) throw new Error(`fixture refused: ${JSON.stringify(result.error)}`);
+  return result.value;
+};
+
+export const seed = async (
+  repository: AccountClaimRepository,
+  claim: AccountClaim,
+): Promise<AccountClaim> =>
+  value(await repository.create(claim, { maxHeld: Number.MAX_SAFE_INTEGER, now: claim.startedAt }));
+
+export const own = async (
+  repository: AccountClaimRepository,
+  claim: AccountClaim,
+): Promise<AccountClaim> =>
+  value(await repository.verify(markVerified(await seed(repository, claim))));

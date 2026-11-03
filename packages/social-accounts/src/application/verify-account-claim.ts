@@ -1,6 +1,5 @@
 import { err, ok, type Result } from '@engagement-exchange/verification';
 import {
-  holdsAccount,
   isExpired,
   markExpired,
   markRejected,
@@ -8,6 +7,7 @@ import {
   recordFailedAttempt,
   verifyWaitMs,
   type AccountClaim,
+  type VerifyAttempt,
 } from '../domain/claim.ts';
 import type { ClaimError } from '../domain/claim-error.ts';
 import type { ClaimId } from '../domain/ids.ts';
@@ -32,8 +32,8 @@ export const verifyAccountClaimWith =
     }
     const now = deps.clock.now();
     if (isExpired(claim, now)) {
-      await deps.repository.save(markExpired(claim));
-      return err({ kind: 'claim_expired' });
+      const expired = await deps.repository.save(markExpired(claim));
+      return err({ kind: expired.ok ? 'claim_expired' : expired.error });
     }
     const waitMs = verifyWaitMs(claim, now);
     if (waitMs > 0) return err({ kind: 'cooldown_active', retryAt: claim.nextVerifyAt, waitMs });
@@ -46,27 +46,30 @@ export const verifyAccountClaimWith =
     });
     switch (verdict.outcome) {
       case 'verified': {
-        const holder = await deps.repository.findHolder(claim.handle);
-        const taken =
-          holder !== undefined &&
-          holder.id !== claim.id &&
-          holder.userId !== claim.userId &&
-          holdsAccount(holder) &&
-          holder.state === 'verified';
-        const settled = taken
-          ? markRejected(claim, 'account_already_claimed')
-          : markVerified(claim);
-        await deps.repository.save(settled);
-        return taken
-          ? err({ kind: 'account_already_claimed' })
-          : ok({ claim: settled, outcome: 'verified' });
+        const verified = await deps.repository.verify(markVerified(claim));
+        if (verified.ok) return ok({ claim: verified.value, outcome: 'verified' });
+        if (verified.error === 'version_conflict') return err({ kind: 'version_conflict' });
+        const refused = await deps.repository.save(markRejected(claim, 'account_already_claimed'));
+        return err({ kind: refused.ok ? 'account_already_claimed' : refused.error });
       }
       case 'not_following':
       case 'private':
       case 'not_found': {
-        const settled = recordFailedAttempt(claim, verdict.outcome, now, deps.policy.cooldown);
-        await deps.repository.save(settled);
-        return ok({ claim: settled, outcome: verdict.outcome });
+        const measured = verdict.attempts.at(-1);
+        const attempt: VerifyAttempt = {
+          at: now,
+          outcome: verdict.outcome,
+          ...(measured !== undefined && {
+            source: measured.source,
+            latencyMs: measured.latencyMs,
+          }),
+        };
+        const saved = await deps.repository.save(
+          recordFailedAttempt(claim, attempt, deps.policy.cooldown),
+        );
+        return saved.ok
+          ? ok({ claim: saved.value, outcome: verdict.outcome })
+          : err({ kind: saved.error });
       }
       case 'source_error':
         return ok({ claim, outcome: 'source_error' });

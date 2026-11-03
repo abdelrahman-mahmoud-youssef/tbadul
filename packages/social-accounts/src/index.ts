@@ -17,8 +17,11 @@ export {
 } from './create-social-accounts.ts';
 export {
   claimStates,
+  failedAttemptOutcomes,
+  rejectionReasons,
   type AccountClaim,
   type ClaimState,
+  type FailedAttemptOutcome,
   type RejectionReason,
   type VerifyAttempt,
 } from './domain/claim.ts';
@@ -35,6 +38,12 @@ export {
 } from './domain/eligibility.ts';
 export { claimId, userId, type ClaimId, type UserId } from './domain/ids.ts';
 export type { ProfileFacts } from './domain/profile-facts.ts';
-export type { AccountClaimRepository } from './ports/account-claim-repository.ts';
+export type {
+  AccountClaimRepository,
+  ClaimLimit,
+  CreateClaimError,
+  SaveClaimError,
+  VerifyClaimError,
+} from './ports/account-claim-repository.ts';
 export type { IdGenerator } from './ports/id-generator.ts';
 export type { VerificationAccountPool } from './ports/verification-account-pool.ts';

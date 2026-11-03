@@ -10,11 +10,15 @@ export const fileClaimRepository = (path: string): AccountClaimRepository => {
       : [],
   );
   const memory = claimStore(claims);
+  const persisted = async <T>(change: Promise<T>): Promise<T> => {
+    const result = await change;
+    writeFileSync(path, JSON.stringify([...claims.values()], null, 2));
+    return result;
+  };
   return {
     ...memory,
-    save: async (claim) => {
-      await memory.save(claim);
-      writeFileSync(path, JSON.stringify([...claims.values()], null, 2));
-    },
+    create: (claim, limit) => persisted(memory.create(claim, limit)),
+    save: (claim) => persisted(memory.save(claim)),
+    verify: (claim) => persisted(memory.verify(claim)),
   };
 };

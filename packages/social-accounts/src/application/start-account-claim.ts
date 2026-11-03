@@ -61,17 +61,10 @@ export const startAccountClaimWith =
 
     if (!handle.ok) return err({ kind: 'invalid_handle', reason: handle.error.reason });
 
-    const holder = await deps.repository.findHolder(handle.value);
+    const limit = deps.policy.maxAccountsPerPlatform;
+    const held = await deps.repository.countHeld(userId, platform, deps.clock.now());
 
-    if (holder !== undefined) {
-      return holder.userId === userId ? ok(holder) : err({ kind: 'account_already_claimed' });
-    }
-
-    const held = await deps.repository.countHeldBy(userId, platform);
-
-    if (held >= deps.policy.maxAccountsPerPlatform) {
-      return err({ kind: 'claim_limit_reached', limit: deps.policy.maxAccountsPerPlatform });
-    }
+    if (held >= limit) return err({ kind: 'claim_limit_reached', limit });
 
     const profile = await deps.verifier.verify({ kind: 'profile', subject: handle.value });
     switch (profile.outcome) {
@@ -82,12 +75,25 @@ export const startAccountClaimWith =
       case 'not_found':
         return err({ kind: 'account_unavailable', outcome: profile.outcome });
       case 'verified': {
+        const { accountId } = profile.evidence;
+        const owner = await deps.repository.findOwner(accountId);
+
+        if (owner !== undefined) {
+          return err({
+            kind: owner === userId ? 'account_already_linked' : 'account_already_claimed',
+          });
+        }
+
         const now = deps.clock.now();
+        const open = await deps.repository.findOpen(userId, accountId, now);
+
+        if (open !== undefined) return ok(open);
+
         const draft: ClaimDraft = {
           id: claimId(deps.ids.next()),
           userId,
           handle: handle.value,
-          accountId: profile.evidence.accountId,
+          accountId,
           eligibility: evaluateEligibility(
             factsFrom(profile.evidence),
             now,
@@ -102,18 +108,38 @@ export const startAccountClaimWith =
 
         if (!claim.ok) return claim;
 
-        await deps.repository.save(claim.value);
-        return claim;
+        return create(deps, claim.value, now, limit);
       }
     }
   };
+
+const create = async (
+  deps: UseCaseDeps,
+  claim: AccountClaim,
+  now: number,
+  limit: number,
+): Promise<Result<AccountClaim, ClaimError>> => {
+  const created = await deps.repository.create(claim, { maxHeld: limit, now });
+
+  if (created.ok) {
+    if (claim.verificationAccount !== undefined) {
+      await deps.pool.recordAssignment(claim.verificationAccount);
+    }
+    return created;
+  }
+
+  if (created.error === 'limit_reached') return err({ kind: 'claim_limit_reached', limit });
+
+  const open = await deps.repository.findOpen(claim.userId, claim.accountId, now);
+  return open === undefined ? err({ kind: 'version_conflict' }) : ok(open);
+};
 
 const settleBaseline = async (
   deps: UseCaseDeps,
   draft: ClaimDraft,
   platform: Platform,
 ): Promise<Result<AccountClaim, ClaimError>> => {
-  const baseline = await pickVerificationAccount(deps, draft, deps.pool.candidates(platform));
+  const baseline = await pickVerificationAccount(deps, draft, await deps.pool.candidates(platform));
   switch (baseline.kind) {
     case 'assigned':
       return ok(awaitingFollow(draft, baseline.account));

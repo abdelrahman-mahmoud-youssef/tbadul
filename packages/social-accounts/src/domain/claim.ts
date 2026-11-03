@@ -13,14 +13,20 @@ export const claimStates = [
 
 export type ClaimState = (typeof claimStates)[number];
 
-export type FailedAttemptOutcome = 'not_following' | 'private' | 'not_found';
+export const failedAttemptOutcomes = ['not_following', 'private', 'not_found'] as const;
+
+export type FailedAttemptOutcome = (typeof failedAttemptOutcomes)[number];
 
 export interface VerifyAttempt {
   readonly at: number;
   readonly outcome: FailedAttemptOutcome;
+  readonly source?: string;
+  readonly latencyMs?: number;
 }
 
-export type RejectionReason = 'pool_exhausted' | 'account_already_claimed';
+export const rejectionReasons = ['pool_exhausted', 'account_already_claimed'] as const;
+
+export type RejectionReason = (typeof rejectionReasons)[number];
 
 export interface AccountClaim {
   readonly id: ClaimId;
@@ -36,6 +42,7 @@ export interface AccountClaim {
   readonly nextVerifyAt: number;
   readonly startedAt: number;
   readonly expiresAt: number;
+  readonly version: number;
 }
 
 export interface ClaimDraft {
@@ -59,6 +66,7 @@ const base = (draft: ClaimDraft): Omit<AccountClaim, 'state'> => ({
   nextVerifyAt: draft.startedAt,
   startedAt: draft.startedAt,
   expiresAt: draft.startedAt + draft.ttlMs,
+  version: 0,
 });
 
 export const eligibilityFailed = (draft: ClaimDraft): AccountClaim => ({
@@ -85,12 +93,15 @@ export const verifyWaitMs = (claim: AccountClaim, now: number): number =>
 
 export const recordFailedAttempt = (
   claim: AccountClaim,
-  outcome: FailedAttemptOutcome,
-  now: number,
+  attempt: VerifyAttempt,
   schedule: CooldownSchedule,
 ): AccountClaim => {
-  const attempts = [...claim.attempts, { at: now, outcome }];
-  return { ...claim, attempts, nextVerifyAt: now + cooldownAfter(attempts.length, schedule) };
+  const attempts = [...claim.attempts, attempt];
+  return {
+    ...claim,
+    attempts,
+    nextVerifyAt: attempt.at + cooldownAfter(attempts.length, schedule),
+  };
 };
 
 export const markVerified = (claim: AccountClaim): AccountClaim => ({
@@ -106,5 +117,5 @@ export const markRejected = (claim: AccountClaim, rejection: RejectionReason): A
   rejection,
 });
 
-export const holdsAccount = (claim: AccountClaim): boolean =>
-  claim.state === 'verified' || claim.state === 'awaiting_follow';
+export const holdsAccount = (claim: AccountClaim, now: number): boolean =>
+  claim.state === 'verified' || (claim.state === 'awaiting_follow' && !isExpired(claim, now));

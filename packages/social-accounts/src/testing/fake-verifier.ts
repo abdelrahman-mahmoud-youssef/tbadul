@@ -1,11 +1,13 @@
-import type {
-  Check,
-  Handle,
-  ListEvidence,
-  Outcome,
-  ProfileEvidence,
-  Verdict,
-  Verifier,
+import {
+  accountId,
+  type Attempt,
+  type Check,
+  type Handle,
+  type ListEvidence,
+  type Outcome,
+  type ProfileEvidence,
+  type Verdict,
+  type Verifier,
 } from '@engagement-exchange/verification';
 import { profileEvidence } from '@engagement-exchange/verification/testing';
 
@@ -20,8 +22,19 @@ export interface FakeVerifier extends Verifier {
 
 const listEvidence: ListEvidence = { pagesRead: 1, listExhausted: false, entriesRead: 1 };
 
+export const fakeLatencyMs = 42;
+
 const verdict = (check: Check, outcome: Outcome, evidence?: unknown): never => {
-  const attempts = [] as const;
+  const attempts: readonly Attempt[] = [
+    {
+      source: 'fake',
+      platform: 'tiktok',
+      check: check.kind,
+      outcome,
+      startedAt: 0,
+      latencyMs: fakeLatencyMs,
+    },
+  ];
   if (outcome === 'source_error') return { outcome, check, attempts } as never;
   if (outcome === 'private' || outcome === 'not_found') {
     return { outcome, source: 'fake', check, attempts } as never;
@@ -46,7 +59,10 @@ export const fakeVerifier = (script: FakeVerifierScript): FakeVerifier => {
     calls.push(check);
     switch (check.kind) {
       case 'profile': {
-        const answer = script.profile?.(check.subject) ?? eligibleProfile();
+        const answer = script.profile?.(check.subject) ?? {
+          ...eligibleProfile(),
+          accountId: accountId(check.subject.platform, check.subject.value),
+        };
         return Promise.resolve(
           typeof answer === 'string' ? verdict(check, answer) : verdict(check, 'verified', answer),
         );

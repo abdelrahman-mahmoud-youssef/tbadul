@@ -43,7 +43,7 @@ describe('cooldownAfter', () => {
 });
 
 describe('claim transitions', () => {
-  it('starts awaiting_follow with the assigned account, no attempts and an expiry', () => {
+  it('starts awaiting_follow with the assigned account, no attempts, an expiry and version 0', () => {
     const claim = awaitingFollow(draft, handle('verify.one'));
     expect(claim).toMatchObject({
       state: 'awaiting_follow',
@@ -52,19 +52,27 @@ describe('claim transitions', () => {
       attempts: [],
       nextVerifyAt: startedAt,
       expiresAt: startedAt + 86_400_000,
+      version: 0,
     });
-    expect(holdsAccount(claim)).toBe(true);
+    expect(holdsAccount(claim, startedAt)).toBe(true);
+  });
+
+  it('holds the account while awaiting a follow only until the claim expires', () => {
+    const claim = awaitingFollow(draft, handle('verify.one'));
+    expect(holdsAccount(claim, claim.expiresAt - 1)).toBe(true);
+    expect(holdsAccount(claim, claim.expiresAt)).toBe(false);
   });
 
   it('records a failed attempt and pushes the next verify time along the schedule', () => {
     let claim = awaitingFollow(draft, handle('verify.one'));
     const now = startedAt + 1000;
-    claim = recordFailedAttempt(claim, 'not_following', now, schedule);
-    expect(claim.attempts).toEqual([{ at: now, outcome: 'not_following' }]);
+    const attempt = { at: now, outcome: 'not_following', source: 'fake', latencyMs: 12 } as const;
+    claim = recordFailedAttempt(claim, attempt, schedule);
+    expect(claim.attempts).toEqual([attempt]);
     expect(claim.nextVerifyAt).toBe(now + 30_000);
     expect(verifyWaitMs(claim, now + 10_000)).toBe(20_000);
     expect(verifyWaitMs(claim, now + 30_000)).toBe(0);
-    claim = recordFailedAttempt(claim, 'private', now + 30_000, schedule);
+    claim = recordFailedAttempt(claim, { at: now + 30_000, outcome: 'private' }, schedule);
     expect(claim.nextVerifyAt).toBe(now + 30_000 + 60_000);
   });
 
@@ -75,16 +83,16 @@ describe('claim transitions', () => {
     expect(markExpired(claim).state).toBe('expired');
   });
 
-  it('marks verified and keeps holding the account', () => {
+  it('marks verified and keeps holding the account past the expiry', () => {
     const claim = markVerified(awaitingFollow(draft, handle('verify.one')));
     expect(claim.state).toBe('verified');
-    expect(holdsAccount(claim)).toBe(true);
+    expect(holdsAccount(claim, claim.expiresAt + 1)).toBe(true);
   });
 
   it.each([
     ['eligibility_failed', eligibilityFailed(draft)],
     ['rejected', rejected(draft, 'pool_exhausted')],
   ])('%s does not hold the account', (_state, claim) => {
-    expect(holdsAccount(claim)).toBe(false);
+    expect(holdsAccount(claim, startedAt)).toBe(false);
   });
 });
