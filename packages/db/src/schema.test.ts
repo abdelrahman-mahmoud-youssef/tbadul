@@ -184,6 +184,31 @@ describe.skipIf(databaseUrl === null)('database schema', () => {
     expect(index.rows).toEqual([{ unique: false }]);
   });
 
+  it('stores an account before any profile or handle is known', async () => {
+    const row = single(
+      await db
+        .insert(platformAccounts)
+        .values({ platform: 'tiktok', externalId: randomUUID() })
+        .returning(),
+    );
+
+    expect(row).toMatchObject({
+      handle: null,
+      handleSeenAt: null,
+      isPrivate: null,
+      profileFetchedAt: null,
+      profileSource: null,
+    });
+  });
+
+  it('indexes claim attempts by claim', async () => {
+    const index = await db.execute<{ columns: string }>(
+      sql`select pg_get_indexdef('claim_attempts_claim_idx'::regclass) as columns`,
+    );
+
+    expect(index.rows[0]?.columns).toContain('(claim_id)');
+  });
+
   it('allows a revoked and an active link to one account, but not two active', async () => {
     const owner = await user();
     const other = await user();

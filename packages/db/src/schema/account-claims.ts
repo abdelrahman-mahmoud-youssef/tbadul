@@ -75,5 +75,8 @@ export const claimAttempts = pgTable(
     source: text('source'),
     latencyMs: integer('latency_ms'),
   },
-  (table) => [check('claim_attempts_outcome_check', oneOf(table.outcome, attemptOutcomes))],
+  (table) => [
+    check('claim_attempts_outcome_check', oneOf(table.outcome, attemptOutcomes)),
+    index('claim_attempts_claim_idx').on(table.claimId),
+  ],
 );

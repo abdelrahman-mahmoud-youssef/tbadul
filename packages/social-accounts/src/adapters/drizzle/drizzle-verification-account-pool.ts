@@ -11,7 +11,7 @@ export const drizzleVerificationAccountPool = (db: Database): VerificationAccoun
       .innerJoin(platformAccounts, eq(platformAccounts.id, verificationAccounts.platformAccountId))
       .where(and(eq(verificationAccounts.active, true), eq(platformAccounts.platform, platform)))
       .orderBy(asc(verificationAccounts.assignedCount), sql`random()`);
-    return rows.map((row) => handleOf(platform, row.handle));
+    return rows.flatMap((row) => (row.handle === null ? [] : [handleOf(platform, row.handle)]));
   },
   recordAssignment: async (account) => {
     await db
