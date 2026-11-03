@@ -2,8 +2,10 @@
 
 TypeScript monorepo: pnpm workspaces, Turborepo, Node 26, ESM only.
 
-- `packages/verification`: the verification library (domain, source contract, chain, adapters).
-- `apps/cli`: the command-line driver for Phase 1.
+- `packages/verification`: the Verification context (domain, source contract, chain, adapters).
+- `packages/social-accounts`: the Social Accounts context (account claims, eligibility, cooldown).
+- `apps/cli`: the command-line driver.
+- `docs/adr/`: architecture decisions. `docs/glossary.md`: the ubiquitous language.
 - `docs/plan/`: phase plans. Phase 1 is `docs/plan/phase-1-tiktok-verification.md`.
 
 Commands run from the root: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format`.
