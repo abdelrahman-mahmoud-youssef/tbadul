@@ -7,6 +7,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
+    "./testing/global-setup": {
+      "types": "./dist/testing/global-setup.d.ts",
+      "default": "./dist/testing/global-setup.js"
     }
   },
   "scripts": {
@@ -25,9 +33,11 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "catalog:",
     "@types/pg": "catalog:",
     "auth": "catalog:",
     "drizzle-kit": "catalog:",
+    "testcontainers": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

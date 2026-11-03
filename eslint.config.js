@@ -118,6 +118,7 @@ export default defineConfig(
                       ],
                     },
                   },
+                  { module: { source: '@engagement-exchange/db', internalPath: 'testing' } },
                 ],
               },
             },
@@ -144,6 +145,23 @@ export default defineConfig(
             {
               from: { element: { type: 'root' } },
               allow: { to: { module: { source: ['drizzle-orm', 'pg', 'better-auth', 'zod'] } } },
+            },
+            {
+              from: { element: { type: 'testing' } },
+              allow: {
+                to: [
+                  { element: { type: 'root' } },
+                  {
+                    module: { source: ['@testcontainers/postgresql', 'testcontainers', 'vitest'] },
+                  },
+                ],
+              },
+            },
+            {
+              from: { file: { categories: 'test' } },
+              allow: {
+                to: [{ element: { type: 'testing' } }, { module: { source: 'vitest' } }],
+              },
             },
             noTestFiles,
           ],
