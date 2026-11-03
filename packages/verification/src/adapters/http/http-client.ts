@@ -60,8 +60,8 @@ export const decodeJson = <T>(reply: HttpReply, schema: z.ZodType<T>): Result<T,
   let json: unknown;
   try {
     json = JSON.parse(reply.text);
-  } catch (error) {
-    return err({ kind: 'parse', message: describe(error), httpStatus: reply.status });
+  } catch {
+    return err({ kind: 'parse', message: 'body is not JSON', httpStatus: reply.status });
   }
   const parsed = schema.safeParse(json);
   return parsed.success

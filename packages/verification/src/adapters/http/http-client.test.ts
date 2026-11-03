@@ -79,10 +79,10 @@ describe('decodeJson', () => {
     expect(decodeJson(reply('{"balance":3}'), schema)).toEqual({ ok: true, value: { balance: 3 } });
   });
 
-  it('reports a parse error for a body that is not JSON', () => {
-    expect(decodeJson(reply('<html>'), schema)).toMatchObject({
+  it('reports a parse error for a body that is not JSON without quoting the body', () => {
+    expect(decodeJson(reply('<html>secret-in-body'), schema)).toEqual({
       ok: false,
-      error: { kind: 'parse', httpStatus: 200 },
+      error: { kind: 'parse', message: 'body is not JSON', httpStatus: 200 },
     });
   });
 
