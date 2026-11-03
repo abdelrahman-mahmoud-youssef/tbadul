@@ -281,41 +281,51 @@ The adapter exists (`src/adapters/ensembledata/`, source name `ensemble`) and re
 
 ## 7. CLI
 
-`apps/cli` drives the library and writes the measurement log. Proposed dependency: commander 15.0.0 (node >= 22.12). The decision is taken in the CLI session after checking the Node 26 built-in `util.parseArgs` is not enough for subcommands.
+`apps/cli` drives the library and writes the measurement log. It parses arguments with Node's built-in `util.parseArgs`: the commands are flat and few, so no argument library is needed. From the repository root, `pnpm --dir apps/cli dev <command>` runs it with `.env` loaded; `start` runs the built output the same way.
 
-| Command   | Arguments and options                                                | Output                                            |
-| --------- | -------------------------------------------------------------------- | ------------------------------------------------- |
-| `profile` | `<handle>`                                                           | secUid, bio, privacy flags, source, latency, cost |
-| `follows` | `<performer> <target>`                                               | outcome, evidence, attempts                       |
-| `liked`   | `<performer> <video>`                                                | outcome, evidence, attempts                       |
-| `owns`    | `<handle> <token>`                                                   | outcome, bio excerpt, attempts                    |
-| `watch`   | `follows\|liked <performer> <target> --every <duration> --times <n>` | one line per run, appended to the log             |
+| Command                                   | Arguments and options                                     | Output                                                                                                                        |
+| ----------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `profile <handle>`                        | `--source`                                                | Outcome; when found, account id, privacy, following and likes visibility, follower, following and video counts, creation time |
+| `owns <handle> <bio-token>`               | `--source`                                                | Outcome of `verifyOwnership`: `verified` when the bio holds the token, `not_following` when it does not                       |
+| `follows <performer> <target>`            | `--source`                                                | Outcome of the follows check after both profile checks                                                                        |
+| `liked <performer> <video>`               | `--source`                                                | Outcome of the liked check after the performer's profile check                                                                |
+| `watch follows <performer> <target>`      | `--every <seconds>`, `--times <n>`, `--source`            | One line per run with its time and outcome; a line naming the unfollow when one is seen                                       |
+| `link start <handle>`, `link verify <id>` | `--verification-account <handle>` (repeatable) on `start` | The claim, its eligibility results and the next step                                                                          |
 
-Global options: `--order <a,b,c>` (overrides `VERIFICATION_SOURCE_ORDER`), `--source <name>` (single source, no fallback), `--pages <n>` (page cap), `--log <file>` (JSONL measurement log, append), `--json` (machine output).
+`profile`, `owns`, `follows` and `liked` print the outcome and any details, followed by `latency <ms> ms, requests <n>` (and `units <n>` when a source bills units) for the attempts it made; a `source_error` names the kind of the last attempt.
 
-Exit codes: 0 for `verified`, 1 for `not_following`, 2 for `private`, 3 for `not_found`, 4 for `source_error`, 64 for usage errors. Secrets are read from the environment by the CLI only, parsed once with Zod, and never echoed.
+- `--source scraper|lamatok|ensemble|chain` picks the sources for the run. A source name uses that source alone for every check kind, with no fallback; `chain`, the default, uses the per-kind orders of section 4. Naming a source whose credential is not configured is a usage error that names the source.
+- `watch follows` resolves both accounts once with profile checks, then re-runs the follows check by the performer's account id. It waits `--every` seconds between runs, default `WATCH_INTERVAL_SECONDS` (60). A run answering `not_following` after an earlier `verified` run reports the unfollow and exits 1; a `source_error` run is printed and never counts as an unfollow or clears an earlier `verified`. With `--times <n>` the watch stops after n runs and exits with the last outcome's code; without it, it runs until an unfollow or until stopped. The re-checks carry no `performerFollowingCount`: the count read before the watch is one too high after an unfollow, and the short-list rule of section 4 would turn every complete list into `incomplete_list`. `watch liked` is not built.
+
+Exit codes: 0 for `verified`, 1 for `not_following` or an unfollow, 2 for `private`, 3 for `not_found`, 4 for `source_error`, 64 for usage and configuration errors. `link` exits 0 on success and 1 on a refusal or a failed verify. Secrets are read from the environment by the CLI only, parsed once with Zod, and never echoed.
 
 ## 8. Measurement log
 
-One JSON line per source attempt, written by the CLI:
+Every command except `link` appends one JSON line per source attempt to `MEASUREMENT_LOG_FILE` (default `measurements.jsonl`), as the attempt happens, through the `MeasurementSink` given to `createVerifier`:
 
 ```json
 {
-  "at": "2026-11-02T00:00:00.000Z",
+  "at": "2026-11-03T12:00:01.000Z",
+  "command": "follows",
   "check": "follows",
-  "source": "lamatok",
-  "outcome": "verified",
-  "latencyMs": 412,
-  "cost": { "unit": "request", "amount": 2 },
-  "pagesRead": 1,
-  "listExhausted": false,
-  "httpStatus": 200,
-  "providerStatus": 0,
-  "errorKind": null
+  "source": "scraper",
+  "outcome": "source_error",
+  "latencyMs": 90,
+  "cost": null,
+  "errorKind": "http",
+  "httpStatus": 403,
+  "providerStatus": 10201,
+  "performer": "<hex HMAC-SHA256>",
+  "target": "<hex HMAC-SHA256>"
 }
 ```
 
-Handles are not written to the log; a stable hash of the handle is, so runs can be grouped without the log holding account names. Log files use the `.jsonl` extension, which `.gitignore` excludes; the results table in this document is the tracked summary.
+- `at` is the attempt's start time; `cost` is `null` when the source reported none.
+- `errorKind`, `httpStatus` and `providerStatus` appear only on a `source_error` that carries them. The error message is never written: it can hold URLs and handles.
+- `performer` and `target` are HMAC-SHA256 hex digests, under `MEASUREMENT_HMAC_KEY`, of the normalized handle (lower case, no `@`), so runs group by account without the log holding account names; without the key, a digest cannot be matched by hashing candidate handles. For `liked` the target is the digest of the video id. `profile` and `owns` write their handle as `performer` and no `target`. The values belong to the command, not the attempt: within `follows`, the profile attempts for the target and the performer carry the same pair.
+- `MEASUREMENT_HMAC_KEY` is required by every command that writes the log; without it the command prints one configuration line and exits 64. The key is never written. Keep it stable across sessions, or digests from different sessions will not match.
+
+Log files use the `.jsonl` extension, which `.gitignore` excludes; the results table in this document is the tracked summary.
 
 Measurement panel (owned test accounts, created before the scraper session): one performer with public following and public likes, one performer with hidden following, one performer with hidden likes, one private performer, one target account, one target video. Each check runs against each source at least 30 times across different hours to get p50 and p95 latency and a success rate per source.
 
