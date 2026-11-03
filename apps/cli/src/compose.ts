@@ -8,6 +8,7 @@ import {
 import {
   createHttpClient,
   createVerifier,
+  lamatokSource,
   scraperSource,
   sidecarSigner,
   ok,
@@ -29,9 +30,13 @@ export interface ComposedVerifier {
 
 const availableSources = (env: Env): Map<CliSourceName, VerificationSource> => {
   const http = createHttpClient({ headers: () => ({}) });
-  return new Map([
+  const sources = new Map<CliSourceName, VerificationSource>([
     ['scraper', scraperSource({ http, signer: sidecarSigner(http, env.TIKTOK_SIGNER_URL) })],
   ]);
+  if (env.LAMATOK_ACCESS_KEY !== undefined) {
+    sources.set('lamatok', lamatokSource({ http, accessKey: env.LAMATOK_ACCESS_KEY }));
+  }
+  return sources;
 };
 
 export const composeVerifier = (
