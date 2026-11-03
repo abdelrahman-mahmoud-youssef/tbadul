@@ -28,6 +28,7 @@ export const socialAccountsConfigSchema = z.object({
     afterwardsMs: positiveInt.default(600_000),
   }),
   claimTtlMs: positiveInt.default(86_400_000),
+  eligibilityMaxAgeMs: positiveInt.default(3_600_000),
   maxAccountsPerPlatform: positiveInt.default(5),
 });
 

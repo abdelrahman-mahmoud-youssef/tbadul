@@ -9,6 +9,7 @@ export interface ClaimPolicy {
   readonly eligibility: EligibilityConfig;
   readonly cooldown: CooldownSchedule;
   readonly claimTtlMs: number;
+  readonly eligibilityMaxAgeMs: number;
   readonly maxAccountsPerPlatform: number;
 }
 

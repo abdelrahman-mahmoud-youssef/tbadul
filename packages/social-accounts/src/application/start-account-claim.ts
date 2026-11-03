@@ -61,7 +61,10 @@ export const startAccountClaimWith =
 
     if (!handle.ok) return err({ kind: 'invalid_handle', reason: handle.error.reason });
 
-    const profile = await deps.verifier.verify({ kind: 'profile', subject: handle.value });
+    const profile = await deps.verifier.verify(
+      { kind: 'profile', subject: handle.value },
+      { maxAgeMs: deps.policy.eligibilityMaxAgeMs },
+    );
     switch (profile.outcome) {
       case 'source_error':
       case 'not_following':

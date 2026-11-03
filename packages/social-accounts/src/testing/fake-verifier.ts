@@ -8,6 +8,7 @@ import {
   type ProfileEvidence,
   type Verdict,
   type Verifier,
+  type VerifyOptions,
 } from '@engagement-exchange/verification';
 import { profileEvidence } from '@engagement-exchange/verification/testing';
 
@@ -18,6 +19,7 @@ export interface FakeVerifierScript {
 
 export interface FakeVerifier extends Verifier {
   readonly calls: readonly Check[];
+  readonly options: readonly (VerifyOptions | undefined)[];
 }
 
 const listEvidence: ListEvidence = { pagesRead: 1, listExhausted: false, entriesRead: 1 };
@@ -55,8 +57,13 @@ export const eligibleProfile = (): ProfileEvidence => ({
 
 export const fakeVerifier = (script: FakeVerifierScript): FakeVerifier => {
   const calls: Check[] = [];
-  const verify = <C extends Check>(check: C): Promise<Verdict<C['kind']>> => {
+  const options: (VerifyOptions | undefined)[] = [];
+  const verify = <C extends Check>(
+    check: C,
+    given?: VerifyOptions,
+  ): Promise<Verdict<C['kind']>> => {
     calls.push(check);
+    options.push(given);
     switch (check.kind) {
       case 'profile': {
         const answer = script.profile?.(check.subject) ?? {
@@ -81,6 +88,7 @@ export const fakeVerifier = (script: FakeVerifierScript): FakeVerifier => {
   };
   return {
     calls,
+    options,
     verify: verify as Verifier['verify'],
     verifyOwnership: () => Promise.reject(new Error('not scripted')),
   };

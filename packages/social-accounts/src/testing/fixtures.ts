@@ -19,6 +19,7 @@ export const policy: ClaimPolicy = {
   },
   cooldown: { stepsMs: [30_000, 60_000, 120_000, 300_000], afterwardsMs: 600_000 },
   claimTtlMs: 86_400_000,
+  eligibilityMaxAgeMs: 3_600_000,
   maxAccountsPerPlatform: 5,
 };
 
