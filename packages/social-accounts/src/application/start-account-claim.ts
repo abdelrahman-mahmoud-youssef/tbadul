@@ -61,11 +61,6 @@ export const startAccountClaimWith =
 
     if (!handle.ok) return err({ kind: 'invalid_handle', reason: handle.error.reason });
 
-    const limit = deps.policy.maxAccountsPerPlatform;
-    const held = await deps.repository.countHeld(userId, platform, deps.clock.now());
-
-    if (held >= limit) return err({ kind: 'claim_limit_reached', limit });
-
     const profile = await deps.verifier.verify({ kind: 'profile', subject: handle.value });
     switch (profile.outcome) {
       case 'source_error':
@@ -88,6 +83,12 @@ export const startAccountClaimWith =
         const open = await deps.repository.findOpen(userId, accountId, now);
 
         if (open !== undefined) return ok(open);
+
+        const limit = deps.policy.maxAccountsPerPlatform;
+
+        if ((await deps.repository.countHeld(userId, platform, now)) >= limit) {
+          return err({ kind: 'claim_limit_reached', limit });
+        }
 
         const draft: ClaimDraft = {
           id: claimId(deps.ids.next()),

@@ -143,14 +143,21 @@ describe('startAccountClaim', () => {
     });
   });
 
-  it('refuses at the configured limit before paying for a profile', async () => {
+  it('refuses at the configured limit before paying for the baseline checks', async () => {
     const h = harness({}, { maxAccountsPerPlatform: 1 });
     await seed(h.repository, claimOn(h, alice, 'held', accountId('tiktok', 'held')));
     await expect(startAccountClaimWith(h.deps)(input)).resolves.toEqual({
       ok: false,
       error: { kind: 'claim_limit_reached', limit: 1 },
     });
-    expect(h.verifier.calls).toHaveLength(0);
+    expect(h.verifier.calls.map((c) => c.kind)).toEqual(['profile']);
+  });
+
+  it('returns the open claim of a user at the limit who starts it again', async () => {
+    const h = harness({}, { maxAccountsPerPlatform: 1 });
+    const open = await seed(h.repository, claimOn(h, alice, 'open'));
+    await expect(startAccountClaimWith(h.deps)(input)).resolves.toEqual({ ok: true, value: open });
+    expect(h.verifier.calls.map((c) => c.kind)).toEqual(['profile']);
   });
 
   it('stops counting open claims once they expire', async () => {
