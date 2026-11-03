@@ -46,7 +46,9 @@ const pickVerificationAccount = async (
       performerId: draft.accountId,
       target: candidate,
     });
+
     if (verdict.outcome === 'not_following') return { kind: 'assigned', account: candidate };
+
     if (verdict.outcome !== 'verified') return { kind: 'unavailable' };
   }
   return { kind: 'exhausted' };
@@ -56,13 +58,17 @@ export const startAccountClaimWith =
   (deps: UseCaseDeps): StartAccountClaim =>
   async ({ userId, platform, account }) => {
     const handle = parseHandle(platform, account);
+
     if (!handle.ok) return err({ kind: 'invalid_handle', reason: handle.error.reason });
 
     const holder = await deps.repository.findHolder(handle.value);
+
     if (holder !== undefined) {
       return holder.userId === userId ? ok(holder) : err({ kind: 'account_already_claimed' });
     }
+
     const held = await deps.repository.countHeldBy(userId, platform);
+
     if (held >= deps.policy.maxAccountsPerPlatform) {
       return err({ kind: 'claim_limit_reached', limit: deps.policy.maxAccountsPerPlatform });
     }
@@ -93,7 +99,9 @@ export const startAccountClaimWith =
         const claim = draft.eligibility.eligible
           ? await settleBaseline(deps, draft, platform)
           : ok(eligibilityFailed(draft));
+
         if (!claim.ok) return claim;
+
         await deps.repository.save(claim.value);
         return claim;
       }

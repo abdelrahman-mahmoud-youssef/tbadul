@@ -44,6 +44,8 @@ No aggregates and no repositories. This context holds no state: a verdict is an 
 
 One method per source, `answer(check, context)`, with `Check` as a discriminated union over the check kinds and the answer typed by kind. The alternative, one method per kind, would force the chain, every decorator and every fake to repeat the same three-way dispatch. The single method keeps decorators generic; adapters build their source from per-kind handlers through `defineSource`, so the one necessary cast lives in that helper and nowhere else.
 
+A `follows` or `liked` check may carry the performer's `AccountId` (`performerId`). A source that can read the list by that id skips resolving the handle; for the scraper this removes the profile page load, the scarcest request. The handle stays required so that handle-only sources still work. Added on 2026-11-03 for account linking (ADR 0002).
+
 The outcome set stays the five names given in the plan, including `not_following` for an absent like or an absent bio token. The vocabulary is frozen when the API phase starts; the plan carries the rename as an open question until then.
 
 ### Mechanical enforcement of the layer rule
