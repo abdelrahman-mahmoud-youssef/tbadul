@@ -64,12 +64,12 @@ describe('readEnv', () => {
   );
 
   it('refuses a database url of another scheme without echoing it', () => {
-    const result = readEnv({ DATABASE_URL: 'mysql://app:secret@localhost/app' });
+    const result = readEnv({ DATABASE_URL: 'mysql://app@db.internal/app' });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toHaveLength(1);
       expect(result.error[0]).toMatch(/^config DATABASE_URL: /);
-      expect(result.error[0]).not.toContain('secret');
+      expect(result.error[0]).not.toContain('db.internal');
     }
   });
 
