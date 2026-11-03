@@ -94,6 +94,12 @@ interface VerificationSource {
   answer<K extends CheckKind>(check: CheckOf<K>, context: CallContext): Promise<Answer<K>>;
 }
 
+interface VerifierConfig {
+  order: { profile: SourceName[]; follows: SourceName[]; liked: SourceName[] };
+  timeoutMs: number;
+  pageCap: number;
+}
+
 interface Attempt {
   source: SourceName;
   platform: Platform;
@@ -122,8 +128,9 @@ The package follows ADR 0001 (`docs/adr/0001-verification-context-architecture.m
 
 The chain is a strategy (which source answers) plus chain of responsibility (who gets asked next).
 
-- Order comes from `VERIFICATION_SOURCE_ORDER`, a comma-separated list of source names. The CLI turns it into the `order` field of the verifier config; the composition root validates the config once (`order` non-empty without duplicates, `timeoutMs` and `pageCap` positive integers) and fails at startup on an unknown or duplicate name.
-- For a check, the chain walks the order, skipping sources that serve another platform or whose `supports` lacks the check kind. If no source serves the check, the verdict is `source_error` with zero attempts.
+- There is one order per check kind (ADR 0003): `order: { profile, follows, liked }`, each a non-empty list of source names without duplicates. The composition root validates the config once (`timeoutMs` and `pageCap` positive integers too) and fails at startup on an unknown or duplicate name. The CLI reads `VERIFICATION_SOURCE_ORDER_PROFILE`, `VERIFICATION_SOURCE_ORDER_FOLLOWS` and `VERIFICATION_SOURCE_ORDER_LIKED`, each falling back to `VERIFICATION_SOURCE_ORDER`, with defaults `lamatok,ensemble,scraper` for profile and `scraper,lamatok,ensemble` for follows and liked; a source without a credential is left out.
+- Callers that read a list resolve the performer with a profile check first and pass its `AccountId` as `performerId`, so the scraper reads the list by id and loads no profile page.
+- For a check, the chain walks the order for its kind, skipping sources that serve another platform or whose `supports` lacks the check kind. If no source serves the check, the verdict is `source_error` with zero attempts.
 - The first answer whose outcome is not `source_error` is final. The chain stops there.
 - If every source answers `source_error`, the verdict is `source_error` with every attempt attached.
 - `private` and `not_found` are final answers, not reasons to try another source. A second source cannot see a hidden list either, and trying it only spends money.
@@ -197,6 +204,7 @@ Tradeoff: a browser-executed signer survives SDK rotation because it runs whatev
 - The page WAF refused automated page loads from this network after about 20 loads in 25 minutes and kept refusing them the next day, while a regular desktop browser on the same connection loaded the page normally (facts 33 and 43). The signed list endpoints kept answering. Profile reads are the scraper's weak point; pace them and expect `blocked`.
 - The sidecar runs from the image built with its Dockerfile: `docker run -d --name tiktok-signature -p 8080:8080 tiktok-signature:local`. It is ready in about 15 seconds and signs in about 20 ms. Its compose file carries no credential.
 - Measured latency: profile page 0.7 to 1.7 s, following page about 0.5 s, liked page about 0.8 s.
+- Consequence (ADR 0003): the profile page is not a production source for handle-to-id resolution. Profile checks go to the paid sources first and the scraper last; follows and liked checks stay scraper-first, read by account id.
 
 ## 6. Paid API sources
 
