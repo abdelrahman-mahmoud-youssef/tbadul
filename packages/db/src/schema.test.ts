@@ -3,7 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { DatabaseError } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase, type Database, type DatabaseClient } from './client.ts';
-import { applyMigrations } from './migrations.ts';
+import { applyMigrations, migrationsApplied } from './migrations.ts';
 import {
   accountClaims,
   activeLinkIndex,
@@ -127,16 +127,37 @@ describe.skipIf(databaseUrl === null)('database schema', () => {
       })
       .returning();
 
-  it('applies the migrations to an empty database, and again without change', async () => {
+  const freshDatabase = async (): Promise<string> => {
     const name = `fresh_${randomUUID().replaceAll('-', '')}`;
     await db.execute(sql`create database ${sql.identifier(name)}`);
     const freshUrl = new URL(databaseUrl ?? '');
     freshUrl.pathname = `/${name}`;
+    return freshUrl.toString();
+  };
 
-    await applyMigrations(freshUrl.toString());
-    await applyMigrations(freshUrl.toString());
+  it('reports migrations applied only once every migration has run', async () => {
+    const freshUrl = await freshDatabase();
+    const fresh = createDatabase(freshUrl);
+    try {
+      await expect(migrationsApplied(fresh.db)).resolves.toBe(false);
+      await applyMigrations(freshUrl);
+      await expect(migrationsApplied(fresh.db)).resolves.toBe(true);
+      await fresh.db.execute(
+        sql`delete from drizzle.__drizzle_migrations where created_at = (select max(created_at) from drizzle.__drizzle_migrations)`,
+      );
+      await expect(migrationsApplied(fresh.db)).resolves.toBe(false);
+    } finally {
+      await fresh.close();
+    }
+  });
 
-    const fresh = createDatabase(freshUrl.toString());
+  it('applies the migrations to an empty database, and again without change', async () => {
+    const freshUrl = await freshDatabase();
+
+    await applyMigrations(freshUrl);
+    await applyMigrations(freshUrl);
+
+    const fresh = createDatabase(freshUrl);
     try {
       const tables = await fresh.db.execute<{ table_name: string }>(
         sql`select table_name from information_schema.tables where table_schema = 'public' order by table_name`,
