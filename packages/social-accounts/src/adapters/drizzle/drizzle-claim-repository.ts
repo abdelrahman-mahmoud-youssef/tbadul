@@ -38,7 +38,6 @@ const selectClaims = (db: Executor, where: SQL | undefined) =>
     .select({
       claim: accountClaims,
       externalId: platformAccounts.externalId,
-      verificationHandle: verification.handle,
       verificationExternalId: verification.externalId,
     })
     .from(accountClaims)
@@ -65,8 +64,8 @@ const findClaim = async (
     platform: claim.platform,
     handle: handleOf(claim.platform, claim.handle),
     accountId: accountId(claim.platform, row.externalId),
-    ...(row.verificationHandle !== null && {
-      verificationAccount: handleOf(claim.platform, row.verificationHandle),
+    ...(claim.verificationHandle !== null && {
+      verificationAccount: handleOf(claim.platform, claim.verificationHandle),
     }),
     ...(row.verificationExternalId !== null && {
       verificationAccountId: accountId(claim.platform, row.verificationExternalId),
@@ -237,6 +236,7 @@ export const drizzleClaimRepository = (db: Database): AccountClaimRepository => 
                   claim.verificationAccount,
                   claim.startedAt,
                 ),
+          verificationHandle: claim.verificationAccount?.value ?? null,
           state: claim.state,
           rejection: claim.rejection ?? null,
           eligibility: claim.eligibility,

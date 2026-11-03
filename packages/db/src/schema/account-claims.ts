@@ -43,6 +43,7 @@ export const accountClaims = pgTable(
     verificationPlatformAccountId: uuid('verification_platform_account_id').references(
       () => platformAccounts.id,
     ),
+    verificationHandle: text('verification_handle'),
     state: text('state', { enum: claimStates }).notNull(),
     rejection: text('rejection', { enum: rejectionReasons }),
     eligibility: jsonb('eligibility').notNull(),

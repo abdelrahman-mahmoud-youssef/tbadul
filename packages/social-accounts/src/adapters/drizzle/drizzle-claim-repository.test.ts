@@ -100,6 +100,18 @@ describe.skipIf(databaseUrl === null)('drizzleClaimRepository', () => {
     });
   });
 
+  it('keeps the verification handle the user was told to follow after the handle moves', async () => {
+    const moved = await insertVerificationAccount(db, uniqueHandle('moved'));
+    const claim = await seed(repository, openClaim(await insertUser(db), moved, now));
+
+    await db
+      .update(platformAccounts)
+      .set({ handle: null, handleSeenAt: null })
+      .where(eq(platformAccounts.externalId, moved.accountId.value));
+
+    await expect(repository.findById(claim.id)).resolves.toEqual(claim);
+  });
+
   it('stores an account it has not seen before without a profile', async () => {
     const claim = await seed(repository, await claimOf());
     const [row] = await db

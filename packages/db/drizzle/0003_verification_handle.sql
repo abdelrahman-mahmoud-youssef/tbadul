@@ -1,0 +1,1 @@
+ALTER TABLE "account_claims" ADD COLUMN "verification_handle" text;
