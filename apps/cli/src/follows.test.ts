@@ -4,6 +4,7 @@ import {
   listEvidence,
   manualClock,
   profileEvidence,
+  sameOrder,
   recordingSink,
 } from '@engagement-exchange/verification/testing';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
@@ -30,7 +31,7 @@ const run = (target: Answer<'profile'>, follows: Answer<'follows'>) => {
     },
   });
   const verifier = createVerifier(
-    { order: ['scraper'], timeoutMs: 1000, pageCap: 1 },
+    { order: sameOrder(['scraper']), timeoutMs: 1000, pageCap: 1 },
     { sources: [source], clock, measurements: sink },
   );
   return {

@@ -10,11 +10,12 @@ import {
   token,
 } from './testing/fixtures.ts';
 import { manualClock } from './testing/manual-clock.ts';
+import { sameOrder } from './testing/orders.ts';
 import { recordingSink } from './testing/recording-sink.ts';
 
 const cost = { unit: 'request', amount: 1 } as const;
 const verified: Answer<'follows'> = { outcome: 'verified', evidence: listEvidence, cost };
-const config = { order: ['lamatok', 'scraper'], timeoutMs: 1000, pageCap: 3 };
+const config = { order: sameOrder(['lamatok', 'scraper']), timeoutMs: 1000, pageCap: 3 };
 
 describe('createVerifier', () => {
   beforeEach(() => {
@@ -34,6 +35,38 @@ describe('createVerifier', () => {
     expect(scraper.calls).toEqual([]);
   });
 
+  it('walks the order of the check kind and never asks a source listed for another kind', async () => {
+    const paid = fakeSource('lamatok', {
+      profile: { outcome: 'verified', evidence: profileEvidence('bio'), cost },
+      follows: verified,
+    });
+    const scraper = fakeSource('scraper', {
+      profile: { outcome: 'verified', evidence: profileEvidence('bio'), cost },
+      follows: verified,
+    });
+    const verifier = createVerifier(
+      {
+        order: { profile: ['lamatok', 'scraper'], follows: ['scraper'], liked: ['scraper'] },
+        timeoutMs: 1000,
+        pageCap: 3,
+      },
+      { sources: [scraper, paid] },
+    );
+    await expect(verifier.verify({ kind: 'profile', subject: performer })).resolves.toMatchObject({
+      source: 'lamatok',
+    });
+    await expect(verifier.verify(followsCheck)).resolves.toMatchObject({ source: 'scraper' });
+    expect(paid.calls.map((check) => check.kind)).toEqual(['profile']);
+    expect(scraper.calls.map((check) => check.kind)).toEqual(['follows']);
+  });
+
+  it('rejects an unknown name in any kind', () => {
+    const sources = [fakeSource('lamatok', {}), fakeSource('scraper', {})];
+    expect(() =>
+      createVerifier({ ...config, order: { ...config.order, liked: ['ensemble'] } }, { sources }),
+    ).toThrow('unknown verification source: ensemble');
+  });
+
   it('rejects an order that names a source that was not provided', () => {
     expect(() =>
       createVerifier(config, { sources: [fakeSource('scraper', { follows: verified })] }),
@@ -41,8 +74,8 @@ describe('createVerifier', () => {
   });
 
   it.each([
-    ['empty order', { ...config, order: [] }],
-    ['duplicate names', { ...config, order: ['lamatok', 'lamatok'] }],
+    ['empty order', { ...config, order: { ...config.order, liked: [] } }],
+    ['duplicate names', { ...config, order: { ...config.order, follows: ['lamatok', 'lamatok'] } }],
     ['zero timeout', { ...config, timeoutMs: 0 }],
     ['fractional page cap', { ...config, pageCap: 1.5 }],
   ])('rejects a config with %s', (_label, invalid) => {

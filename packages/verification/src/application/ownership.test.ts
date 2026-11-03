@@ -4,6 +4,7 @@ import { fakeSource, type FakeAnswers } from '../testing/fake-source.ts';
 import { performer, profileEvidence, token } from '../testing/fixtures.ts';
 import { manualClock } from '../testing/manual-clock.ts';
 import { recordingSink } from '../testing/recording-sink.ts';
+import { everyKind } from '../testing/orders.ts';
 import { verifyWith } from './chain.ts';
 import { verifyOwnershipWith } from './ownership.ts';
 
@@ -17,7 +18,7 @@ const read = (bio: string): Answer<'profile'> => ({
 const ownership = (answers: FakeAnswers) =>
   verifyOwnershipWith(
     verifyWith({
-      sources: [fakeSource('s0', answers)],
+      sources: everyKind([fakeSource('s0', answers)]),
       clock: manualClock(),
       measurements: recordingSink(),
       pageCap: 1,

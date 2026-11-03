@@ -6,6 +6,7 @@ import { fakeSource } from '../testing/fake-source.ts';
 import { followsCheck, listEvidence } from '../testing/fixtures.ts';
 import { manualClock } from '../testing/manual-clock.ts';
 import { recordingSink } from '../testing/recording-sink.ts';
+import { everyKind } from '../testing/orders.ts';
 import { verifyWith } from './chain.ts';
 
 const cost = { unit: 'request', amount: 1 } as const;
@@ -23,7 +24,7 @@ const answer: fc.Arbitrary<Answer<'follows'>> = fc.oneof(
 const run = async (answers: readonly Answer<'follows'>[]) => {
   const sources = answers.map((follows, index) => fakeSource(`s${index}`, { follows }));
   const verify = verifyWith({
-    sources,
+    sources: everyKind(sources),
     clock: manualClock(),
     measurements: recordingSink(),
     pageCap: 1,

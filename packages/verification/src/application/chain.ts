@@ -8,8 +8,10 @@ import type { Clock } from '../ports/clock.ts';
 import type { MeasurementSink } from '../ports/measurement-sink.ts';
 import type { CallContext, VerificationSource } from '../ports/verification-source.ts';
 
+export type SourcesByKind = Readonly<Record<CheckKind, readonly VerificationSource[]>>;
+
 export interface ChainDeps {
-  readonly sources: readonly VerificationSource[];
+  readonly sources: SourcesByKind;
   readonly clock: Clock;
   readonly measurements: MeasurementSink;
   readonly pageCap: number;
@@ -79,7 +81,7 @@ export const verifyWith =
       pageCap: deps.pageCap,
     };
     const attempts: Attempt[] = [];
-    for (const source of deps.sources) {
+    for (const source of deps.sources[check.kind]) {
       if (!serves(source, platform, check.kind)) continue;
       const startedAt = deps.clock.now();
       const answer = await askSource(source, check, context);

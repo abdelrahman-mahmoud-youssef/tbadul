@@ -1,16 +1,18 @@
 import { z } from 'zod';
 import { withTimeout } from './adapters/resilience/with-timeout.ts';
-import { verifyWith, type Verify } from './application/chain.ts';
+import { verifyWith, type SourcesByKind, type Verify } from './application/chain.ts';
 import { verifyOwnershipWith, type VerifyOwnership } from './application/ownership.ts';
 import type { Clock } from './ports/clock.ts';
 import type { MeasurementSink } from './ports/measurement-sink.ts';
 import type { VerificationSource } from './ports/verification-source.ts';
 
+const sourceOrder = z
+  .array(z.string().min(1))
+  .min(1)
+  .refine((names) => new Set(names).size === names.length, 'duplicate source names');
+
 export const verifierConfigSchema = z.object({
-  order: z
-    .array(z.string().min(1))
-    .min(1)
-    .refine((names) => new Set(names).size === names.length, 'duplicate source names'),
+  order: z.object({ profile: sourceOrder, follows: sourceOrder, liked: sourceOrder }),
   timeoutMs: z.number().int().positive(),
   pageCap: z.number().int().positive(),
 });
@@ -34,12 +36,20 @@ const discardingSink: MeasurementSink = { record: () => undefined };
 
 export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Verifier => {
   const { order, timeoutMs, pageCap } = verifierConfigSchema.parse(config);
-  const byName = new Map(deps.sources.map((source) => [source.name, source]));
-  const sources = order.map((name) => {
-    const source = byName.get(name);
-    if (source === undefined) throw new Error(`unknown verification source: ${name}`);
-    return withTimeout(source, timeoutMs);
-  });
+  const byName = new Map(
+    deps.sources.map((source) => [source.name, withTimeout(source, timeoutMs)]),
+  );
+  const resolve = (names: readonly string[]) =>
+    names.map((name) => {
+      const source = byName.get(name);
+      if (source === undefined) throw new Error(`unknown verification source: ${name}`);
+      return source;
+    });
+  const sources: SourcesByKind = {
+    profile: resolve(order.profile),
+    follows: resolve(order.follows),
+    liked: resolve(order.liked),
+  };
   const verify = verifyWith({
     sources,
     clock: deps.clock ?? systemClock,

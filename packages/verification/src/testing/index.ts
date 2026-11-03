@@ -7,4 +7,5 @@ export {
 } from './fake-source.ts';
 export { content, handle, listEvidence, profileEvidence, token } from './fixtures.ts';
 export { manualClock, type ManualClock } from './manual-clock.ts';
+export { everyKind, sameOrder } from './orders.ts';
 export { recordingSink, type RecordingSink } from './recording-sink.ts';

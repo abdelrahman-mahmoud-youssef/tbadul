@@ -5,6 +5,7 @@ import { fakeSource, hangingUntilAborted, type FakeAnswers } from '../testing/fa
 import { followsCheck, likedCheck, listEvidence } from '../testing/fixtures.ts';
 import { manualClock } from '../testing/manual-clock.ts';
 import { recordingSink } from '../testing/recording-sink.ts';
+import { everyKind } from '../testing/orders.ts';
 import { verifyWith } from './chain.ts';
 
 const cost = { unit: 'request', amount: 1 } as const;
@@ -18,7 +19,7 @@ const chain = (...sources: FakeAnswers[]) => {
   const fakes = sources.map((answers, index) => fakeSource(`s${index}`, answers));
   const clock = manualClock();
   const measurements = recordingSink();
-  const verify = verifyWith({ sources: fakes, clock, measurements, pageCap: 3 });
+  const verify = verifyWith({ sources: everyKind(fakes), clock, measurements, pageCap: 3 });
   return { verify, fakes, clock, measurements };
 };
 
@@ -94,7 +95,7 @@ describe('verify', () => {
       },
     });
     const verify = verifyWith({
-      sources: [slow],
+      sources: everyKind([slow]),
       clock,
       measurements: recordingSink(),
       pageCap: 3,

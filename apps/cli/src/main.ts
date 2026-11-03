@@ -27,9 +27,15 @@ const run = async (argv: readonly string[]): Promise<number> => {
     return usageError;
   }
   const env = loaded.value;
+  const attempts: Attempt[] = [];
+  const composed = composeVerifier(env, { record: (attempt) => attempts.push(attempt) });
+  if (!composed.ok) {
+    console.error(composed.error);
+    return usageError;
+  }
+  const { verifier, leftOut } = composed.value;
+  if (leftOut.length > 0) console.error(`sources left out, no credential: ${leftOut.join(', ')}`);
   if (group === 'follows' && first !== undefined && second !== undefined) {
-    const attempts: Attempt[] = [];
-    const verifier = composeVerifier(env, { record: (attempt) => attempts.push(attempt) });
     return followsCommand(verifier, attempts, first, second);
   }
   if (group === 'link' && first === 'start' && second !== undefined) {
@@ -38,11 +44,11 @@ const run = async (argv: readonly string[]): Promise<number> => {
       console.error(pool.error);
       return usageError;
     }
-    const social = composeSocialAccounts(env, composeVerifier(env), pool.value);
+    const social = composeSocialAccounts(env, verifier, pool.value);
     return linkStart(social, env.CLI_USER_ID, second);
   }
   if (group === 'link' && first === 'verify' && second !== undefined) {
-    return linkVerify(composeSocialAccounts(env, composeVerifier(env), []), second);
+    return linkVerify(composeSocialAccounts(env, verifier, []), second);
   }
   console.error(usage);
   return usageError;

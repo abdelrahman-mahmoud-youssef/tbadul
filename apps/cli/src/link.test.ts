@@ -10,6 +10,7 @@ import {
   handle,
   listEvidence,
   profileEvidence,
+  sameOrder,
 } from '@engagement-exchange/verification/testing';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { linkStart } from './link.ts';
@@ -22,7 +23,7 @@ const social = (follows: Answer<'follows'>): SocialAccounts => {
     { eligibility: {}, cooldown: {} },
     {
       verifier: createVerifier(
-        { order: ['scraper'], timeoutMs: 1000, pageCap: 1 },
+        { order: sameOrder(['scraper']), timeoutMs: 1000, pageCap: 1 },
         {
           sources: [
             fakeSource('scraper', {
