@@ -22,6 +22,7 @@ const ownership = (answers: FakeAnswers) =>
       clock: manualClock(),
       measurements: recordingSink(),
       pageCap: 1,
+      confirmNotFollowing: false,
     }),
   );
 

@@ -18,7 +18,7 @@ export interface FakeVerifier extends Verifier {
   readonly calls: readonly Check[];
 }
 
-const listEvidence: ListEvidence = { pagesRead: 1, listExhausted: false };
+const listEvidence: ListEvidence = { pagesRead: 1, listExhausted: false, entriesRead: 1 };
 
 const verdict = (check: Check, outcome: Outcome, evidence?: unknown): never => {
   const attempts = [] as const;

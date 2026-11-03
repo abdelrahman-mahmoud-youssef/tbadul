@@ -55,6 +55,7 @@ const readProfile = async (
       }),
       ...(user.openFavorite !== undefined && { likesVisible: user.openFavorite }),
       ...(stats && { followerCount: stats.followerCount, videoCount: stats.videoCount }),
+      ...(stats?.followingCount !== undefined && { followingCount: stats.followingCount }),
       ...(user.avatarThumb !== undefined && { avatarUrl: user.avatarThumb.split('?')[0] }),
       ...(user.createTime !== undefined && { createdAt: user.createTime * 1000 }),
     },

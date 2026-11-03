@@ -15,6 +15,7 @@ export const verifierConfigSchema = z.object({
   order: z.object({ profile: sourceOrder, follows: sourceOrder, liked: sourceOrder }),
   timeoutMs: z.number().int().positive(),
   pageCap: z.number().int().positive(),
+  confirmNotFollowing: z.boolean().default(true),
 });
 
 export type VerifierConfig = z.input<typeof verifierConfigSchema>;
@@ -35,7 +36,7 @@ const systemClock: Clock = { now: () => Date.now() };
 const discardingSink: MeasurementSink = { record: () => undefined };
 
 export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Verifier => {
-  const { order, timeoutMs, pageCap } = verifierConfigSchema.parse(config);
+  const { order, timeoutMs, pageCap, confirmNotFollowing } = verifierConfigSchema.parse(config);
   const byName = new Map(
     deps.sources.map((source) => [source.name, withTimeout(source, timeoutMs)]),
   );
@@ -55,6 +56,7 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
     clock: deps.clock ?? systemClock,
     measurements: deps.measurements ?? discardingSink,
     pageCap,
+    confirmNotFollowing,
   });
   return { verify, verifyOwnership: verifyOwnershipWith(verify) };
 };

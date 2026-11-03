@@ -26,7 +26,7 @@ export const followsCheck: Check = { kind: 'follows', performer, target };
 export const likedCheck: Check = { kind: 'liked', performer, content: video };
 export const profileCheck: Check = { kind: 'profile', subject: performer };
 
-export const listEvidence: ListEvidence = { pagesRead: 1, listExhausted: true };
+export const listEvidence: ListEvidence = { pagesRead: 1, listExhausted: true, entriesRead: 1 };
 
 export const profileEvidence = (bio: string): ProfileEvidence => ({
   accountId: accountId('tiktok', 'MS4wLjABAAAA'),

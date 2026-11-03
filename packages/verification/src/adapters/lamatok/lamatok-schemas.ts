@@ -17,7 +17,13 @@ export const userSchema = z.object({
       avatarThumb: z.string().optional(),
       createTime: z.number().int().optional(),
     }),
-    stats: z.object({ followerCount: z.number().int(), videoCount: z.number().int() }).optional(),
+    stats: z
+      .object({
+        followerCount: z.number().int(),
+        followingCount: z.number().int().optional(),
+        videoCount: z.number().int(),
+      })
+      .optional(),
   }),
 });
 

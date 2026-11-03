@@ -109,6 +109,7 @@ describe('scraperSource', () => {
           followingVisible: true,
           likesVisible: false,
           followerCount: 96530997,
+          followingCount: 1,
           videoCount: 1516,
           avatarUrl:
             'https://p16-common-sign.tiktokcdn.com/tos-maliva-avt-0068/ba67b11de451691939223e9d978e613a~tplv-tiktokx-cropcenter:100:100.jpeg',
@@ -152,7 +153,7 @@ describe('scraperSource', () => {
       following(fixture('following-page-exhausted.json'));
       await expect(source.answer(check, context())).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 2 },
       });
     });
@@ -174,7 +175,7 @@ describe('scraperSource', () => {
         direct.answer({ ...check, performerId: accountId('tiktok', profileSecUid) }, context()),
       ).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 1 },
       });
       expect(signed).toBe(1);
@@ -196,7 +197,7 @@ describe('scraperSource', () => {
         source.answer({ ...check, target: handle('khaby.lame') }, context()),
       ).resolves.toEqual({
         outcome: 'not_following',
-        evidence: { pagesRead: 1, listExhausted: true },
+        evidence: { pagesRead: 1, listExhausted: true, entriesRead: 1 },
         cost: { unit: 'request', amount: 2 },
       });
     });
@@ -226,7 +227,7 @@ describe('scraperSource', () => {
       following(fixture('following-page-exhausted.json'), { minCursor: '1447292191' });
       await expect(source.answer(check, context({ pageCap: 3 }))).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 2, listExhausted: false },
+        evidence: { pagesRead: 2, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 3 },
       });
     });
@@ -236,7 +237,7 @@ describe('scraperSource', () => {
       following(listPage({ userList: [], hasMore: true, minCursor: 5 }));
       await expect(source.answer(check, context({ pageCap: 1 }))).resolves.toEqual({
         outcome: 'not_following',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 0 },
         cost: { unit: 'request', amount: 2 },
       });
     });
@@ -303,7 +304,7 @@ describe('scraperSource', () => {
         direct.answer({ ...check, performerId: accountId('tiktok', profileSecUid) }, context()),
       ).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 1 },
       });
       expect(signed).toBe(1);
@@ -337,7 +338,7 @@ describe('scraperSource', () => {
       );
       await expect(source.answer(check, context())).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: { unit: 'request', amount: 2 },
       });
     });
@@ -347,7 +348,7 @@ describe('scraperSource', () => {
       liked(listPage({ itemList: [{ id: '1' }], hasMore: false, cursor: 0 }));
       await expect(source.answer(check, context())).resolves.toEqual({
         outcome: 'not_following',
-        evidence: { pagesRead: 1, listExhausted: true },
+        evidence: { pagesRead: 1, listExhausted: true, entriesRead: 1 },
         cost: { unit: 'request', amount: 2 },
       });
     });

@@ -127,6 +127,7 @@ describe('lamatokSource', () => {
           followingVisible: true,
           likesVisible: false,
           followerCount: 96530997,
+          followingCount: 3,
           videoCount: 1516,
           avatarUrl:
             'https://p16-common-sign.tiktokcdn.com/tos-maliva-avt-0068/ba67b11de451691939223e9d978e613a~tplv-tiktokx-cropcenter:100:100.jpeg',
@@ -268,7 +269,7 @@ describe('lamatokSource', () => {
       followingById(synthetic('following-target-present.json'), { page_id: null });
       await expect(source.answer(byId, context())).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(1),
       });
     });
@@ -277,7 +278,7 @@ describe('lamatokSource', () => {
       followingByName(synthetic('following-target-present.json'), { page_id: null });
       await expect(source.answer(check, context())).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(1),
       });
     });
@@ -287,7 +288,7 @@ describe('lamatokSource', () => {
       followingById(synthetic('following-target-present.json'), { page_id: '1617300091' });
       await expect(source.answer(byId, context({ pageCap: 3 }))).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 2, listExhausted: false },
+        evidence: { pagesRead: 2, listExhausted: false, entriesRead: 4 },
         cost: request(2),
       });
     });
@@ -297,7 +298,7 @@ describe('lamatokSource', () => {
       followingByName(synthetic('following-last-page.json'), { page_id: '1617300091' });
       await expect(source.answer(check, context({ pageCap: 3 }))).resolves.toEqual({
         outcome: 'not_following',
-        evidence: { pagesRead: 2, listExhausted: true },
+        evidence: { pagesRead: 2, listExhausted: true, entriesRead: 3 },
         cost: request(2),
       });
     });
@@ -306,7 +307,7 @@ describe('lamatokSource', () => {
       followingById(synthetic('following-absent-more.json'));
       await expect(source.answer(byId, context({ pageCap: 1 }))).resolves.toEqual({
         outcome: 'not_following',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(1),
       });
     });
@@ -389,7 +390,7 @@ describe('lamatokSource', () => {
       likes(synthetic('likes-page.json'), { cursor: null });
       await expect(source.answer(byId, context())).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(1),
       });
     });
@@ -399,7 +400,7 @@ describe('lamatokSource', () => {
       likes(synthetic('likes-page.json'), { cursor: null });
       await expect(source.answer(check, context())).resolves.toEqual({
         outcome: 'verified',
-        evidence: { pagesRead: 1, listExhausted: false },
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(2),
       });
     });
@@ -437,7 +438,7 @@ describe('lamatokSource', () => {
         source.answer({ ...byId, content: content('7000000000000000009') }, context()),
       ).resolves.toEqual({
         outcome: 'not_following',
-        evidence: { pagesRead: 2, listExhausted: true },
+        evidence: { pagesRead: 2, listExhausted: true, entriesRead: 3 },
         cost: request(2),
       });
     });

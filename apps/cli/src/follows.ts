@@ -90,6 +90,9 @@ export const followsCommand = async (
     kind: 'follows',
     performer,
     performerId: evidence.accountId,
+    ...(evidence.followingCount !== undefined && {
+      performerFollowingCount: evidence.followingCount,
+    }),
     target,
   });
   return finish(label, verdict.outcome, attempts);

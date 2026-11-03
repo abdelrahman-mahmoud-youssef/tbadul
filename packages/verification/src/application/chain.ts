@@ -2,6 +2,7 @@ import { failed, type Answer } from '../domain/answer.ts';
 import type { Attempt } from '../domain/attempt.ts';
 import { checkPlatform, type CheckKind, type CheckOf } from '../domain/check.ts';
 import { samePlatform, type Platform } from '../domain/platform.ts';
+import { rejectShortList } from '../domain/short-list.ts';
 import type { SourceName } from '../domain/source-name.ts';
 import type { Verdict } from '../domain/verdict.ts';
 import type { Clock } from '../ports/clock.ts';
@@ -15,6 +16,7 @@ export interface ChainDeps {
   readonly clock: Clock;
   readonly measurements: MeasurementSink;
   readonly pageCap: number;
+  readonly confirmNotFollowing: boolean;
 }
 
 export interface VerifyOptions {
@@ -81,14 +83,25 @@ export const verifyWith =
       pageCap: deps.pageCap,
     };
     const attempts: Attempt[] = [];
-    for (const source of deps.sources[check.kind]) {
-      if (!serves(source, platform, check.kind)) continue;
+    const eligible = deps.sources[check.kind].filter((source) =>
+      serves(source, platform, check.kind),
+    );
+    let awaitingConfirmation = false;
+    for (const [index, source] of eligible.entries()) {
       const startedAt = deps.clock.now();
-      const answer = await askSource(source, check, context);
+      const answer = rejectShortList(check, await askSource(source, check, context));
       const attempt = toAttempt(source, check.kind, answer, startedAt, deps.clock.now());
       attempts.push(attempt);
       deps.measurements.record(attempt);
-      if (answer.outcome !== 'source_error') return settle(check, answer, source.name, attempts);
+      if (answer.outcome === 'source_error') continue;
+      const confirm =
+        answer.outcome === 'not_following' &&
+        check.kind !== 'profile' &&
+        deps.confirmNotFollowing &&
+        !awaitingConfirmation &&
+        index < eligible.length - 1;
+      if (!confirm) return settle(check, answer, source.name, attempts);
+      awaitingConfirmation = true;
     }
     return { outcome: 'source_error', check, attempts };
   };

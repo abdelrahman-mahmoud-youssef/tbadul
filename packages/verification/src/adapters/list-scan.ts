@@ -23,22 +23,32 @@ export const scanList = async <T>(
   costBefore: number,
 ): Promise<Answer<'follows'>> => {
   let cursor: string | undefined;
+  let entriesRead = 0;
   for (let page = 1; page <= context.pageCap; page += 1) {
     const cost = requests(costBefore + page);
     const read = await readPage(cursor);
     if ('outcome' in read) return { outcome: read.outcome, cost };
     if (!read.ok) return failed(read.error, cost);
+    entriesRead += read.value.items.length;
     if (read.value.items.some(matches)) {
-      return { outcome: 'verified', evidence: { pagesRead: page, listExhausted: false }, cost };
+      return {
+        outcome: 'verified',
+        evidence: { pagesRead: page, listExhausted: false, entriesRead },
+        cost,
+      };
     }
     if (read.value.next === undefined) {
-      return { outcome: 'not_following', evidence: { pagesRead: page, listExhausted: true }, cost };
+      return {
+        outcome: 'not_following',
+        evidence: { pagesRead: page, listExhausted: true, entriesRead },
+        cost,
+      };
     }
     cursor = read.value.next;
   }
   return {
     outcome: 'not_following',
-    evidence: { pagesRead: context.pageCap, listExhausted: false },
+    evidence: { pagesRead: context.pageCap, listExhausted: false, entriesRead },
     cost: requests(costBefore + context.pageCap),
   };
 };

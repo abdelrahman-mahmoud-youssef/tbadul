@@ -17,6 +17,7 @@ export const sourceErrorKinds = [
   'blocked',
   'parse',
   'unknown_status',
+  'incomplete_list',
   'unexpected',
 ] as const;
 

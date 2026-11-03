@@ -95,6 +95,12 @@ describe('followsCommand', () => {
     expect(log.mock.calls.flat()[0]).toBe(`@tiktok follows @tiktokcreators: ${outcome}`);
   });
 
+  it('passes the performer following count into the follows check', async () => {
+    const { follows, source } = run([found(), found({ ...visible, followingCount: 11 })]);
+    await follows('@tiktok', 'tiktokcreators');
+    expect(source.calls[2]).toMatchObject({ performerFollowingCount: 11 });
+  });
+
   it.each([
     ['a private performer', { ...visible, isPrivate: true }],
     ['a hidden following list', { ...visible, followingVisible: false }],

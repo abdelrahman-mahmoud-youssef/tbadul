@@ -13,6 +13,7 @@ export type Check =
       readonly kind: 'follows';
       readonly performer: Handle;
       readonly performerId?: AccountId;
+      readonly performerFollowingCount?: number;
       readonly target: Handle;
     }
   | {

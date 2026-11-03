@@ -21,7 +21,9 @@ export const userDetailSchema = z.object({
         createTime: z.number().int().optional(),
         avatarThumb: z.string().optional(),
       }),
-      statsV2: z.object({ followerCount: count, videoCount: count }).optional(),
+      statsV2: z
+        .object({ followerCount: count, followingCount: count.optional(), videoCount: count })
+        .optional(),
     })
     .optional(),
 });

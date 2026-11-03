@@ -28,6 +28,7 @@ const run = async (answers: readonly Answer<'follows'>[]) => {
     clock: manualClock(),
     measurements: recordingSink(),
     pageCap: 1,
+    confirmNotFollowing: false,
   });
   return verify(followsCheck);
 };

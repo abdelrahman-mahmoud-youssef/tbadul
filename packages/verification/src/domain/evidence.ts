@@ -8,6 +8,7 @@ export interface ProfileEvidence {
   readonly followingVisible?: boolean;
   readonly likesVisible?: boolean;
   readonly followerCount?: number;
+  readonly followingCount?: number;
   readonly videoCount?: number;
   readonly avatarUrl?: string;
   readonly createdAt?: number;
@@ -17,6 +18,7 @@ export interface ProfileEvidence {
 export interface ListEvidence {
   readonly pagesRead: number;
   readonly listExhausted: boolean;
+  readonly entriesRead: number;
 }
 
 type EvidenceForEveryKind<T extends Record<CheckKind, unknown>> = T;

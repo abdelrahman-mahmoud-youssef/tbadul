@@ -19,7 +19,13 @@ const chain = (...sources: FakeAnswers[]) => {
   const fakes = sources.map((answers, index) => fakeSource(`s${index}`, answers));
   const clock = manualClock();
   const measurements = recordingSink();
-  const verify = verifyWith({ sources: everyKind(fakes), clock, measurements, pageCap: 3 });
+  const verify = verifyWith({
+    sources: everyKind(fakes),
+    clock,
+    measurements,
+    pageCap: 3,
+    confirmNotFollowing: false,
+  });
   return { verify, fakes, clock, measurements };
 };
 
@@ -99,6 +105,7 @@ describe('verify', () => {
       clock,
       measurements: recordingSink(),
       pageCap: 3,
+      confirmNotFollowing: false,
     });
     const verdict = await verify(followsCheck);
     expect(verdict.attempts[0]).toMatchObject({ startedAt: started, latencyMs: 120, cost });

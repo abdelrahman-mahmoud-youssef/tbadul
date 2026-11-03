@@ -26,6 +26,10 @@ export const envSchema = z.object({
   VERIFICATION_SOURCE_ORDER_PROFILE: order,
   VERIFICATION_SOURCE_ORDER_FOLLOWS: order,
   VERIFICATION_SOURCE_ORDER_LIKED: order,
+  VERIFICATION_CONFIRM_NOT_FOLLOWING: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
   OUTBOUND_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   CLAIMS_FILE: z.string().min(1).default('claims.local.json'),
   CLI_USER_ID: z.string().min(1).default('local'),
