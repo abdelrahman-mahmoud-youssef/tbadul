@@ -5,15 +5,18 @@ import {
   type ProfileEvidence,
 } from '@engagement-exchange/verification';
 import {
+  content,
   fakeSource,
+  handle,
   listEvidence,
   manualClock,
   profileEvidence,
   recordingSink,
   sameOrder,
+  token,
 } from '@engagement-exchange/verification/testing';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
-import { followsCommand, likedCommand } from './follows.ts';
+import { followsCommand, likedCommand, ownsCommand, profileCommand } from './follows.ts';
 
 const cost = { unit: 'request', amount: 1 } as const;
 const visible: ProfileEvidence = {
@@ -55,19 +58,21 @@ const run = (profiles: readonly Answer<'profile'>[], list: Answer<'follows'> = v
   return {
     source,
     follows: (performer: string, target: string) =>
-      followsCommand(verifier, sink.attempts, performer, target),
-    liked: (performer: string, content: string) =>
-      likedCommand(verifier, sink.attempts, performer, content),
+      followsCommand(verifier, sink.attempts, handle(performer), handle(target)),
+    liked: (performer: string, video: string) =>
+      likedCommand(verifier, sink.attempts, handle(performer), content(video)),
+    profile: (subject: string) => profileCommand(verifier, sink.attempts, handle(subject)),
+    owns: (subject: string, bioToken: string) =>
+      ownsCommand(verifier, sink.attempts, handle(subject), token(bioToken)),
   };
 };
 
 describe('followsCommand', () => {
   let log: MockInstance;
-  let error: MockInstance;
 
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -127,13 +132,6 @@ describe('followsCommand', () => {
     expect(source.calls.map((check) => check.kind)).toEqual(['profile', 'profile']);
     expect(log.mock.calls.flat()[0]).toBe('performer @zq8v1k0x9m2nope: not_found');
   });
-
-  it('refuses an invalid handle with the usage exit code and calls no source', async () => {
-    const { follows, source } = run([found()]);
-    await expect(follows('not valid', 'tiktok')).resolves.toBe(64);
-    expect(error).toHaveBeenCalledWith('invalid handle: not valid');
-    expect(source.calls).toEqual([]);
-  });
 });
 
 describe('likedCommand', () => {
@@ -164,10 +162,89 @@ describe('likedCommand', () => {
     await expect(liked('tiktok', '7000000000000000000')).resolves.toBe(2);
     expect(source.calls.map((check) => check.kind)).toEqual(['profile']);
   });
+});
 
-  it('refuses a content id that is not one', async () => {
-    const { liked, source } = run([found()]);
-    await expect(liked('tiktok', 'abc')).resolves.toBe(64);
-    expect(source.calls).toEqual([]);
+describe('profileCommand', () => {
+  let log: MockInstance;
+
+  beforeEach(() => {
+    log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('prints the evidence of a found profile', async () => {
+    const { profile, source } = run([
+      found({
+        ...visible,
+        likesVisible: false,
+        followerCount: 10,
+        followingCount: 2,
+        videoCount: 5,
+        createdAt: Date.UTC(2020, 0, 2),
+      }),
+    ]);
+    await expect(profile('tiktok')).resolves.toBe(0);
+    expect(source.calls.map((check) => check.kind)).toEqual(['profile']);
+    expect(log.mock.calls.flat()).toEqual([
+      'profile @tiktok: verified',
+      `  account id ${visible.accountId.value}`,
+      '  private no, following visible, likes hidden',
+      '  followers 10, following 2, videos 5',
+      '  created 2020-01-02T00:00:00.000Z',
+      'latency 400 ms, requests 1',
+    ]);
+  });
+
+  it('leaves out counts and visibility it was not given', async () => {
+    const { profile } = run([found(profileEvidence('bio'))]);
+    await profile('tiktok');
+    expect(log.mock.calls.flat()).toEqual([
+      'profile @tiktok: verified',
+      `  account id ${visible.accountId.value}`,
+      '  private no, following unknown, likes unknown',
+      'latency 400 ms, requests 1',
+    ]);
+  });
+
+  it('prints only the outcome of a missing profile with its exit code', async () => {
+    const { profile } = run([{ outcome: 'not_found', cost }]);
+    await expect(profile('zq8v1k0x9m2nope')).resolves.toBe(3);
+    expect(log.mock.calls.flat()[0]).toBe('profile @zq8v1k0x9m2nope: not_found');
+    expect(log.mock.calls).toHaveLength(2);
+  });
+});
+
+describe('ownsCommand', () => {
+  let log: MockInstance;
+
+  beforeEach(() => {
+    log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('verifies a bio that holds the token', async () => {
+    const { owns } = run([found({ ...visible, bio: 'hello ee-7f3a' })]);
+    await expect(owns('tiktok', 'ee-7f3a')).resolves.toBe(0);
+    expect(log.mock.calls.flat()[0]).toBe('@tiktok owns: verified');
+  });
+
+  it('answers not_following when the token is absent', async () => {
+    const { owns } = run([found({ ...visible, bio: 'hello' })]);
+    await expect(owns('tiktok', 'ee-7f3a')).resolves.toBe(1);
+    expect(log.mock.calls.flat().slice(0, 2)).toEqual([
+      '@tiktok owns: not_following',
+      '  token absent from the bio',
+    ]);
+  });
+
+  it('answers private for a private profile', async () => {
+    const { owns } = run([{ outcome: 'private', cost }]);
+    await expect(owns('tiktok', 'ee-7f3a')).resolves.toBe(2);
   });
 });

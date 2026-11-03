@@ -1,13 +1,22 @@
 import { parseArgs } from 'node:util';
-import type { Attempt } from '@engagement-exchange/verification';
+import type { Attempt, Verifier } from '@engagement-exchange/verification';
 import { composeSocialAccounts, composeVerifier } from './compose.ts';
 import { readEnv, sourceChoice, sourceChoices } from './config.ts';
-import { followsCommand, likedCommand, usageError } from './follows.ts';
+import { parseDemo, type Demo } from './demo.ts';
+import {
+  followsCommand,
+  likedCommand,
+  ownsCommand,
+  profileCommand,
+  usageError,
+} from './follows.ts';
 import { linkStart, linkVerify } from './link.ts';
 import { verificationPool } from './pool.ts';
 
 const usage = [
   'usage:',
+  '  cli profile <handle> [--source <name>]',
+  '  cli owns <handle> <bio-token> [--source <name>]',
   '  cli follows <performer> <target> [--source <name>]',
   '  cli liked <performer> <video-id-or-url> [--source <name>]',
   '  cli link start <handle-or-url> [--verification-account <handle>]...',
@@ -33,6 +42,19 @@ const parse = (argv: readonly string[]) => {
   }
 };
 
+const runDemo = (verifier: Verifier, attempts: readonly Attempt[], demo: Demo) => {
+  switch (demo.command) {
+    case 'profile':
+      return profileCommand(verifier, attempts, demo.subject);
+    case 'owns':
+      return ownsCommand(verifier, attempts, demo.subject, demo.token);
+    case 'follows':
+      return followsCommand(verifier, attempts, demo.performer, demo.target);
+    case 'liked':
+      return likedCommand(verifier, attempts, demo.performer, demo.content);
+  }
+};
+
 const run = async (argv: readonly string[]): Promise<number> => {
   const parsed = parse(argv);
   if (typeof parsed === 'string') {
@@ -45,6 +67,11 @@ const run = async (argv: readonly string[]): Promise<number> => {
   const choice = sourceChoice.safeParse(values.source);
   if (!choice.success) {
     console.error(`invalid --source: use one of ${sourceChoices.join(', ')}`);
+    return usageError;
+  }
+  const demo = parseDemo(positionals);
+  if (demo !== undefined && !demo.ok) {
+    console.error(demo.error);
     return usageError;
   }
   const loaded = readEnv(process.env);
@@ -65,12 +92,7 @@ const run = async (argv: readonly string[]): Promise<number> => {
   }
   const { verifier, leftOut } = composed.value;
   if (leftOut.length > 0) console.error(`sources left out, no credential: ${leftOut.join(', ')}`);
-  if (group === 'liked' && first !== undefined && second !== undefined) {
-    return likedCommand(verifier, attempts, first, second);
-  }
-  if (group === 'follows' && first !== undefined && second !== undefined) {
-    return followsCommand(verifier, attempts, first, second);
-  }
+  if (demo !== undefined) return runDemo(verifier, attempts, demo.value);
   if (group === 'link' && first === 'start' && second !== undefined) {
     const pool = verificationPool(values['verification-account'], env.VERIFICATION_ACCOUNTS);
     if (!pool.ok) {

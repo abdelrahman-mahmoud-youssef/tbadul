@@ -1,11 +1,11 @@
-import {
-  parseContentId,
-  parseHandle,
-  type Attempt,
-  type Handle,
-  type Outcome,
-  type ProfileEvidence,
-  type Verifier,
+import type {
+  Attempt,
+  BioToken,
+  ContentId,
+  Handle,
+  Outcome,
+  ProfileEvidence,
+  Verifier,
 } from '@engagement-exchange/verification';
 
 export const exitCodes: Readonly<Record<Outcome, number>> = {
@@ -34,10 +34,64 @@ const outcomeOf = (outcome: Outcome, attempts: readonly Attempt[]): string => {
   return outcome === 'source_error' && kind !== undefined ? `${outcome} (${kind})` : outcome;
 };
 
-const finish = (label: string, outcome: Outcome, attempts: readonly Attempt[]): number => {
+const finish = (
+  label: string,
+  outcome: Outcome,
+  attempts: readonly Attempt[],
+  details: readonly string[] = [],
+): number => {
   console.log(`${label}: ${outcomeOf(outcome, attempts)}`);
+  for (const detail of details) console.log(`  ${detail}`);
   console.log(measured(attempts));
   return exitCodes[outcome];
+};
+
+const visibility = (visible: boolean | undefined): string =>
+  visible === undefined ? 'unknown' : visible ? 'visible' : 'hidden';
+
+export const describeProfile = (evidence: ProfileEvidence): string[] => {
+  const counts = Object.entries({
+    followers: evidence.followerCount,
+    following: evidence.followingCount,
+    videos: evidence.videoCount,
+  }).flatMap(([label, count]) => (count === undefined ? [] : [`${label} ${String(count)}`]));
+  return [
+    `account id ${evidence.accountId.value}`,
+    `private ${evidence.isPrivate ? 'yes' : 'no'}, following ${visibility(evidence.followingVisible)}, likes ${visibility(evidence.likesVisible)}`,
+    ...(counts.length > 0 ? [counts.join(', ')] : []),
+    ...(evidence.createdAt === undefined
+      ? []
+      : [`created ${new Date(evidence.createdAt).toISOString()}`]),
+  ];
+};
+
+export const profileCommand = async (
+  verifier: Verifier,
+  attempts: readonly Attempt[],
+  subject: Handle,
+): Promise<number> => {
+  const verdict = await verifier.verify({ kind: 'profile', subject });
+  return finish(
+    `profile @${subject.value}`,
+    verdict.outcome,
+    attempts,
+    verdict.outcome === 'verified' ? describeProfile(verdict.evidence) : [],
+  );
+};
+
+export const ownsCommand = async (
+  verifier: Verifier,
+  attempts: readonly Attempt[],
+  subject: Handle,
+  token: BioToken,
+): Promise<number> => {
+  const verdict = await verifier.verifyOwnership(subject, token);
+  return finish(
+    `@${subject.value} owns`,
+    verdict.outcome,
+    attempts,
+    verdict.outcome === 'not_following' ? ['token absent from the bio'] : [],
+  );
 };
 
 type Resolved =
@@ -51,28 +105,12 @@ const resolve = async (verifier: Verifier, subject: Handle): Promise<Resolved> =
     : { ok: false, outcome: verdict.outcome };
 };
 
-const handles = (inputs: readonly string[]): Handle[] | string => {
-  const parsed: Handle[] = [];
-  for (const input of inputs) {
-    const result = parseHandle('tiktok', input);
-    if (!result.ok) return input;
-    parsed.push(result.value);
-  }
-  return parsed;
-};
-
 export const followsCommand = async (
   verifier: Verifier,
   attempts: readonly Attempt[],
-  performerInput: string,
-  targetInput: string,
+  performer: Handle,
+  target: Handle,
 ): Promise<number> => {
-  const parsed = handles([performerInput, targetInput]);
-  if (typeof parsed === 'string') {
-    console.error(`invalid handle: ${parsed}`);
-    return usageError;
-  }
-  const [performer, target] = parsed as [Handle, Handle];
   const label = `@${performer.value} follows @${target.value}`;
   const targetProfile = await resolve(verifier, target);
   if (!targetProfile.ok && targetProfile.outcome !== 'private') {
@@ -101,21 +139,13 @@ export const followsCommand = async (
 export const likedCommand = async (
   verifier: Verifier,
   attempts: readonly Attempt[],
-  performerInput: string,
-  contentInput: string,
+  performer: Handle,
+  content: ContentId,
 ): Promise<number> => {
-  const performer = parseHandle('tiktok', performerInput);
-  const content = parseContentId('tiktok', contentInput);
-  if (!performer.ok || !content.ok) {
-    console.error(
-      `invalid ${performer.ok ? 'content' : 'handle'}: ${performer.ok ? contentInput : performerInput}`,
-    );
-    return usageError;
-  }
-  const label = `@${performer.value.value} liked ${content.value.value}`;
-  const performerProfile = await resolve(verifier, performer.value);
+  const label = `@${performer.value} liked ${content.value}`;
+  const performerProfile = await resolve(verifier, performer);
   if (!performerProfile.ok) {
-    return finish(`performer @${performer.value.value}`, performerProfile.outcome, attempts);
+    return finish(`performer @${performer.value}`, performerProfile.outcome, attempts);
   }
   const { evidence } = performerProfile;
   if (evidence.isPrivate || evidence.likesVisible === false) {
@@ -123,9 +153,9 @@ export const likedCommand = async (
   }
   const verdict = await verifier.verify({
     kind: 'liked',
-    performer: performer.value,
+    performer,
     performerId: evidence.accountId,
-    content: content.value,
+    content,
   });
   return finish(label, verdict.outcome, attempts);
 };
