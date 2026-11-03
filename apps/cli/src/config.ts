@@ -12,7 +12,7 @@ const list = (fallback: string) =>
     );
 
 export const envSchema = z.object({
-  TIKTOK_SIGNER_URL: z.url(),
+  TIKTOK_SIGNER_URL: z.url().default('http://localhost:8080'),
   VERIFICATION_ACCOUNTS: list(''),
   VERIFICATION_SOURCE_ORDER: list('scraper'),
   OUTBOUND_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
