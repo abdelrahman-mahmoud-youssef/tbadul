@@ -18,12 +18,13 @@ const draft = (id: string, user: string, account: string): ClaimDraft => ({
   id: claimId(id),
   userId: userId(user),
   handle: handle(account),
+  accountId: accountId('tiktok', id),
   eligibility: { eligible: true, results: [] },
   startedAt: 0,
   ttlMs: 1,
 });
 const pending = (id: string, user: string, account: string) =>
-  awaitingFollow(draft(id, user, account), accountId('tiktok', id), handle('verify.one'));
+  awaitingFollow(draft(id, user, account), handle('verify.one'));
 
 describe('inMemoryClaimRepository', () => {
   it('counts only claims that hold an account', async () => {

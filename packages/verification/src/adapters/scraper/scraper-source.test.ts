@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { MockAgent, setGlobalDispatcher, type Interceptable } from 'undici';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { accountId } from '../../domain/account-id.ts';
 import { err, ok } from '../../domain/result.ts';
 import type { RequestSigner } from '../../ports/request-signer.ts';
 import { content, context, handle } from '../../testing/fixtures.ts';
@@ -154,6 +155,36 @@ describe('scraperSource', () => {
         evidence: { pagesRead: 1, listExhausted: false },
         cost: { unit: 'request', amount: 2 },
       });
+    });
+
+    it('skips the profile page when the performer id is known', async () => {
+      let signed = 0;
+      const countingSigner: RequestSigner = {
+        sign: (url) => {
+          signed += 1;
+          return Promise.resolve(ok({ url, headers: signedHeaders }));
+        },
+      };
+      const direct = scraperSource({
+        http: createHttpClient({ headers: () => ({}) }),
+        signer: countingSigner,
+      });
+      following(fixture('following-page-exhausted.json'), { secUid: profileSecUid });
+      await expect(
+        direct.answer({ ...check, performerId: accountId('tiktok', profileSecUid) }, context()),
+      ).resolves.toEqual({
+        outcome: 'verified',
+        evidence: { pagesRead: 1, listExhausted: false },
+        cost: { unit: 'request', amount: 1 },
+      });
+      expect(signed).toBe(1);
+    });
+
+    it('answers private from the list status when the performer id is known', async () => {
+      following(fixture('following-hidden.json'));
+      await expect(
+        source.answer({ ...check, performerId: accountId('tiktok', profileSecUid) }, context()),
+      ).resolves.toEqual({ outcome: 'private', cost: { unit: 'request', amount: 1 } });
     });
 
     it('answers not_following when the list ends without the target', async () => {

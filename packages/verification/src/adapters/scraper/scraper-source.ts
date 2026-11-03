@@ -1,4 +1,4 @@
-import { accountId } from '../../domain/account-id.ts';
+import { accountId, type AccountId } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
 import type { Handle } from '../../domain/handle.ts';
 import type { Cost, SourceError } from '../../domain/outcome.ts';
@@ -184,16 +184,18 @@ const readLiked = (reply: HttpReply): PageRead<{ id: string }> => {
 
 const withPerformer = async <K extends 'follows' | 'liked'>(
   deps: ScraperDeps,
-  performer: Handle,
+  check: { readonly performer: Handle; readonly performerId?: AccountId },
   context: CallContext,
   visible: (evidence: { followingVisible?: boolean; likesVisible?: boolean }) => boolean,
-  scan: (secUid: string) => Promise<Answer<K>>,
+  scan: (secUid: string, costBefore: number) => Promise<Answer<K>>,
 ): Promise<Answer<K>> => {
-  const profile = await readProfile(deps, performer, context);
+  if (check.performerId !== undefined) return scan(check.performerId.value, 0);
+
+  const profile = await readProfile(deps, check.performer, context);
   switch (profile.outcome) {
     case 'verified':
       if (!visible(profile.evidence)) return { outcome: 'private', cost: profile.cost };
-      return scan(profile.evidence.accountId.value);
+      return scan(profile.evidence.accountId.value, profile.cost.amount);
     case 'not_following':
       return failed({ kind: 'unexpected', message: 'profile read answered not_following' });
     case 'private':
@@ -212,33 +214,33 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
       follows: (check, context) =>
         withPerformer(
           deps,
-          check.performer,
+          check,
           context,
           (evidence) => evidence.followingVisible !== false,
-          (secUid) =>
+          (secUid, costBefore) =>
             scanList(
               deps,
               context,
               (cursor) => followingUrl(secUid, cursor),
               readFollowing,
               (entry) => entry.user.uniqueId.toLowerCase() === check.target.value,
-              1,
+              costBefore,
             ),
         ),
       liked: (check, context) =>
         withPerformer(
           deps,
-          check.performer,
+          check,
           context,
           (evidence) => evidence.likesVisible !== false,
-          (secUid) =>
+          (secUid, costBefore) =>
             scanList(
               deps,
               context,
               (cursor) => likedUrl(secUid, cursor),
               readLiked,
               (item) => item.id === check.content.value,
-              1,
+              costBefore,
             ),
         ),
     },

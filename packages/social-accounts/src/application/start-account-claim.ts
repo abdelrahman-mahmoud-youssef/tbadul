@@ -2,7 +2,6 @@ import {
   err,
   ok,
   parseHandle,
-  type AccountId,
   type Handle,
   type Platform,
   type Result,
@@ -38,13 +37,14 @@ type Baseline =
 
 const pickVerificationAccount = async (
   deps: UseCaseDeps,
-  claimed: Handle,
+  draft: ClaimDraft,
   candidates: readonly Handle[],
 ): Promise<Baseline> => {
   for (const candidate of candidates) {
     const verdict = await deps.verifier.verify({
       kind: 'follows',
-      performer: claimed,
+      performer: draft.handle,
+      performerId: draft.accountId,
       target: candidate,
     });
     if (verdict.outcome === 'not_following') return { kind: 'assigned', account: candidate };
@@ -82,6 +82,7 @@ export const startAccountClaimWith =
           id: claimId(deps.ids.next()),
           userId,
           handle: handle.value,
+          accountId: profile.evidence.accountId,
           eligibility: evaluateEligibility(
             factsFrom(profile.evidence),
             now,
@@ -91,7 +92,7 @@ export const startAccountClaimWith =
           ttlMs: deps.policy.claimTtlMs,
         };
         const claim = draft.eligibility.eligible
-          ? await settleBaseline(deps, draft, profile.evidence.accountId, platform)
+          ? await settleBaseline(deps, draft, platform)
           : ok(eligibilityFailed(draft));
         if (!claim.ok) return claim;
         await deps.repository.save(claim.value);
@@ -103,19 +104,14 @@ export const startAccountClaimWith =
 const settleBaseline = async (
   deps: UseCaseDeps,
   draft: ClaimDraft,
-  accountId: AccountId,
   platform: Platform,
 ): Promise<Result<AccountClaim, ClaimError>> => {
-  const baseline = await pickVerificationAccount(
-    deps,
-    draft.handle,
-    deps.pool.candidates(platform),
-  );
+  const baseline = await pickVerificationAccount(deps, draft, deps.pool.candidates(platform));
   switch (baseline.kind) {
     case 'assigned':
-      return ok(awaitingFollow(draft, accountId, baseline.account));
+      return ok(awaitingFollow(draft, baseline.account));
     case 'exhausted':
-      return ok(rejected(draft, accountId, 'pool_exhausted'));
+      return ok(rejected(draft, 'pool_exhausted'));
     case 'unavailable':
       return err({ kind: 'source_unavailable' });
   }

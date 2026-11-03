@@ -11,17 +11,19 @@ import { claimId } from '../domain/ids.ts';
 import { alice, bob, creator, harness, type Harness } from '../testing/fixtures.ts';
 import { verifyAccountClaimWith } from './verify-account-claim.ts';
 
+const claimedId = accountId('tiktok', 'MS4wLjABAAAA');
+
 const pending = (h: Harness, overrides: Partial<AccountClaim> = {}): AccountClaim => ({
   ...awaitingFollow(
     {
       id: claimId('c1'),
       userId: alice,
       handle: creator,
+      accountId: claimedId,
       eligibility: { eligible: true, results: [] },
       startedAt: h.clock.now(),
       ttlMs: 86_400_000,
     },
-    accountId('tiktok', 'MS4wLjABAAAA'),
     handle('verify.one'),
   ),
   ...overrides,
@@ -108,6 +110,21 @@ describe('verifyAccountClaim', () => {
     const result = await verifyAccountClaimWith(h.deps)(claim.id);
     expect(result).toEqual({ ok: true, value: { claim, outcome: 'source_error' } });
     await expect(h.deps.repository.findById(claim.id)).resolves.toEqual(claim);
+  });
+
+  it('checks the follow by the stored account id with one call and no profile read', async () => {
+    const h = harness({ follows: () => 'not_following' });
+    const claim = pending(h);
+    await h.deps.repository.save(claim);
+    await verifyAccountClaimWith(h.deps)(claim.id);
+    expect(h.verifier.calls).toEqual([
+      {
+        kind: 'follows',
+        performer: creator,
+        performerId: claimedId,
+        target: handle('verify.one'),
+      },
+    ]);
   });
 
   it('marks the claim verified on a verified follow', async () => {

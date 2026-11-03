@@ -1,3 +1,4 @@
+import type { AccountId } from './account-id.ts';
 import type { ContentId } from './content-id.ts';
 import type { Handle } from './handle.ts';
 import type { Platform } from './platform.ts';
@@ -8,8 +9,18 @@ export type CheckKind = (typeof checkKinds)[number];
 
 export type Check =
   | { readonly kind: 'profile'; readonly subject: Handle }
-  | { readonly kind: 'follows'; readonly performer: Handle; readonly target: Handle }
-  | { readonly kind: 'liked'; readonly performer: Handle; readonly content: ContentId };
+  | {
+      readonly kind: 'follows';
+      readonly performer: Handle;
+      readonly performerId?: AccountId;
+      readonly target: Handle;
+    }
+  | {
+      readonly kind: 'liked';
+      readonly performer: Handle;
+      readonly performerId?: AccountId;
+      readonly content: ContentId;
+    };
 
 export type CheckOf<K extends CheckKind> = Extract<Check, { kind: K }>;
 

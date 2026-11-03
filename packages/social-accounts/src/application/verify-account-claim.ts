@@ -41,6 +41,7 @@ export const verifyAccountClaimWith =
     const verdict = await deps.verifier.verify({
       kind: 'follows',
       performer: claim.handle,
+      performerId: claim.accountId,
       target: claim.verificationAccount,
     });
     switch (verdict.outcome) {

@@ -27,7 +27,7 @@ export interface AccountClaim {
   readonly userId: UserId;
   readonly platform: Platform;
   readonly handle: Handle;
-  readonly accountId?: AccountId;
+  readonly accountId: AccountId;
   readonly verificationAccount?: Handle;
   readonly eligibility: EligibilityReport;
   readonly state: ClaimState;
@@ -42,6 +42,7 @@ export interface ClaimDraft {
   readonly id: ClaimId;
   readonly userId: UserId;
   readonly handle: Handle;
+  readonly accountId: AccountId;
   readonly eligibility: EligibilityReport;
   readonly startedAt: number;
   readonly ttlMs: number;
@@ -52,6 +53,7 @@ const base = (draft: ClaimDraft): Omit<AccountClaim, 'state'> => ({
   userId: draft.userId,
   platform: draft.handle.platform,
   handle: draft.handle,
+  accountId: draft.accountId,
   eligibility: draft.eligibility,
   attempts: [],
   nextVerifyAt: draft.startedAt,
@@ -64,17 +66,17 @@ export const eligibilityFailed = (draft: ClaimDraft): AccountClaim => ({
   state: 'eligibility_failed',
 });
 
-export const rejected = (
-  draft: ClaimDraft,
-  accountId: AccountId,
-  rejection: RejectionReason,
-): AccountClaim => ({ ...base(draft), accountId, state: 'rejected', rejection });
+export const rejected = (draft: ClaimDraft, rejection: RejectionReason): AccountClaim => ({
+  ...base(draft),
+  state: 'rejected',
+  rejection,
+});
 
-export const awaitingFollow = (
-  draft: ClaimDraft,
-  accountId: AccountId,
-  verificationAccount: Handle,
-): AccountClaim => ({ ...base(draft), accountId, verificationAccount, state: 'awaiting_follow' });
+export const awaitingFollow = (draft: ClaimDraft, verificationAccount: Handle): AccountClaim => ({
+  ...base(draft),
+  verificationAccount,
+  state: 'awaiting_follow',
+});
 
 export const isExpired = (claim: AccountClaim, now: number): boolean => now >= claim.expiresAt;
 
