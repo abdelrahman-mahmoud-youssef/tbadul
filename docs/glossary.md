@@ -34,3 +34,7 @@ The names below are the ubiquitous language of the Verification context. Code, t
 | Eligibility Rule     | One independent condition a claimed account must meet, evaluated on the profile facts, answering pass, fail or inconclusive with a reason code.                                    |
 | Eligibility Report   | The result of every eligibility rule for a claim, kept on the claim so the reasons can be shown.                                                                                   |
 | Profile Facts        | The Social Accounts context's view of a profile: privacy, visibility, counts, avatar, creation time and latest post time, mapped from the Verification context's profile evidence. |
+| Platform Account     | One real account on a platform, identified by its platform account id, never by its handle; the row the cache keeps.                                                               |
+| Linked Account       | A user's proven ownership of a platform account, created when a claim is verified; one active owner per account.                                                                   |
+| Account Cache        | The store of resolved profiles in front of the profile check, fresh per field for a configured age.                                                                                |
+| Verification Check   | One logged check with its source, outcome, latency and cost, naming handles only by HMAC hash.                                                                                     |
