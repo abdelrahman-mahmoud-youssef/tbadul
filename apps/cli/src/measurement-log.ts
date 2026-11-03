@@ -25,6 +25,7 @@ const subjectsOf = (demo: Demo): Subjects => {
     case 'owns':
       return { performer: demo.subject };
     case 'follows':
+    case 'watch':
       return { performer: demo.performer, target: demo.target };
     case 'liked':
       return { performer: demo.performer, target: demo.content };

@@ -29,7 +29,7 @@ const measured = (attempts: readonly Attempt[]): string => {
   return `latency ${String(latency)} ms, requests ${String(spent('request'))}${units > 0 ? `, units ${String(units)}` : ''}`;
 };
 
-const outcomeOf = (outcome: Outcome, attempts: readonly Attempt[]): string => {
+export const outcomeOf = (outcome: Outcome, attempts: readonly Attempt[]): string => {
   const kind = attempts.at(-1)?.error?.kind;
   return outcome === 'source_error' && kind !== undefined ? `${outcome} (${kind})` : outcome;
 };
@@ -105,13 +105,15 @@ const resolve = async (verifier: Verifier, subject: Handle): Promise<Resolved> =
     : { ok: false, outcome: verdict.outcome };
 };
 
-export const followsCommand = async (
+export const followsLabel = (performer: Handle, target: Handle): string =>
+  `@${performer.value} follows @${target.value}`;
+
+export const resolveFollows = async (
   verifier: Verifier,
   attempts: readonly Attempt[],
   performer: Handle,
   target: Handle,
-): Promise<number> => {
-  const label = `@${performer.value} follows @${target.value}`;
+): Promise<ProfileEvidence | number> => {
   const targetProfile = await resolve(verifier, target);
   if (!targetProfile.ok && targetProfile.outcome !== 'private') {
     return finish(`target @${target.value}`, targetProfile.outcome, attempts);
@@ -122,8 +124,19 @@ export const followsCommand = async (
   }
   const { evidence } = performerProfile;
   if (evidence.isPrivate || evidence.followingVisible === false) {
-    return finish(label, 'private', attempts);
+    return finish(followsLabel(performer, target), 'private', attempts);
   }
+  return evidence;
+};
+
+export const followsCommand = async (
+  verifier: Verifier,
+  attempts: readonly Attempt[],
+  performer: Handle,
+  target: Handle,
+): Promise<number> => {
+  const evidence = await resolveFollows(verifier, attempts, performer, target);
+  if (typeof evidence === 'number') return evidence;
   const verdict = await verifier.verify({
     kind: 'follows',
     performer,
@@ -133,7 +146,7 @@ export const followsCommand = async (
     }),
     target,
   });
-  return finish(label, verdict.outcome, attempts);
+  return finish(followsLabel(performer, target), verdict.outcome, attempts);
 };
 
 export const likedCommand = async (

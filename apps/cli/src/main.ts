@@ -1,7 +1,8 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 import type { Attempt, Verifier } from '@engagement-exchange/verification';
 import { composeSocialAccounts, composeVerifier } from './compose.ts';
-import { readEnv, sourceChoice, sourceChoices } from './config.ts';
+import { readEnv, sourceChoice, sourceChoices, type Env } from './config.ts';
 import { parseDemo, type Demo } from './demo.ts';
 import {
   followsCommand,
@@ -13,6 +14,7 @@ import {
 import { linkStart, linkVerify } from './link.ts';
 import { measurementLog } from './measurement-log.ts';
 import { verificationPool } from './pool.ts';
+import { watchFollows } from './watch.ts';
 
 const usage = [
   'usage:',
@@ -20,11 +22,17 @@ const usage = [
   '  cli owns <handle> <bio-token> [--source <name>]',
   '  cli follows <performer> <target> [--source <name>]',
   '  cli liked <performer> <video-id-or-url> [--source <name>]',
+  '  cli watch follows <performer> <target> [--every <seconds>] [--times <n>] [--source <name>]',
   '  cli link start <handle-or-url> [--verification-account <handle>]...',
   '  cli link verify <claim-id>',
   '',
   '  --source scraper|lamatok|ensemble|chain   one source for every check, or the configured',
   '                                            per-kind orders (chain, the default)',
+  '  --every <seconds>                         wait between watch runs (WATCH_INTERVAL_SECONDS, 60)',
+  '  --times <n>                               stop after n runs; unbounded when absent',
+  '',
+  'exit codes: 0 verified, 1 not_following or unfollowed, 2 private, 3 not_found, 4 source_error,',
+  '            64 usage or configuration',
 ].join('\n');
 
 const parse = (argv: readonly string[]) => {
@@ -36,6 +44,8 @@ const parse = (argv: readonly string[]) => {
       options: {
         'verification-account': { type: 'string', multiple: true, default: [] },
         source: { type: 'string' },
+        every: { type: 'string' },
+        times: { type: 'string' },
       },
     });
   } catch (error) {
@@ -43,7 +53,7 @@ const parse = (argv: readonly string[]) => {
   }
 };
 
-const runDemo = (verifier: Verifier, attempts: readonly Attempt[], demo: Demo) => {
+const runDemo = (env: Env, verifier: Verifier, attempts: readonly Attempt[], demo: Demo) => {
   switch (demo.command) {
     case 'profile':
       return profileCommand(verifier, attempts, demo.subject);
@@ -53,6 +63,15 @@ const runDemo = (verifier: Verifier, attempts: readonly Attempt[], demo: Demo) =
       return followsCommand(verifier, attempts, demo.performer, demo.target);
     case 'liked':
       return likedCommand(verifier, attempts, demo.performer, demo.content);
+    case 'watch':
+      return watchFollows(
+        verifier,
+        attempts,
+        demo.performer,
+        demo.target,
+        { everySeconds: demo.every ?? env.WATCH_INTERVAL_SECONDS, times: demo.times },
+        { sleep, clock: { now: () => Date.now() } },
+      );
   }
 };
 
@@ -70,7 +89,7 @@ const run = async (argv: readonly string[]): Promise<number> => {
     console.error(`invalid --source: use one of ${sourceChoices.join(', ')}`);
     return usageError;
   }
-  const demo = parseDemo(positionals);
+  const demo = parseDemo(positionals, values);
   if (demo !== undefined && !demo.ok) {
     console.error(demo.error);
     return usageError;
@@ -103,7 +122,7 @@ const run = async (argv: readonly string[]): Promise<number> => {
   }
   const { verifier, leftOut } = composed.value;
   if (leftOut.length > 0) console.error(`sources left out, no credential: ${leftOut.join(', ')}`);
-  if (demo !== undefined) return runDemo(verifier, attempts, demo.value);
+  if (demo !== undefined) return runDemo(env, verifier, attempts, demo.value);
   if (group === 'link' && first === 'start' && second !== undefined) {
     const pool = verificationPool(values['verification-account'], env.VERIFICATION_ACCOUNTS);
     if (!pool.ok) {

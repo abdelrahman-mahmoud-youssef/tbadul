@@ -29,10 +29,47 @@ describe('parseDemo', () => {
     expect(parseDemo(positionals)).toEqual({ ok: false, error });
   });
 
-  it.each([[['link', 'start', 'tiktok']], [['profile']], [['follows', 'tiktok']], [[]]])(
-    'leaves %j to the other commands',
-    (positionals) => {
-      expect(parseDemo(positionals)).toBeUndefined();
-    },
-  );
+  it('parses a watch with its interval and run count', () => {
+    expect(
+      parseDemo(['watch', 'follows', 'tiktok', 'tiktokcreators'], { every: '30', times: '4' }),
+    ).toEqual({
+      ok: true,
+      value: {
+        command: 'watch',
+        performer: handle('tiktok'),
+        target: handle('tiktokcreators'),
+        every: 30,
+        times: 4,
+      },
+    });
+  });
+
+  it('leaves the interval and run count of a watch unset when not given', () => {
+    expect(parseDemo(['watch', 'follows', 'tiktok', 'tiktokcreators'])).toMatchObject({
+      ok: true,
+      value: { every: undefined, times: undefined },
+    });
+  });
+
+  it.each([
+    [{ every: '0' }, 'invalid --every: use a positive whole number'],
+    [{ times: 'abc' }, 'invalid --times: use a positive whole number'],
+    [{ every: '1.5', times: '-1' }, 'invalid --every, --times: use a positive whole number'],
+  ])('refuses watch flags %j', (flags, error) => {
+    expect(parseDemo(['watch', 'follows', 'tiktok', 'tiktokcreators'], flags)).toEqual({
+      ok: false,
+      error,
+    });
+  });
+
+  it.each([
+    [['watch', 'liked', 'tiktok', '7000000000000000000']],
+    [['watch', 'follows', 'tiktok']],
+    [['link', 'start', 'tiktok']],
+    [['profile']],
+    [['follows', 'tiktok']],
+    [[]],
+  ])('leaves %j to the other commands', (positionals) => {
+    expect(parseDemo(positionals)).toBeUndefined();
+  });
 });

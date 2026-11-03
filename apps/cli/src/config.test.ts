@@ -28,6 +28,7 @@ describe('readEnv', () => {
         CLAIMS_FILE: 'claims.local.json',
         CLI_USER_ID: 'local',
         MEASUREMENT_LOG_FILE: 'measurements.jsonl',
+        WATCH_INTERVAL_SECONDS: 60,
       },
     });
   });

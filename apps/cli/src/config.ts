@@ -41,6 +41,7 @@ export const envSchema = z.object({
   CLI_USER_ID: z.string().min(1).default('local'),
   MEASUREMENT_LOG_FILE: z.string().min(1).default('measurements.jsonl'),
   MEASUREMENT_HMAC_KEY: z.string().optional(),
+  WATCH_INTERVAL_SECONDS: z.coerce.number().int().positive().default(60),
 });
 
 export type Env = z.infer<typeof envSchema>;

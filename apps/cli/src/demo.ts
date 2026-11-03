@@ -9,12 +9,28 @@ import {
   type Handle,
   type Result,
 } from '@engagement-exchange/verification';
+import { z } from 'zod';
 
 export type Demo =
   | { readonly command: 'profile'; readonly subject: Handle }
   | { readonly command: 'owns'; readonly subject: Handle; readonly token: BioToken }
   | { readonly command: 'follows'; readonly performer: Handle; readonly target: Handle }
-  | { readonly command: 'liked'; readonly performer: Handle; readonly content: ContentId };
+  | { readonly command: 'liked'; readonly performer: Handle; readonly content: ContentId }
+  | {
+      readonly command: 'watch';
+      readonly performer: Handle;
+      readonly target: Handle;
+      readonly every: number | undefined;
+      readonly times: number | undefined;
+    };
+
+export interface WatchFlags {
+  readonly every?: string | undefined;
+  readonly times?: string | undefined;
+}
+
+const whole = z.coerce.number().int().positive().optional();
+const watchFlags = z.object({ every: whole, times: whole });
 
 const named =
   <T>(what: string, parse: (input: string) => Result<T, unknown>) =>
@@ -36,8 +52,34 @@ const pair = <A, B>(
   return ok([first.value, second.value]);
 };
 
-export const parseDemo = (positionals: readonly string[]): Result<Demo, string> | undefined => {
-  const [command, first, second] = positionals;
+const parseWatch = (performer: string, target: string, flags: WatchFlags): Result<Demo, string> => {
+  const parsed = pair(handle(performer), handle(target));
+  if (!parsed.ok) return parsed;
+  const plan = watchFlags.safeParse(flags);
+  if (!plan.success) {
+    return err(
+      `invalid --${plan.error.issues.map((issue) => issue.path.join('.')).join(', --')}: use a positive whole number`,
+    );
+  }
+  return ok({
+    command: 'watch',
+    performer: parsed.value[0],
+    target: parsed.value[1],
+    every: plan.data.every,
+    times: plan.data.times,
+  });
+};
+
+export const parseDemo = (
+  positionals: readonly string[],
+  flags: WatchFlags = {},
+): Result<Demo, string> | undefined => {
+  const [command, first, second, third] = positionals;
+  if (command === 'watch' && first === 'follows' && third !== undefined) {
+    return positionals.length === 4 && second !== undefined
+      ? parseWatch(second, third, flags)
+      : undefined;
+  }
   if (command === 'profile' && first !== undefined && positionals.length === 2) {
     const subject = handle(first);
     return subject.ok ? ok({ command, subject: subject.value }) : subject;
