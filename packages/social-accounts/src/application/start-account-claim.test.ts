@@ -112,6 +112,17 @@ describe('startAccountClaim', () => {
     });
   });
 
+  it('returns the open claim instead of starting a second one for the same user and account', async () => {
+    const { deps, verifier } = harness({ follows: () => 'not_following' });
+    const start = startAccountClaimWith(deps);
+    const first = await start(input);
+    const calls = verifier.calls.length;
+    const second = await start({ ...input, account: '@some.creator' });
+    expect(second).toEqual(first);
+    expect(verifier.calls).toHaveLength(calls);
+    await expect(deps.repository.countHeldBy(alice, 'tiktok')).resolves.toBe(1);
+  });
+
   it('refuses an account another user already holds', async () => {
     const { deps, verifier } = harness();
     await deps.repository.save(

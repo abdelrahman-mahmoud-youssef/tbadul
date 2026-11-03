@@ -9,7 +9,6 @@ import {
 import {
   awaitingFollow,
   eligibilityFailed,
-  holdsAccount,
   rejected,
   type AccountClaim,
   type ClaimDraft,
@@ -59,13 +58,13 @@ export const startAccountClaimWith =
     const handle = parseHandle(platform, account);
     if (!handle.ok) return err({ kind: 'invalid_handle', reason: handle.error.reason });
 
+    const holder = await deps.repository.findHolder(handle.value);
+    if (holder !== undefined) {
+      return holder.userId === userId ? ok(holder) : err({ kind: 'account_already_claimed' });
+    }
     const held = await deps.repository.countHeldBy(userId, platform);
     if (held >= deps.policy.maxAccountsPerPlatform) {
       return err({ kind: 'claim_limit_reached', limit: deps.policy.maxAccountsPerPlatform });
-    }
-    const holder = await deps.repository.findHolder(handle.value);
-    if (holder !== undefined && holder.userId !== userId && holdsAccount(holder)) {
-      return err({ kind: 'account_already_claimed' });
     }
 
     const profile = await deps.verifier.verify({ kind: 'profile', subject: handle.value });
