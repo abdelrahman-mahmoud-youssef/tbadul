@@ -11,16 +11,19 @@ import {
   scraperSource,
   sidecarSigner,
   type Handle,
+  type MeasurementSink,
   type Verifier,
 } from '@engagement-exchange/verification';
 import type { Env } from './config.ts';
 
-export const composeVerifier = (env: Env): Verifier => {
+const discard: MeasurementSink = { record: () => undefined };
+
+export const composeVerifier = (env: Env, measurements = discard): Verifier => {
   const http = createHttpClient({ headers: () => ({}) });
   const scraper = scraperSource({ http, signer: sidecarSigner(http, env.TIKTOK_SIGNER_URL) });
   return createVerifier(
     { order: env.VERIFICATION_SOURCE_ORDER, timeoutMs: env.OUTBOUND_TIMEOUT_MS, pageCap: 3 },
-    { sources: [scraper] },
+    { sources: [scraper], measurements },
   );
 };
 
