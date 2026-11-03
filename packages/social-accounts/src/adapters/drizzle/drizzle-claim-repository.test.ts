@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import {
+  accountClaims,
   claimAttempts,
   createDatabase,
+  platformAccounts,
   type Database,
   type DatabaseClient,
 } from '@engagement-exchange/db';
@@ -12,6 +14,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eligibilityFailed, markVerified, recordFailedAttempt } from '../../domain/claim.ts';
 import { claimId } from '../../domain/ids.ts';
 import type { AccountClaimRepository } from '../../ports/account-claim-repository.ts';
+import type { VerificationCandidate } from '../../ports/verification-account-pool.ts';
 import {
   insertUser,
   insertVerificationAccount,
@@ -31,13 +34,13 @@ describe.skipIf(databaseUrl === null)('drizzleClaimRepository', () => {
   let client: DatabaseClient;
   let db: Database;
   let repository: AccountClaimRepository;
-  const verifyWith = uniqueHandle('verify');
+  let verifyWith: Required<VerificationCandidate>;
 
   beforeAll(async () => {
     client = createDatabase(databaseUrl ?? '');
     db = client.db;
     repository = drizzleClaimRepository(db);
-    await insertVerificationAccount(db, verifyWith);
+    verifyWith = await insertVerificationAccount(db, uniqueHandle('verify'));
     await Promise.all(Array.from({ length: 4 }, () => db.execute(sql`select pg_sleep(0.05)`)));
   });
 
@@ -72,6 +75,44 @@ describe.skipIf(databaseUrl === null)('drizzleClaimRepository', () => {
     await expect(repository.findById(claim.id)).resolves.toEqual(claim);
     await expect(repository.findById(failed.id)).resolves.toEqual(failed);
     await expect(repository.findById(claimId(randomUUID()))).resolves.toBeUndefined();
+  });
+
+  it('links the verification account by its id, never by a row sharing its handle', async () => {
+    await db.insert(platformAccounts).values({
+      platform: 'tiktok',
+      externalId: randomUUID(),
+      handle: verifyWith.handle.value.toUpperCase(),
+    });
+    const claim = await seed(repository, await claimOf());
+    const [stored] = await db
+      .select({ externalId: platformAccounts.externalId })
+      .from(accountClaims)
+      .innerJoin(
+        platformAccounts,
+        eq(platformAccounts.id, accountClaims.verificationPlatformAccountId),
+      )
+      .where(eq(accountClaims.id, claim.id));
+
+    expect(stored?.externalId).toBe(verifyWith.accountId.value);
+    await expect(repository.findById(claim.id)).resolves.toMatchObject({
+      verificationAccount: verifyWith.handle,
+      verificationAccountId: verifyWith.accountId,
+    });
+  });
+
+  it('stores an account it has not seen before without a profile', async () => {
+    const claim = await seed(repository, await claimOf());
+    const [row] = await db
+      .select()
+      .from(platformAccounts)
+      .where(eq(platformAccounts.externalId, claim.accountId.value));
+
+    expect(row).toMatchObject({
+      handle: claim.handle.value,
+      isPrivate: null,
+      profileFetchedAt: null,
+      profileSource: null,
+    });
   });
 
   it('refuses a sixth account at a limit of five and takes it at a limit of six', async () => {

@@ -65,7 +65,8 @@ describe('startAccountClaim', () => {
         userId: alice,
         handle: creator,
         state: 'awaiting_follow',
-        verificationAccount: poolAccounts[0],
+        verificationAccount: poolAccounts[0].handle,
+        verificationAccountId: poolAccounts[0].accountId,
         eligibility: { eligible: true },
       },
     });
@@ -82,7 +83,11 @@ describe('startAccountClaim', () => {
     });
     await expect(startAccountClaimWith(deps)(input)).resolves.toMatchObject({
       ok: true,
-      value: { state: 'awaiting_follow', verificationAccount: poolAccounts[1] },
+      value: {
+        state: 'awaiting_follow',
+        verificationAccount: poolAccounts[1].handle,
+        verificationAccountId: poolAccounts[1].accountId,
+      },
     });
   });
 
@@ -248,10 +253,16 @@ describe('startAccountClaim', () => {
     const { deps } = harness();
     const start = startAccountClaimWith(deps);
     await expect(start(input)).resolves.toMatchObject({
-      value: { verificationAccount: poolAccounts[0] },
+      value: {
+        verificationAccount: poolAccounts[0].handle,
+        verificationAccountId: poolAccounts[0].accountId,
+      },
     });
     await expect(start({ ...input, account: 'other.creator' })).resolves.toMatchObject({
-      value: { verificationAccount: poolAccounts[1] },
+      value: {
+        verificationAccount: poolAccounts[1].handle,
+        verificationAccountId: poolAccounts[1].accountId,
+      },
     });
   });
 });

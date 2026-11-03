@@ -1,15 +1,15 @@
 import { platformAccounts } from '@engagement-exchange/db';
-import type { Handle, Platform } from '@engagement-exchange/verification';
-import { and, eq, sql } from 'drizzle-orm';
+import type { AccountId, Handle, Platform } from '@engagement-exchange/verification';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 export const handleOf = (platform: Platform, value: string): Handle =>
   ({ platform, value }) as Handle;
 
-export const sameHandle = (handle: Handle) =>
+export const sameAccount = (account: AccountId) =>
   and(
-    eq(platformAccounts.platform, handle.platform),
-    sql`lower(${platformAccounts.handle}) = lower(${handle.value})`,
+    eq(platformAccounts.platform, account.platform),
+    eq(platformAccounts.externalId, account.value),
   );
 
 export const single = <T>(rows: readonly T[]): T => {

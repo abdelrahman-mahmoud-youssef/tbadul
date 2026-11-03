@@ -17,19 +17,18 @@ describe.skipIf(databaseUrl === null)('drizzleVerificationAccountPool', () => {
     await client.close();
   });
 
-  it('answers the least assigned account first and counts each assignment', async () => {
+  it('answers the least assigned account first and counts each assignment by id', async () => {
     const pool = drizzleVerificationAccountPool(client.db);
-    const [busy, idle, used] = [uniqueHandle('busy'), uniqueHandle('idle'), uniqueHandle('used')];
-    await insertVerificationAccount(client.db, busy, 2);
-    await insertVerificationAccount(client.db, idle, 0);
-    await insertVerificationAccount(client.db, used, 1);
-    const ours = new Set([busy.value, idle.value, used.value]);
+    const busy = await insertVerificationAccount(client.db, uniqueHandle('busy'), 2);
+    const idle = await insertVerificationAccount(client.db, uniqueHandle('idle'), 0);
+    const used = await insertVerificationAccount(client.db, uniqueHandle('used'), 1);
+    const ours = new Set([busy, idle, used].map((candidate) => candidate.handle.value));
     const order = async () =>
-      (await pool.candidates('tiktok')).filter((account) => ours.has(account.value));
+      (await pool.candidates('tiktok')).filter((candidate) => ours.has(candidate.handle.value));
 
     await expect(order()).resolves.toEqual([idle, used, busy]);
 
-    for (let assigned = 0; assigned < 3; assigned++) await pool.recordAssignment(idle);
+    for (let assigned = 0; assigned < 3; assigned++) await pool.recordAssignment(idle.accountId);
 
     await expect(order()).resolves.toEqual([used, busy, idle]);
   });

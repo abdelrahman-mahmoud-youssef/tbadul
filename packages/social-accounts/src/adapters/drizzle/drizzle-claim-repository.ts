@@ -5,7 +5,6 @@ import {
   linkedAccounts,
   openClaimIndex,
   platformAccounts,
-  verificationAccounts,
   type Database,
 } from '@engagement-exchange/db';
 import {
@@ -27,7 +26,7 @@ import type {
   CreateClaimError,
   VerifyClaimError,
 } from '../../ports/account-claim-repository.ts';
-import { handleOf, sameHandle, single, violates } from './rows.ts';
+import { handleOf, sameAccount, single, violates } from './rows.ts';
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 type Executor = Database | Transaction;
@@ -40,6 +39,7 @@ const selectClaims = (db: Executor, where: SQL | undefined) =>
       claim: accountClaims,
       externalId: platformAccounts.externalId,
       verificationHandle: verification.handle,
+      verificationExternalId: verification.externalId,
     })
     .from(accountClaims)
     .innerJoin(platformAccounts, eq(platformAccounts.id, accountClaims.platformAccountId))
@@ -68,6 +68,9 @@ const findClaim = async (
     ...(row.verificationHandle !== null && {
       verificationAccount: handleOf(claim.platform, row.verificationHandle),
     }),
+    ...(row.verificationExternalId !== null && {
+      verificationAccountId: accountId(claim.platform, row.verificationExternalId),
+    }),
     eligibility: claim.eligibility as EligibilityReport,
     state: claim.state,
     ...(claim.rejection !== null && { rejection: claim.rejection }),
@@ -83,12 +86,6 @@ const findClaim = async (
     version: claim.version,
   };
 };
-
-const sameAccount = (account: AccountId) =>
-  and(
-    eq(platformAccounts.platform, account.platform),
-    eq(platformAccounts.externalId, account.value),
-  );
 
 const countHeld = async (
   db: Executor,
@@ -116,32 +113,24 @@ const countHeld = async (
   return links + open;
 };
 
-const platformAccountOf = async (tx: Transaction, claim: AccountClaim): Promise<string> => {
+const platformAccountOf = async (
+  tx: Transaction,
+  account: AccountId,
+  handle: Handle | undefined,
+  seenAt: number,
+): Promise<string> => {
   await tx
     .insert(platformAccounts)
     .values({
-      platform: claim.platform,
-      externalId: claim.accountId.value,
-      handle: claim.handle.value,
-      handleSeenAt: new Date(claim.startedAt),
-      isPrivate: false,
-      profileFetchedAt: new Date(0),
-      profileSource: 'account_claim',
+      platform: account.platform,
+      externalId: account.value,
+      ...(handle !== undefined && { handle: handle.value, handleSeenAt: new Date(seenAt) }),
     })
     .onConflictDoNothing({ target: [platformAccounts.platform, platformAccounts.externalId] });
   const rows = await tx
     .select({ id: platformAccounts.id })
     .from(platformAccounts)
-    .where(sameAccount(claim.accountId));
-  return single(rows).id;
-};
-
-const verificationAccountOf = async (tx: Transaction, account: Handle): Promise<string> => {
-  const rows = await tx
-    .select({ id: verificationAccounts.platformAccountId })
-    .from(verificationAccounts)
-    .innerJoin(platformAccounts, eq(platformAccounts.id, verificationAccounts.platformAccountId))
-    .where(sameHandle(account));
+    .where(sameAccount(account));
   return single(rows).id;
 };
 
@@ -212,7 +201,12 @@ export const drizzleClaimRepository = (db: Database): AccountClaimRepository => 
         if ((await countHeld(tx, claim.userId, claim.platform, now)) >= maxHeld) {
           return err('limit_reached');
         }
-        const platformAccountId = await platformAccountOf(tx, claim);
+        const platformAccountId = await platformAccountOf(
+          tx,
+          claim.accountId,
+          claim.handle,
+          claim.startedAt,
+        );
         await tx
           .update(accountClaims)
           .set({
@@ -235,9 +229,14 @@ export const drizzleClaimRepository = (db: Database): AccountClaimRepository => 
           platformAccountId,
           handle: claim.handle.value,
           verificationPlatformAccountId:
-            claim.verificationAccount === undefined
+            claim.verificationAccountId === undefined
               ? null
-              : await verificationAccountOf(tx, claim.verificationAccount),
+              : await platformAccountOf(
+                  tx,
+                  claim.verificationAccountId,
+                  claim.verificationAccount,
+                  claim.startedAt,
+                ),
           state: claim.state,
           rejection: claim.rejection ?? null,
           eligibility: claim.eligibility,

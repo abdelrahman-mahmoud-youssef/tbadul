@@ -1,17 +1,27 @@
 import { platformAccounts, verificationAccounts, type Database } from '@engagement-exchange/db';
+import { accountId } from '@engagement-exchange/verification';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { VerificationAccountPool } from '../../ports/verification-account-pool.ts';
-import { handleOf, sameHandle } from './rows.ts';
+import { handleOf, sameAccount } from './rows.ts';
 
 export const drizzleVerificationAccountPool = (db: Database): VerificationAccountPool => ({
   candidates: async (platform) => {
     const rows = await db
-      .select({ handle: platformAccounts.handle })
+      .select({ handle: platformAccounts.handle, externalId: platformAccounts.externalId })
       .from(verificationAccounts)
       .innerJoin(platformAccounts, eq(platformAccounts.id, verificationAccounts.platformAccountId))
       .where(and(eq(verificationAccounts.active, true), eq(platformAccounts.platform, platform)))
       .orderBy(asc(verificationAccounts.assignedCount), sql`random()`);
-    return rows.flatMap((row) => (row.handle === null ? [] : [handleOf(platform, row.handle)]));
+    return rows.flatMap((row) =>
+      row.handle === null
+        ? []
+        : [
+            {
+              handle: handleOf(platform, row.handle),
+              accountId: accountId(platform, row.externalId),
+            },
+          ],
+    );
   },
   recordAssignment: async (account) => {
     await db
@@ -20,7 +30,7 @@ export const drizzleVerificationAccountPool = (db: Database): VerificationAccoun
       .where(
         inArray(
           verificationAccounts.platformAccountId,
-          db.select({ id: platformAccounts.id }).from(platformAccounts).where(sameHandle(account)),
+          db.select({ id: platformAccounts.id }).from(platformAccounts).where(sameAccount(account)),
         ),
       );
   },

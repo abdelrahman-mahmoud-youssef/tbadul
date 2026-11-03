@@ -58,7 +58,7 @@ Append-only is enforced in the database: a trigger refuses `UPDATE` and `DELETE`
 - Verifying a claim becomes one repository operation that saves the claim and creates the link, returning `account_already_claimed` when another user's link exists.
 - The holder lookup reads active links, not open claims.
 - `VerifyAttempt` gains the source and latency of the check, so `claim_attempts` can record them.
-- The pool gains a method that records an assignment, so `assigned_count` spreads assignments evenly; candidates come out least assigned first.
+- The pool gains a method that records an assignment, so `assigned_count` spreads assignments evenly; candidates come out least assigned first. A candidate carries its handle and its account id; the assignment and the claim's `verification_platform_account_id` follow the id, never the handle. The config pool takes bare handles and answers candidates without an id, so it pairs only with the in-memory and file repositories.
 
 ### The resolution cache
 

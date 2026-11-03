@@ -6,6 +6,7 @@ import { drizzleVerificationAccountPool } from './adapters/drizzle/drizzle-verif
 import { uuidIds } from './adapters/uuid-ids.ts';
 import { createSocialAccounts } from './create-social-accounts.ts';
 import type { AccountClaimRepository } from './ports/account-claim-repository.ts';
+import type { VerificationCandidate } from './ports/verification-account-pool.ts';
 import {
   insertUser,
   insertVerificationAccount,
@@ -22,13 +23,13 @@ describe.skipIf(databaseUrl === null)('social accounts on PostgreSQL', () => {
   let client: DatabaseClient;
   let db: Database;
   let repository: AccountClaimRepository;
-  const verifyWith = uniqueHandle('verify');
+  let verifyWith: Required<VerificationCandidate>;
 
   beforeAll(async () => {
     client = createDatabase(databaseUrl ?? '');
     db = client.db;
     repository = drizzleClaimRepository(db);
-    await insertVerificationAccount(db, verifyWith);
+    verifyWith = await insertVerificationAccount(db, uniqueHandle('verify'));
   });
 
   afterAll(async () => {

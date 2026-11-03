@@ -48,4 +48,7 @@ export type {
   VerifyClaimError,
 } from './ports/account-claim-repository.ts';
 export type { IdGenerator } from './ports/id-generator.ts';
-export type { VerificationAccountPool } from './ports/verification-account-pool.ts';
+export type {
+  VerificationAccountPool,
+  VerificationCandidate,
+} from './ports/verification-account-pool.ts';

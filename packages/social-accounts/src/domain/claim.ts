@@ -35,6 +35,7 @@ export interface AccountClaim {
   readonly handle: Handle;
   readonly accountId: AccountId;
   readonly verificationAccount?: Handle;
+  readonly verificationAccountId?: AccountId;
   readonly eligibility: EligibilityReport;
   readonly state: ClaimState;
   readonly rejection?: RejectionReason;
@@ -80,9 +81,14 @@ export const rejected = (draft: ClaimDraft, rejection: RejectionReason): Account
   rejection,
 });
 
-export const awaitingFollow = (draft: ClaimDraft, verificationAccount: Handle): AccountClaim => ({
+export const awaitingFollow = (
+  draft: ClaimDraft,
+  verificationAccount: Handle,
+  verificationAccountId?: AccountId,
+): AccountClaim => ({
   ...base(draft),
   verificationAccount,
+  ...(verificationAccountId !== undefined && { verificationAccountId }),
   state: 'awaiting_follow',
 });
 

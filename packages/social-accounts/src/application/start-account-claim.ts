@@ -2,7 +2,6 @@ import {
   err,
   ok,
   parseHandle,
-  type Handle,
   type Platform,
   type Result,
 } from '@engagement-exchange/verification';
@@ -17,6 +16,7 @@ import type { ClaimError } from '../domain/claim-error.ts';
 import { evaluateEligibility } from '../domain/eligibility.ts';
 import { claimId, type UserId } from '../domain/ids.ts';
 import type { UseCaseDeps } from './deps.ts';
+import type { VerificationCandidate } from '../ports/verification-account-pool.ts';
 import { factsFrom } from './profile-facts.ts';
 
 export interface StartClaimInput {
@@ -30,21 +30,21 @@ export type StartAccountClaim = (
 ) => Promise<Result<AccountClaim, ClaimError>>;
 
 type Baseline =
-  | { readonly kind: 'assigned'; readonly account: Handle }
+  | { readonly kind: 'assigned'; readonly account: VerificationCandidate }
   | { readonly kind: 'exhausted' }
   | { readonly kind: 'unavailable' };
 
 const pickVerificationAccount = async (
   deps: UseCaseDeps,
   draft: ClaimDraft,
-  candidates: readonly Handle[],
+  candidates: readonly VerificationCandidate[],
 ): Promise<Baseline> => {
   for (const candidate of candidates) {
     const verdict = await deps.verifier.verify({
       kind: 'follows',
       performer: draft.handle,
       performerId: draft.accountId,
-      target: candidate,
+      target: candidate.handle,
     });
 
     if (verdict.outcome === 'not_following') return { kind: 'assigned', account: candidate };
@@ -123,8 +123,8 @@ const create = async (
   const created = await deps.repository.create(claim, { maxHeld: limit, now });
 
   if (created.ok) {
-    if (claim.verificationAccount !== undefined) {
-      await deps.pool.recordAssignment(claim.verificationAccount);
+    if (claim.verificationAccountId !== undefined) {
+      await deps.pool.recordAssignment(claim.verificationAccountId);
     }
     return created;
   }
@@ -143,7 +143,7 @@ const settleBaseline = async (
   const baseline = await pickVerificationAccount(deps, draft, await deps.pool.candidates(platform));
   switch (baseline.kind) {
     case 'assigned':
-      return ok(awaitingFollow(draft, baseline.account));
+      return ok(awaitingFollow(draft, baseline.account.handle, baseline.account.accountId));
     case 'exhausted':
       return ok(rejected(draft, 'pool_exhausted'));
     case 'unavailable':

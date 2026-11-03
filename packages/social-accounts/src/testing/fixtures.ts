@@ -1,3 +1,4 @@
+import { accountId } from '@engagement-exchange/verification';
 import { handle, manualClock, type ManualClock } from '@engagement-exchange/verification/testing';
 import { configVerificationAccountPool } from '../adapters/config-verification-account-pool.ts';
 import { inMemoryClaimRepository } from '../adapters/in-memory-claim-repository.ts';
@@ -24,7 +25,10 @@ export const policy: ClaimPolicy = {
 export const alice = userId('alice');
 export const bob = userId('bob');
 export const creator = handle('some.creator');
-export const poolAccounts = [handle('verify.one'), handle('verify.two')];
+export const poolAccounts = [
+  { handle: handle('verify.one'), accountId: accountId('tiktok', 'verify-one-id') },
+  { handle: handle('verify.two'), accountId: accountId('tiktok', 'verify-two-id') },
+] as const;
 
 export interface Harness {
   readonly deps: UseCaseDeps;

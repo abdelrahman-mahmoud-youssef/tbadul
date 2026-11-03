@@ -1,6 +1,11 @@
-import type { Handle, Platform } from '@engagement-exchange/verification';
+import type { AccountId, Handle, Platform } from '@engagement-exchange/verification';
+
+export interface VerificationCandidate {
+  readonly handle: Handle;
+  readonly accountId?: AccountId;
+}
 
 export interface VerificationAccountPool {
-  candidates(platform: Platform): Promise<readonly Handle[]>;
-  recordAssignment(account: Handle): Promise<void>;
+  candidates(platform: Platform): Promise<readonly VerificationCandidate[]>;
+  recordAssignment(account: AccountId): Promise<void>;
 }

@@ -10,6 +10,7 @@ import { handle } from '@engagement-exchange/verification/testing';
 import { single } from '../adapters/drizzle/rows.ts';
 import { awaitingFollow, type AccountClaim } from '../domain/claim.ts';
 import { claimId, userId, type UserId } from '../domain/ids.ts';
+import type { VerificationCandidate } from '../ports/verification-account-pool.ts';
 
 export const uniqueHandle = (prefix: string): Handle =>
   handle(`${prefix}_${randomUUID().slice(0, 8)}`);
@@ -28,27 +29,26 @@ export const insertVerificationAccount = async (
   db: Database,
   account: Handle,
   assignedCount = 0,
-): Promise<void> => {
+): Promise<Required<VerificationCandidate>> => {
+  const external = randomUUID();
   const row = single(
     await db
       .insert(platformAccounts)
       .values({
         platform: account.platform,
-        externalId: randomUUID(),
+        externalId: external,
         handle: account.value,
         handleSeenAt: new Date(),
-        isPrivate: false,
-        profileFetchedAt: new Date(),
-        profileSource: 'test',
       })
       .returning({ id: platformAccounts.id }),
   );
   await db.insert(verificationAccounts).values({ platformAccountId: row.id, assignedCount });
+  return { handle: account, accountId: accountId(account.platform, external) };
 };
 
 export const openClaim = (
   user: UserId,
-  verificationAccount: Handle,
+  verificationAccount: VerificationCandidate,
   startedAt: number,
   external: string = randomUUID(),
 ): AccountClaim =>
@@ -62,5 +62,6 @@ export const openClaim = (
       startedAt,
       ttlMs: 86_400_000,
     },
-    verificationAccount,
+    verificationAccount.handle,
+    verificationAccount.accountId,
   );
