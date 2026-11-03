@@ -49,7 +49,7 @@ const finish = (
 const visibility = (visible: boolean | undefined): string =>
   visible === undefined ? 'unknown' : visible ? 'visible' : 'hidden';
 
-export const describeProfile = (evidence: ProfileEvidence): string[] => {
+const describeProfile = (evidence: ProfileEvidence): string[] => {
   const counts = Object.entries({
     followers: evidence.followerCount,
     following: evidence.followingCount,
