@@ -30,7 +30,7 @@ At claim start the application picks the first verification account from the poo
 
 ### Limits enforced through the repository port
 
-The repository answers two questions the limits need: how many active claims a user holds per platform (`awaiting_follow` and `verified` count; failed, expired and rejected do not), and which claim, if any, currently holds an account. The use cases enforce "at most N accounts per platform" at start and "one holder per account" at start and again at verify, so a race between two users ends with the second verify rejected. A database adapter must make the holder check and the save atomic; the in-memory adapter is single-threaded and needs no lock.
+ADR 0004 supersedes the original rule here. Ownership is exclusive at verify, not at start: several users may hold open claims on one account, and the repository's verify operation saves the claim and creates the link in one step, refusing with `account_already_claimed` when another user's active link exists. The platform limit counts active links plus `awaiting_follow` claims that have not expired, and claim creation enforces it atomically, in PostgreSQL under an advisory lock taken per user and platform. The count the use case makes before the paid baseline calls is cost avoidance, not the check.
 
 ### Ports
 
