@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDatabase, verificationAccounts, type DatabaseClient } from '@engagement-exchange/db';
 import { providedDatabaseUrl } from '@engagement-exchange/db/testing';
-import { accountId } from '@engagement-exchange/verification';
+import { accountId, type ProfileCache } from '@engagement-exchange/verification';
 import {
   fakeSource,
   listEvidence,
@@ -264,5 +264,41 @@ describe.skipIf(databaseUrl === null)('the CLI on PostgreSQL', () => {
     } finally {
       await client.db.update(verificationAccounts).set({ active: true });
     }
+  });
+});
+
+describe.skipIf(databaseUrl === null)('profile requests across a link flow on PostgreSQL', () => {
+  const noCache: ProfileCache = {
+    byId: () => Promise.resolve(undefined),
+    byHandle: () => Promise.resolve([]),
+    store: () => Promise.resolve(),
+  };
+
+  const linkFlow = async (deps: Partial<CliDeps>): Promise<number> => {
+    const source = countingSource();
+    const env = { DATABASE_URL: databaseUrl ?? '' };
+    const user = await cli(['user', 'add', `${unique('flow')}@example.test`], env, source, deps);
+    const userId = /^user (\S+):/.exec(user.out[0] ?? '')?.[1] ?? '';
+    const creator = unique('creator');
+    const start = ['link', 'start', creator];
+    const onUser = { ...env, CLI_USER_ID: userId };
+
+    await cli(['pool', 'add', unique('verify')], env, source, deps);
+    const started = await cli(start, onUser, source, deps);
+    await cli(start, onUser, source, deps);
+    const claimId =
+      started.out.map((line) => /then run link verify (\S+)$/.exec(line)?.[1]).find(Boolean) ?? '';
+    const verified = await cli(['link', 'verify', claimId], env, source, deps);
+    const again = await cli(['link', 'verify', claimId], env, source, deps);
+
+    expect(started.code).toBe(0);
+    expect(verified.out).toContain('verify: not_following');
+    expect(again.err[0]).toMatch(/^too early/);
+    return profileRequests(source);
+  };
+
+  it('sends three profile requests to the sources without the cache and two with it', async () => {
+    await expect(linkFlow({ profileCache: () => noCache })).resolves.toBe(3);
+    await expect(linkFlow({})).resolves.toBe(2);
   });
 });
