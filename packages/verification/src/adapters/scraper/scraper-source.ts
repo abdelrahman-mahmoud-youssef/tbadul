@@ -1,4 +1,4 @@
-import { accountId, type AccountId } from '../../domain/account-id.ts';
+import { accountId } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
 import type { Handle } from '../../domain/handle.ts';
 import type { SourceError } from '../../domain/outcome.ts';
@@ -12,7 +12,7 @@ import {
   type HttpClient,
   type HttpReply,
 } from '../http/http-client.ts';
-import { requests, scanList, type PageRead } from '../list-scan.ts';
+import { requests, scanList, withPerformer, type PageRead } from '../list-scan.ts';
 import { extractUserDetail, type UserDetail } from './profile-page.ts';
 import { followingListSchema, likedListSchema } from './schemas.ts';
 
@@ -133,7 +133,7 @@ const readFollowing = (reply: HttpReply): PageRead<{ user: { uniqueId: string } 
   const decoded = decodeJson(reply, followingListSchema);
   if (!decoded.ok) return decoded;
   const { statusCode, userList, hasMore, minCursor } = decoded.value;
-  if (statusCode === listHidden) return { hidden: true };
+  if (statusCode === listHidden) return { outcome: 'private' };
   if (statusCode !== 0) return { ok: false, error: unknownStatus(statusCode) };
   return {
     ok: true,
@@ -149,35 +149,11 @@ const readLiked = (reply: HttpReply): PageRead<{ id: string }> => {
   if (!decoded.ok) return decoded;
   const { statusCode, itemList, hasMore, cursor } = decoded.value;
   if (statusCode !== 0) return { ok: false, error: unknownStatus(statusCode) };
-  if (itemList === undefined) return { hidden: true };
+  if (itemList === undefined) return { outcome: 'private' };
   return {
     ok: true,
     value: { items: itemList, ...(hasMore === true && cursor !== undefined && { next: cursor }) },
   };
-};
-
-const withPerformer = async <K extends 'follows' | 'liked'>(
-  deps: ScraperDeps,
-  check: { readonly performer: Handle; readonly performerId?: AccountId },
-  context: CallContext,
-  visible: (evidence: { followingVisible?: boolean; likesVisible?: boolean }) => boolean,
-  scan: (secUid: string, costBefore: number) => Promise<Answer<K>>,
-): Promise<Answer<K>> => {
-  if (check.performerId !== undefined) return scan(check.performerId.value, 0);
-
-  const profile = await readProfile(deps, check.performer, context);
-  switch (profile.outcome) {
-    case 'verified':
-      if (!visible(profile.evidence)) return { outcome: 'private', cost: profile.cost };
-      return scan(profile.evidence.accountId.value, profile.cost.amount);
-    case 'not_following':
-      return failed({ kind: 'unexpected', message: 'profile read answered not_following' });
-    case 'private':
-    case 'not_found':
-      return { outcome: profile.outcome, cost: profile.cost };
-    case 'source_error':
-      return profile;
-  }
 };
 
 export const scraperSource = (deps: ScraperDeps): VerificationSource =>
@@ -187,9 +163,8 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
       profile: (check, context) => readProfile(deps, check.subject, context),
       follows: (check, context) =>
         withPerformer(
-          deps,
           check,
-          context,
+          (performer) => readProfile(deps, performer, context),
           (evidence) => evidence.followingVisible !== false,
           (secUid, costBefore) =>
             scanList(
@@ -201,9 +176,8 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
         ),
       liked: (check, context) =>
         withPerformer(
-          deps,
           check,
-          context,
+          (performer) => readProfile(deps, performer, context),
           (evidence) => evidence.likesVisible !== false,
           (secUid, costBefore) =>
             scanList(
