@@ -1,8 +1,8 @@
 import { accountId, type AccountId } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
 import type { Handle } from '../../domain/handle.ts';
-import type { Cost, SourceError } from '../../domain/outcome.ts';
-import type { Result } from '../../domain/result.ts';
+import type { SourceError } from '../../domain/outcome.ts';
+import { err, type Result } from '../../domain/result.ts';
 import type { RequestSigner } from '../../ports/request-signer.ts';
 import type { CallContext, VerificationSource } from '../../ports/verification-source.ts';
 import { defineSource } from '../define-source.ts';
@@ -12,6 +12,7 @@ import {
   type HttpClient,
   type HttpReply,
 } from '../http/http-client.ts';
+import { requests, scanList, type PageRead } from '../list-scan.ts';
 import { extractUserDetail, type UserDetail } from './profile-page.ts';
 import { followingListSchema, likedListSchema } from './schemas.ts';
 
@@ -56,8 +57,6 @@ const followingUrl = (secUid: string, cursor: string): string =>
 
 const likedUrl = (secUid: string, cursor: string): string =>
   `${web}/api/favorite/item_list/?${webQuery({ secUid, cursor, coverFormat: '2' })}`;
-
-const requests = (amount: number): Cost => ({ unit: 'request', amount });
 
 const unknownStatus = (providerStatus: number): SourceError => ({
   kind: 'unknown_status',
@@ -116,44 +115,19 @@ const readProfile = async (
   return detail.ok ? profileAnswer(detail.value, handle) : failed(detail.error, requests(1));
 };
 
-interface Page<T> {
-  readonly items: readonly T[];
-  readonly next?: string;
-}
-
-type PageRead<T> = Result<Page<T>, SourceError> | { readonly hidden: true };
-
-const scanList = async <T>(
-  deps: ScraperDeps,
-  context: CallContext,
-  url: (cursor: string) => string,
-  read: (reply: HttpReply) => PageRead<T>,
-  matches: (item: T) => boolean,
-  costBefore: number,
-): Promise<Answer<'follows'>> => {
-  let cursor = '0';
-  for (let page = 1; page <= context.pageCap; page += 1) {
-    const cost = requests(costBefore + page);
-    const reply = await signedGet(deps, url(cursor), context, true);
-    if (!reply.ok) return failed(reply.error, cost);
-    if (reply.value.text === '') return failed({ kind: 'blocked', message: 'empty body' }, cost);
-    const outcome = read(reply.value);
-    if ('hidden' in outcome) return { outcome: 'private', cost };
-    if (!outcome.ok) return failed(outcome.error, cost);
-    if (outcome.value.items.some(matches)) {
-      return { outcome: 'verified', evidence: { pagesRead: page, listExhausted: false }, cost };
-    }
-    if (outcome.value.next === undefined) {
-      return { outcome: 'not_following', evidence: { pagesRead: page, listExhausted: true }, cost };
-    }
-    cursor = outcome.value.next;
-  }
-  return {
-    outcome: 'not_following',
-    evidence: { pagesRead: context.pageCap, listExhausted: false },
-    cost: requests(costBefore + context.pageCap),
+const signedPage =
+  <T>(
+    deps: ScraperDeps,
+    context: CallContext,
+    url: (cursor: string) => string,
+    read: (reply: HttpReply) => PageRead<T>,
+  ) =>
+  async (cursor: string | undefined): Promise<PageRead<T>> => {
+    const reply = await signedGet(deps, url(cursor ?? '0'), context, true);
+    if (!reply.ok) return reply;
+    if (reply.value.text === '') return err({ kind: 'blocked', message: 'empty body' });
+    return read(reply.value);
   };
-};
 
 const readFollowing = (reply: HttpReply): PageRead<{ user: { uniqueId: string } }> => {
   const decoded = decodeJson(reply, followingListSchema);
@@ -219,10 +193,8 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
           (evidence) => evidence.followingVisible !== false,
           (secUid, costBefore) =>
             scanList(
-              deps,
               context,
-              (cursor) => followingUrl(secUid, cursor),
-              readFollowing,
+              signedPage(deps, context, (cursor) => followingUrl(secUid, cursor), readFollowing),
               (entry) => entry.user.uniqueId.toLowerCase() === check.target.value,
               costBefore,
             ),
@@ -235,10 +207,8 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
           (evidence) => evidence.likesVisible !== false,
           (secUid, costBefore) =>
             scanList(
-              deps,
               context,
-              (cursor) => likedUrl(secUid, cursor),
-              readLiked,
+              signedPage(deps, context, (cursor) => likedUrl(secUid, cursor), readLiked),
               (item) => item.id === check.content.value,
               costBefore,
             ),
