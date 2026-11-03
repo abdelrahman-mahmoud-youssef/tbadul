@@ -1,0 +1,11 @@
+{
+  "status": 402,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "state": false,
+    "error": "Top up your account at https://lamatok.com/billing",
+    "exc_type": "InsufficientFunds"
+  }
+}

@@ -6,7 +6,7 @@ import type { Cost, SourceError } from '../domain/outcome.ts';
 import type { Result } from '../domain/result.ts';
 import type { CallContext } from '../ports/verification-source.ts';
 
-export interface ListPage<T> {
+interface ListPage<T> {
   readonly items: readonly T[];
   readonly next?: string;
 }

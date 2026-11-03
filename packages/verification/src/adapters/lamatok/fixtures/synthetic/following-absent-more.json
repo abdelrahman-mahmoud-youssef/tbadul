@@ -1,0 +1,25 @@
+{
+  "statusCode": 0,
+  "userList": [
+    {
+      "user": {
+        "id": "0",
+        "uniqueId": "charlidamelio",
+        "nickname": "charli d'amelio",
+        "secUid": "MS4wLjABAAAA-synthetic-charlidamelio",
+        "privateAccount": false
+      }
+    },
+    {
+      "user": {
+        "id": "0",
+        "uniqueId": "khaby.lame",
+        "nickname": "Khabane lame",
+        "secUid": "MS4wLjABAAAA-synthetic-khaby.lame",
+        "privateAccount": false
+      }
+    }
+  ],
+  "hasMore": true,
+  "next_page_id": "1617300091"
+}

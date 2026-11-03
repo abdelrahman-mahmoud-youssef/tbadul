@@ -1,0 +1,23 @@
+{
+  "userInfo": {
+    "user": {
+      "id": "6551237489917432832",
+      "uniqueId": "tiktokcreators",
+      "nickname": "TikTok Creators",
+      "secUid": "MS4wLjABAAAAXqqA-cLDC0hfQPIrS5APYNsg04zkl-socWCkqkI3UIOaEe6_Qnokg0GcWpLnMNQP",
+      "signature": "",
+      "privateAccount": true,
+      "verified": true,
+      "followingVisibility": 2,
+      "openFavorite": false,
+      "avatarThumb": "https://p16-common-sign.tiktokcdn.com/tos-maliva-avt-0068/ba67b11de451691939223e9d978e613a~tplv-tiktokx-cropcenter:100:100.jpeg?x-expires=1762300800&x-signature=synthetic",
+      "createTime": 1425144149
+    },
+    "stats": {
+      "followerCount": 0,
+      "followingCount": 0,
+      "heartCount": 0,
+      "videoCount": 0
+    }
+  }
+}

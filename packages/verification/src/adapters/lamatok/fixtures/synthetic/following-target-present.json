@@ -1,0 +1,25 @@
+{
+  "statusCode": 0,
+  "userList": [
+    {
+      "user": {
+        "id": "0",
+        "uniqueId": "charlidamelio",
+        "nickname": "charli d'amelio",
+        "secUid": "MS4wLjABAAAA-synthetic-charlidamelio",
+        "privateAccount": false
+      }
+    },
+    {
+      "user": {
+        "id": "0",
+        "uniqueId": "tiktokcreators",
+        "nickname": "TikTok Creators",
+        "secUid": "MS4wLjABAAAAXqqA-cLDC0hfQPIrS5APYNsg04zkl-socWCkqkI3UIOaEe6_Qnokg0GcWpLnMNQP",
+        "privateAccount": false
+      }
+    }
+  ],
+  "hasMore": false,
+  "next_page_id": null
+}

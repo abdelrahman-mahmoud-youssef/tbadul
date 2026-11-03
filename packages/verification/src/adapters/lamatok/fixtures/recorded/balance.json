@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "requests": 0,
+    "rate": 15,
+    "currency": "USD",
+    "amount": 0
+  }
+}

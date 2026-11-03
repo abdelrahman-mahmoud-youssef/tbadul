@@ -1,0 +1,10 @@
+{
+  "status": 401,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "state": false,
+    "error": "Unauthorized request: pass access_key or login via https://lamatok.com/login"
+  }
+}

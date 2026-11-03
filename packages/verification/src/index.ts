@@ -1,5 +1,7 @@
 export { createHttpClient, type HttpClient } from './adapters/http/http-client.ts';
 export { fetchTransport, type Transport } from './adapters/http/transport.ts';
+export type { LamatokDeps } from './adapters/lamatok/lamatok-client.ts';
+export { lamatokSource } from './adapters/lamatok/lamatok-source.ts';
 export { scraperSource, type ScraperDeps } from './adapters/scraper/scraper-source.ts';
 export { sidecarSigner } from './adapters/scraper/sidecar/sidecar-signer.ts';
 export type { Verify, VerifyOptions } from './application/chain.ts';

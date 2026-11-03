@@ -1,0 +1,16 @@
+{
+  "statusCode": 0,
+  "userList": [
+    {
+      "user": {
+        "id": "0",
+        "uniqueId": "khaby.lame",
+        "nickname": "Khabane lame",
+        "secUid": "MS4wLjABAAAA-synthetic-khaby.lame",
+        "privateAccount": false
+      }
+    }
+  ],
+  "hasMore": false,
+  "next_page_id": null
+}

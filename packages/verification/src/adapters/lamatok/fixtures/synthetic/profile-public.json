@@ -1,0 +1,23 @@
+{
+  "userInfo": {
+    "user": {
+      "id": "107955",
+      "uniqueId": "tiktok",
+      "nickname": "TikTok",
+      "secUid": "MS4wLjABAAAAv7iSuuXDJGDvJkmH_vz1qkDZYo1apxgzaxdBSeIuPiM",
+      "signature": "Your next discovery is waiting on TikTok.",
+      "privateAccount": false,
+      "verified": true,
+      "followingVisibility": 1,
+      "openFavorite": false,
+      "avatarThumb": "https://p16-common-sign.tiktokcdn.com/tos-maliva-avt-0068/ba67b11de451691939223e9d978e613a~tplv-tiktokx-cropcenter:100:100.jpeg?x-expires=1762300800&x-signature=synthetic",
+      "createTime": 1425144149
+    },
+    "stats": {
+      "followerCount": 96530997,
+      "followingCount": 3,
+      "heartCount": 452000000,
+      "videoCount": 1516
+    }
+  }
+}
