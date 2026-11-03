@@ -1,5 +1,5 @@
 import { err, ok, type CheckKind, type Result } from '@engagement-exchange/verification';
-import type { CliSourceName, Env } from './config.ts';
+import type { CliSourceName, Env, SourceChoice } from './config.ts';
 
 export type Orders = Readonly<Record<CheckKind, readonly CliSourceName[]>>;
 
@@ -17,6 +17,11 @@ export const configuredOrders = (env: Env): Orders => ({
   liked:
     env.VERIFICATION_SOURCE_ORDER_LIKED ?? env.VERIFICATION_SOURCE_ORDER ?? defaultOrders.liked,
 });
+
+export const ordersFor = (env: Env, choice: SourceChoice): Orders =>
+  choice === 'chain'
+    ? configuredOrders(env)
+    : { profile: [choice], follows: [choice], liked: [choice] };
 
 export interface PlannedOrders {
   readonly orders: Orders;

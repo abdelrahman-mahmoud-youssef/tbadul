@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readEnv, type Env } from './config.ts';
-import { configuredOrders, defaultOrders, planOrders } from './orders.ts';
+import { configuredOrders, defaultOrders, ordersFor, planOrders } from './orders.ts';
 
 const env = (source: Record<string, string>): Env => {
   const loaded = readEnv(source);
@@ -30,6 +30,21 @@ describe('configuredOrders', () => {
         }),
       ),
     ).toEqual({ profile: ['lamatok', 'scraper'], follows: ['scraper'], liked: ['scraper'] });
+  });
+});
+
+describe('ordersFor', () => {
+  it('uses the configured orders for the chain', () => {
+    const configured = env({ VERIFICATION_SOURCE_ORDER_FOLLOWS: 'lamatok' });
+    expect(ordersFor(configured, 'chain')).toEqual(configuredOrders(configured));
+  });
+
+  it('uses the named source alone for every kind', () => {
+    expect(ordersFor(env({ VERIFICATION_SOURCE_ORDER: 'scraper' }), 'ensemble')).toEqual({
+      profile: ['ensemble'],
+      follows: ['ensemble'],
+      liked: ['ensemble'],
+    });
   });
 });
 

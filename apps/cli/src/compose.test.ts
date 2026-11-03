@@ -35,4 +35,17 @@ describe('composeVerifier', () => {
       value: { leftOut: ['lamatok', 'ensemble'] },
     });
   });
+
+  it('leaves nothing out when one configured source is named', () => {
+    expect(
+      composeVerifier(env({ LAMATOK_ACCESS_KEY: 'configured' }), undefined, 'lamatok'),
+    ).toMatchObject({ ok: true, value: { leftOut: [] } });
+  });
+
+  it('names a chosen source whose credential is missing', () => {
+    expect(composeVerifier(env({}), undefined, 'ensemble')).toEqual({
+      ok: false,
+      error: 'source ensemble has no credential configured',
+    });
+  });
 });

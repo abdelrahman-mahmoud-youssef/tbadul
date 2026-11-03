@@ -11,6 +11,12 @@ export const sourceNames = ['scraper', 'lamatok', 'ensemble'] as const;
 
 export type CliSourceName = (typeof sourceNames)[number];
 
+export const sourceChoices = [...sourceNames, 'chain'] as const;
+
+export const sourceChoice = z.enum(sourceChoices).default('chain');
+
+export type SourceChoice = z.infer<typeof sourceChoice>;
+
 const order = z
   .string()
   .transform(split)

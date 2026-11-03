@@ -12,6 +12,7 @@ import {
   lamatokSource,
   scraperSource,
   sidecarSigner,
+  err,
   ok,
   type Handle,
   type MeasurementSink,
@@ -19,8 +20,8 @@ import {
   type VerificationSource,
   type Verifier,
 } from '@engagement-exchange/verification';
-import type { CliSourceName, Env } from './config.ts';
-import { configuredOrders, planOrders } from './orders.ts';
+import type { CliSourceName, Env, SourceChoice } from './config.ts';
+import { ordersFor, planOrders } from './orders.ts';
 
 const discard: MeasurementSink = { record: () => undefined };
 
@@ -46,9 +47,13 @@ const availableSources = (env: Env): Map<CliSourceName, VerificationSource> => {
 export const composeVerifier = (
   env: Env,
   measurements = discard,
+  choice: SourceChoice = 'chain',
 ): Result<ComposedVerifier, string> => {
   const sources = availableSources(env);
-  const planned = planOrders(configuredOrders(env), new Set(sources.keys()));
+  if (choice !== 'chain' && !sources.has(choice)) {
+    return err(`source ${choice} has no credential configured`);
+  }
+  const planned = planOrders(ordersFor(env, choice), new Set(sources.keys()));
   if (!planned.ok) return planned;
   const verifier = createVerifier(
     {

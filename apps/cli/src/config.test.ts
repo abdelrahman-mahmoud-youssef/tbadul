@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { readEnv } from './config.ts';
+import { readEnv, sourceChoice } from './config.ts';
+
+describe('sourceChoice', () => {
+  it('defaults to the chain', () => {
+    expect(sourceChoice.parse(undefined)).toBe('chain');
+  });
+
+  it('refuses a name that is not a source', () => {
+    expect(sourceChoice.safeParse('tiktok').success).toBe(false);
+  });
+});
 
 describe('readEnv', () => {
   it('parses the names from the environment with defaults', () => {
