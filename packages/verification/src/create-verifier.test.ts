@@ -78,6 +78,8 @@ describe('createVerifier', () => {
     ['duplicate names', { ...config, order: { ...config.order, follows: ['lamatok', 'lamatok'] } }],
     ['zero timeout', { ...config, timeoutMs: 0 }],
     ['fractional page cap', { ...config, pageCap: 1.5 }],
+    ['zero handle ttl', { ...config, cache: { handleTtlMs: 0 } }],
+    ['fractional stats ttl', { ...config, cache: { statsTtlMs: 0.5 } }],
   ])('rejects a config with %s', (_label, invalid) => {
     const sources = [fakeSource('lamatok', {}), fakeSource('scraper', {})];
     expect(() => createVerifier(invalid, { sources })).toThrow();

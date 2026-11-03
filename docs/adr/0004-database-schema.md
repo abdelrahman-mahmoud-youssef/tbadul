@@ -68,8 +68,10 @@ Append-only is enforced in the database: a trigger refuses `UPDATE` and `DELETE`
 - A caller may demand fresher data for one call (link start's eligibility does); the verify path reads lists by account id and never needs a profile.
 - On a miss the chain answers and the row is upserted on `(platform, external_id)`; a handle now seen on a different account id is cleared from the old row.
 - A hit is recorded as an attempt from the source `cache` with no cost, so the measurement output counts hits and misses.
+- Only a `verified` profile is stored; private, not found and source errors always reach the chain.
+- Ownership proof reads the bio from the chain, never from the cache: the token was just added.
 
-The measurement sink receives the check together with the attempt, so the database sink can hash the handles it names.
+The check log adapter takes the attempt plus the command's subjects, as the CLI's JSONL log does, and stores their HMAC-SHA256 hashes, so the measurement sink port is unchanged.
 
 ### Decisions for contexts not built yet
 

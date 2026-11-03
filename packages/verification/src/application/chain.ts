@@ -21,6 +21,7 @@ export interface ChainDeps {
 
 export interface VerifyOptions {
   readonly signal?: AbortSignal;
+  readonly maxAgeMs?: number;
 }
 
 export type Verify = <K extends CheckKind>(

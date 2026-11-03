@@ -8,7 +8,7 @@ export const checkKinds = ['profile', 'follows', 'liked'] as const;
 export type CheckKind = (typeof checkKinds)[number];
 
 export type Check =
-  | { readonly kind: 'profile'; readonly subject: Handle }
+  | { readonly kind: 'profile'; readonly subject: Handle; readonly subjectId?: AccountId }
   | {
       readonly kind: 'follows';
       readonly performer: Handle;

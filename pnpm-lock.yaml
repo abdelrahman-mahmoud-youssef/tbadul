@@ -373,9 +373,15 @@ importers:
 
   packages/verification:
     dependencies:
+      '@engagement-exchange/db':
+        specifier: workspace:*
+        version: link:../db
       cockatiel:
         specifier: 'catalog:'
         version: 4.0.0
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.4(@types/pg@8.23.1)(kysely@0.29.8)(pg@8.23.1)
       zod:
         specifier: 'catalog:'
         version: 4.6.7

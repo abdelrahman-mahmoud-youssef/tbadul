@@ -21,7 +21,9 @@
     "test:live": "node --env-file-if-exists=../../.env node_modules/vitest/vitest.mjs run --passWithNoTests .live.test."
   },
   "dependencies": {
+    "@engagement-exchange/db": "workspace:*",
     "cockatiel": "catalog:",
+    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

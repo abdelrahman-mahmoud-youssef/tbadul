@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { withTimeout } from './adapters/resilience/with-timeout.ts';
+import { cachedVerifyWith } from './application/cached-profile.ts';
 import { verifyWith, type SourcesByKind, type Verify } from './application/chain.ts';
 import { verifyOwnershipWith, type VerifyOwnership } from './application/ownership.ts';
 import type { Clock } from './ports/clock.ts';
 import type { MeasurementSink } from './ports/measurement-sink.ts';
+import type { ProfileCache } from './ports/profile-cache.ts';
 import type { VerificationSource } from './ports/verification-source.ts';
 
 const sourceOrder = z
@@ -16,6 +18,12 @@ export const verifierConfigSchema = z.object({
   timeoutMs: z.number().int().positive(),
   pageCap: z.number().int().positive(),
   confirmNotFollowing: z.boolean().default(true),
+  cache: z
+    .object({
+      handleTtlMs: z.number().int().positive().default(86_400_000),
+      statsTtlMs: z.number().int().positive().default(21_600_000),
+    })
+    .prefault({}),
 });
 
 export type VerifierConfig = z.input<typeof verifierConfigSchema>;
@@ -24,6 +32,7 @@ export interface VerifierDeps {
   readonly sources: readonly VerificationSource[];
   readonly clock?: Clock;
   readonly measurements?: MeasurementSink;
+  readonly profileCache?: ProfileCache;
 }
 
 export interface Verifier {
@@ -36,7 +45,8 @@ const systemClock: Clock = { now: () => Date.now() };
 const discardingSink: MeasurementSink = { record: () => undefined };
 
 export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Verifier => {
-  const { order, timeoutMs, pageCap, confirmNotFollowing } = verifierConfigSchema.parse(config);
+  const { order, timeoutMs, pageCap, confirmNotFollowing, cache } =
+    verifierConfigSchema.parse(config);
   const byName = new Map(
     deps.sources.map((source) => [source.name, withTimeout(source, timeoutMs)]),
   );
@@ -51,12 +61,18 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
     follows: resolve(order.follows),
     liked: resolve(order.liked),
   };
-  const verify = verifyWith({
-    sources,
-    clock: deps.clock ?? systemClock,
-    measurements: deps.measurements ?? discardingSink,
-    pageCap,
-    confirmNotFollowing,
-  });
-  return { verify, verifyOwnership: verifyOwnershipWith(verify) };
+  const clock = deps.clock ?? systemClock;
+  const measurements = deps.measurements ?? discardingSink;
+  const chain = verifyWith({ sources, clock, measurements, pageCap, confirmNotFollowing });
+  const verify =
+    deps.profileCache === undefined
+      ? chain
+      : cachedVerifyWith({
+          verify: chain,
+          cache: deps.profileCache,
+          ttl: cache,
+          clock,
+          measurements,
+        });
+  return { verify, verifyOwnership: verifyOwnershipWith(chain) };
 };

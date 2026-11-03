@@ -30,7 +30,9 @@ export interface SourceError {
   readonly providerStatus?: number;
 }
 
-export type CostUnit = 'request' | 'units' | 'usd';
+export const costUnits = ['request', 'units', 'usd'] as const;
+
+export type CostUnit = (typeof costUnits)[number];
 
 export interface Cost {
   readonly unit: CostUnit;
