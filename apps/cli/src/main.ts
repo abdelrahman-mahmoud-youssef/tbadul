@@ -11,6 +11,7 @@ import {
   usageError,
 } from './follows.ts';
 import { linkStart, linkVerify } from './link.ts';
+import { measurementLog } from './measurement-log.ts';
 import { verificationPool } from './pool.ts';
 
 const usage = [
@@ -80,10 +81,20 @@ const run = async (argv: readonly string[]): Promise<number> => {
     return usageError;
   }
   const env = loaded.value;
+  const log = demo === undefined ? undefined : measurementLog(env, demo.value);
+  if (log !== undefined && !log.ok) {
+    console.error(log.error);
+    return usageError;
+  }
   const attempts: Attempt[] = [];
   const composed = composeVerifier(
     env,
-    { record: (attempt) => attempts.push(attempt) },
+    {
+      record: (attempt) => {
+        attempts.push(attempt);
+        log?.value.record(attempt);
+      },
+    },
     choice.data,
   );
   if (!composed.ok) {

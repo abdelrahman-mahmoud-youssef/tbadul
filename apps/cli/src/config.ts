@@ -39,6 +39,8 @@ export const envSchema = z.object({
   OUTBOUND_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   CLAIMS_FILE: z.string().min(1).default('claims.local.json'),
   CLI_USER_ID: z.string().min(1).default('local'),
+  MEASUREMENT_LOG_FILE: z.string().min(1).default('measurements.jsonl'),
+  MEASUREMENT_HMAC_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
