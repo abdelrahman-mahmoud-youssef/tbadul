@@ -8,20 +8,12 @@ import {
 import {
   createHttpClient,
   createVerifier,
-  parseHandle,
   scraperSource,
   sidecarSigner,
   type Handle,
   type Verifier,
 } from '@engagement-exchange/verification';
 import type { Env } from './config.ts';
-
-const handles = (values: readonly string[]): Handle[] =>
-  values.map((value) => {
-    const parsed = parseHandle('tiktok', value);
-    if (!parsed.ok) throw new Error(`VERIFICATION_ACCOUNTS: ${value} is ${parsed.error.reason}`);
-    return parsed.value;
-  });
 
 export const composeVerifier = (env: Env): Verifier => {
   const http = createHttpClient({ headers: () => ({}) });
@@ -32,13 +24,17 @@ export const composeVerifier = (env: Env): Verifier => {
   );
 };
 
-export const composeSocialAccounts = (env: Env, verifier: Verifier): SocialAccounts =>
+export const composeSocialAccounts = (
+  env: Env,
+  verifier: Verifier,
+  pool: readonly Handle[],
+): SocialAccounts =>
   createSocialAccounts(
     { eligibility: {}, cooldown: {} },
     {
       verifier,
       repository: fileClaimRepository(env.CLAIMS_FILE),
-      pool: configVerificationAccountPool(handles(env.VERIFICATION_ACCOUNTS)),
+      pool: configVerificationAccountPool(pool),
       ids: uuidIds,
     },
   );

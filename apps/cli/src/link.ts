@@ -10,6 +10,11 @@ import type { Result } from '@engagement-exchange/verification';
 
 const when = (ms: number): string => new Date(ms).toISOString();
 
+const refusal = (claim: AccountClaim): string =>
+  claim.rejection === 'pool_exhausted'
+    ? `@${claim.handle.value} already follows every verification account given`
+    : 'another user holds this account';
+
 export const describeClaim = (claim: AccountClaim): string[] => [
   `claim ${claim.id}: ${claim.state} for @${claim.handle.value} on ${claim.platform}`,
   ...claim.eligibility.results.map(
@@ -21,7 +26,10 @@ export const describeClaim = (claim: AccountClaim): string[] => [
         `follow @${claim.verificationAccount.value} from @${claim.handle.value}, then run link verify ${claim.id}`,
       ]
     : []),
-  ...(claim.rejection ? [`rejected: ${claim.rejection}`] : []),
+  ...(claim.rejection ? [`refused: ${refusal(claim)}`] : []),
+  ...(claim.state === 'eligibility_failed'
+    ? ['refused: the account fails an eligibility rule']
+    : []),
   `attempts: ${String(claim.attempts.length)}; next verify allowed at ${when(claim.nextVerifyAt)}; expires ${when(claim.expiresAt)}`,
 ];
 
@@ -51,15 +59,21 @@ const report = <T>(result: Result<T, ClaimError>, lines: (value: T) => string[])
   return 0;
 };
 
+const refused = new Set(['rejected', 'eligibility_failed']);
+
 export const linkStart = async (
   social: SocialAccounts,
   user: string,
   account: string,
-): Promise<number> =>
-  report(
-    await social.startAccountClaim({ userId: userId(user), platform: 'tiktok', account }),
-    describeClaim,
-  );
+): Promise<number> => {
+  const result = await social.startAccountClaim({
+    userId: userId(user),
+    platform: 'tiktok',
+    account,
+  });
+  const code = report(result, describeClaim);
+  return result.ok && refused.has(result.value.state) ? 1 : code;
+};
 
 export const linkVerify = async (social: SocialAccounts, id: string): Promise<number> => {
   const result = await social.verifyAccountClaim(claimId(id));
