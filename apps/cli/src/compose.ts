@@ -1,9 +1,9 @@
 import {
-  configVerificationAccountPool,
   createSocialAccounts,
-  fileClaimRepository,
   uuidIds,
+  type AccountClaimRepository,
   type SocialAccounts,
+  type VerificationAccountPool,
 } from '@engagement-exchange/social-accounts';
 import {
   createHttpClient,
@@ -14,8 +14,8 @@ import {
   sidecarSigner,
   err,
   ok,
-  type Handle,
   type MeasurementSink,
+  type ProfileCache,
   type Result,
   type VerificationSource,
   type Verifier,
@@ -30,7 +30,14 @@ export interface ComposedVerifier {
   readonly leftOut: readonly CliSourceName[];
 }
 
-const availableSources = (env: Env): Map<CliSourceName, VerificationSource> => {
+export type Sources = ReadonlyMap<CliSourceName, VerificationSource>;
+
+export interface VerifierParts {
+  readonly sources?: Sources;
+  readonly profileCache?: ProfileCache;
+}
+
+const availableSources = (env: Env): Sources => {
   const http = createHttpClient({ headers: () => ({}) });
   const sources = new Map<CliSourceName, VerificationSource>([
     ['scraper', scraperSource({ http, signer: sidecarSigner(http, env.TIKTOK_SIGNER_URL) })],
@@ -48,8 +55,9 @@ export const composeVerifier = (
   env: Env,
   measurements = discard,
   choice: SourceChoice = 'chain',
+  parts: VerifierParts = {},
 ): Result<ComposedVerifier, string> => {
-  const sources = availableSources(env);
+  const sources = parts.sources ?? availableSources(env);
   if (choice !== 'chain' && !sources.has(choice)) {
     return err(`source ${choice} has no credential configured`);
   }
@@ -66,22 +74,21 @@ export const composeVerifier = (
       pageCap: 3,
       confirmNotFollowing: env.VERIFICATION_CONFIRM_NOT_FOLLOWING,
     },
-    { sources: [...sources.values()], measurements },
+    {
+      sources: [...sources.values()],
+      measurements,
+      ...(parts.profileCache !== undefined && { profileCache: parts.profileCache }),
+    },
   );
   return ok({ verifier, leftOut: planned.value.leftOut });
 };
 
 export const composeSocialAccounts = (
-  env: Env,
   verifier: Verifier,
-  pool: readonly Handle[],
+  repository: AccountClaimRepository,
+  pool: VerificationAccountPool,
 ): SocialAccounts =>
   createSocialAccounts(
     { eligibility: {}, cooldown: {} },
-    {
-      verifier,
-      repository: fileClaimRepository(env.CLAIMS_FILE),
-      pool: configVerificationAccountPool(pool),
-      ids: uuidIds,
-    },
+    { verifier, repository, pool, ids: uuidIds },
   );

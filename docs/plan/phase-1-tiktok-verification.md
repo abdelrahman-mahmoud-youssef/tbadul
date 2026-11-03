@@ -291,6 +291,10 @@ The adapter exists (`src/adapters/ensembledata/`, source name `ensemble`) and re
 | `liked <performer> <video>`               | `--source`                                                | Outcome of the liked check after the performer's profile check                                                                |
 | `watch follows <performer> <target>`      | `--every <seconds>`, `--times <n>`, `--source`            | One line per run with its time and outcome; a line naming the unfollow when one is seen                                       |
 | `link start <handle>`, `link verify <id>` | `--verification-account <handle>` (repeatable) on `start` | The claim, its eligibility results and the next step                                                                          |
+| `user add <email>`                        | `--name <name>`                                           | The new user's id, to set as `CLI_USER_ID`                                                                                    |
+| `pool add <handle>`, `pool list`          | `--source` on `add`                                       | The account added after its profile check; every pooled account with whether it is active and its assignment count            |
+
+With `DATABASE_URL` set (a `postgres://` or `postgresql://` URL), claims live in `account_claims`, the verification pool in `verification_accounts` and resolved profiles in the profile cache (ADR 0004). `user add` inserts an `auth_users` row until Better Auth owns sign-up; `link start` needs `CLI_USER_ID` to be that id, a uuid naming an existing user, and takes its pool from the database only, so `--verification-account` is a usage error there. `pool add` resolves the handle through the profile check, so a cached profile costs nothing. A claim id given to `link verify` must be a uuid. Every command checks first that the migrations are applied; when they are not it prints one line naming `pnpm --filter @engagement-exchange/db migrate` and exits 64, and it never migrates. Without `DATABASE_URL`, `user` and `pool` exit 64, and the other commands run with claims in memory and no profile cache, so nothing persists past the command; the CLI says so once at startup. Every command that ran a profile check ends with `profile cache hits <n>, misses <n>`: an attempt answered by the cache is a hit, a profile attempt from any source a miss.
 
 `profile`, `owns`, `follows` and `liked` print the outcome and any details, followed by `latency <ms> ms, requests <n>` (and `units <n>` when a source bills units) for the attempts it made; a `source_error` names the kind of the last attempt.
 
@@ -301,7 +305,7 @@ Exit codes: 0 for `verified`, 1 for `not_following` or an unfollow, 2 for `priva
 
 ## 8. Measurement log
 
-Every command except `link` appends one JSON line per source attempt to `MEASUREMENT_LOG_FILE` (default `measurements.jsonl`), as the attempt happens, through the `MeasurementSink` given to `createVerifier`:
+Every command except `link`, `user` and `pool` appends one JSON line per source attempt to `MEASUREMENT_LOG_FILE` (default `measurements.jsonl`), as the attempt happens, through the `MeasurementSink` given to `createVerifier`:
 
 ```json
 {
@@ -324,6 +328,8 @@ Every command except `link` appends one JSON line per source attempt to `MEASURE
 - `errorKind`, `httpStatus` and `providerStatus` appear only on a `source_error` that carries them. The error message is never written: it can hold URLs and handles.
 - `performer` and `target` are HMAC-SHA256 hex digests, under `MEASUREMENT_HMAC_KEY`, of the normalized handle (lower case, no `@`), so runs group by account without the log holding account names; without the key, a digest cannot be matched by hashing candidate handles. For `liked` the target is the digest of the video id. `profile` and `owns` write their handle as `performer` and no `target`. The values belong to the command, not the attempt: within `follows`, the profile attempts for the target and the performer carry the same pair.
 - `MEASUREMENT_HMAC_KEY` is required by every command that writes the log; without it the command prints one configuration line and exits 64. The key is never written. Keep it stable across sessions, or digests from different sessions will not match.
+
+With `DATABASE_URL` set, the same attempts are also appended to `verification_checks`, with the same digests: `profile` and `owns` store theirs as `subject_hash`, `follows`, `watch` and `liked` as `performer_hash` and `target_hash`. The appends are awaited before the command ends; a failed append is counted in one line and never changes the outcome.
 
 Log files use the `.jsonl` extension, which `.gitignore` excludes; the results table in this document is the tracked summary.
 

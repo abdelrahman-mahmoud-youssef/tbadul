@@ -1,0 +1,296 @@
+import { setTimeout as sleep } from 'node:timers/promises';
+import { parseArgs } from 'node:util';
+import { createDatabase, migrationsApplied, type Database } from '@engagement-exchange/db';
+import {
+  configVerificationAccountPool,
+  drizzleClaimRepository,
+  drizzleVerificationAccountPool,
+  inMemoryClaimRepository,
+  type SocialAccounts,
+} from '@engagement-exchange/social-accounts';
+import {
+  drizzleProfileCache,
+  type Attempt,
+  type ProfileCache,
+  type Verifier,
+} from '@engagement-exchange/verification';
+import { needsDatabase, parseCommand, type Command, type DatabaseCommand } from './command.ts';
+import { composeSocialAccounts, composeVerifier, type Sources } from './compose.ts';
+import { databaseUserId, readEnv, sourceChoice, sourceChoices, type Env } from './config.ts';
+import type { Demo } from './demo.ts';
+import {
+  cacheUse,
+  followsCommand,
+  likedCommand,
+  ownsCommand,
+  profileCommand,
+  usageError,
+} from './follows.ts';
+import { linkStart, linkVerify } from './link.ts';
+import { measurementLog, type MeasurementLog } from './measurement-log.ts';
+import { emptyPool, poolAdd, poolList, verificationPool } from './pool.ts';
+import { invalidUser, unknownUser, userAdd, userExists } from './users.ts';
+import { watchFollows } from './watch.ts';
+
+export const usage = [
+  'usage:',
+  '  cli profile <handle> [--source <name>]',
+  '  cli owns <handle> <bio-token> [--source <name>]',
+  '  cli follows <performer> <target> [--source <name>]',
+  '  cli liked <performer> <video-id-or-url> [--source <name>]',
+  '  cli watch follows <performer> <target> [--every <seconds>] [--times <n>] [--source <name>]',
+  '  cli link start <handle-or-url> [--verification-account <handle>]...',
+  '  cli link verify <claim-id>',
+  '  cli user add <email> [--name <name>]',
+  '  cli pool add <handle> [--source <name>]',
+  '  cli pool list',
+  '',
+  '  --source scraper|lamatok|ensemble|chain   one source for every check, or the configured',
+  '                                            per-kind orders (chain, the default)',
+  '  --every <seconds>                         wait between watch runs (WATCH_INTERVAL_SECONDS, 60)',
+  '  --times <n>                               stop after n runs; unbounded when absent',
+  '  --verification-account <handle>           the pool for one link start without DATABASE_URL',
+  '',
+  'With DATABASE_URL set, claims, the verification pool and the profile cache live in PostgreSQL:',
+  'user add prints the id for CLI_USER_ID and pool add fills the pool. user and pool need it.',
+  '',
+  'exit codes: 0 verified, 1 not_following or unfollowed, 2 private, 3 not_found, 4 source_error,',
+  '            64 usage or configuration',
+].join('\n');
+
+export const inMemory =
+  'DATABASE_URL is unset: claims stay in memory and profiles are not cached, so nothing persists';
+
+export const missingSchema =
+  'the database schema is missing or behind: run pnpm --filter @engagement-exchange/db migrate';
+
+export const poolFlagWithDatabase =
+  '--verification-account applies without DATABASE_URL; add accounts with pool add <handle>';
+
+export interface CliDeps {
+  readonly env: Readonly<Record<string, string | undefined>>;
+  readonly sources?: (env: Env) => Sources;
+  readonly profileCache?: (db: Database) => ProfileCache;
+}
+
+interface Run {
+  readonly env: Env;
+  readonly verifier: Verifier;
+  readonly attempts: readonly Attempt[];
+  readonly poolFlags: readonly string[];
+}
+
+const parse = (argv: readonly string[]) => {
+  try {
+    return parseArgs({
+      args: [...argv],
+      allowPositionals: true,
+      strict: true,
+      options: {
+        'verification-account': { type: 'string', multiple: true, default: [] },
+        source: { type: 'string' },
+        every: { type: 'string' },
+        times: { type: 'string' },
+        name: { type: 'string' },
+      },
+    });
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+};
+
+const runDemo = ({ env, verifier, attempts }: Run, demo: Demo) => {
+  switch (demo.command) {
+    case 'profile':
+      return profileCommand(verifier, attempts, demo.subject);
+    case 'owns':
+      return ownsCommand(verifier, attempts, demo.subject, demo.token);
+    case 'follows':
+      return followsCommand(verifier, attempts, demo.performer, demo.target);
+    case 'liked':
+      return likedCommand(verifier, attempts, demo.performer, demo.content);
+    case 'watch':
+      return watchFollows(
+        verifier,
+        attempts,
+        demo.performer,
+        demo.target,
+        { everySeconds: demo.every ?? env.WATCH_INTERVAL_SECONDS, times: demo.times },
+        { sleep, clock: { now: () => Date.now() } },
+      );
+  }
+};
+
+const inMemoryCommand = async (
+  run: Run,
+  command: Exclude<Command, DatabaseCommand>,
+): Promise<number> => {
+  switch (command.kind) {
+    case 'demo':
+      return runDemo(run, command.demo);
+    case 'link start': {
+      const pool = verificationPool(run.poolFlags, run.env.VERIFICATION_ACCOUNTS);
+      if (!pool.ok) {
+        console.error(pool.error);
+        return usageError;
+      }
+      const social = composeSocialAccounts(
+        run.verifier,
+        inMemoryClaimRepository(),
+        configVerificationAccountPool(pool.value),
+      );
+      return linkStart(social, run.env.CLI_USER_ID, command.account);
+    }
+    case 'link verify':
+      return linkVerify(
+        composeSocialAccounts(
+          run.verifier,
+          inMemoryClaimRepository(),
+          configVerificationAccountPool([]),
+        ),
+        command.claim,
+      );
+  }
+};
+
+const databaseCommand = async (run: Run, db: Database, command: Command): Promise<number> => {
+  const pool = drizzleVerificationAccountPool(db);
+  const social = (): SocialAccounts =>
+    composeSocialAccounts(run.verifier, drizzleClaimRepository(db), pool);
+  switch (command.kind) {
+    case 'demo':
+      return runDemo(run, command.demo);
+    case 'user add':
+      return userAdd(db, command.email, command.name);
+    case 'pool add':
+      return poolAdd(run.verifier, pool, command.account);
+    case 'pool list':
+      return poolList(pool);
+    case 'link verify':
+      return linkVerify(social(), command.claim);
+    case 'link start': {
+      if (run.poolFlags.length > 0) {
+        console.error(poolFlagWithDatabase);
+        return usageError;
+      }
+      const user = databaseUserId.safeParse(run.env.CLI_USER_ID);
+      if (!user.success) {
+        console.error(invalidUser);
+        return usageError;
+      }
+      if (!(await userExists(db, user.data))) {
+        console.error(unknownUser);
+        return usageError;
+      }
+      if ((await pool.candidates('tiktok')).length === 0) {
+        console.error(emptyPool);
+        return usageError;
+      }
+      return linkStart(social(), user.data, command.account);
+    }
+  }
+};
+
+const runCommand = async (
+  deps: CliDeps,
+  env: Env,
+  command: Command,
+  flags: { readonly source: string | undefined; readonly poolFlags: readonly string[] },
+  db: Database | undefined,
+  dispatch: (run: Run) => Promise<number>,
+): Promise<number> => {
+  const choice = sourceChoice.safeParse(flags.source);
+  if (!choice.success) {
+    console.error(`invalid --source: use one of ${sourceChoices.join(', ')}`);
+    return usageError;
+  }
+  let log: MeasurementLog | undefined;
+  if (command.kind === 'demo') {
+    const opened = measurementLog(env, command.demo, db);
+    if (!opened.ok) {
+      console.error(opened.error);
+      return usageError;
+    }
+    log = opened.value;
+  }
+  const attempts: Attempt[] = [];
+  const composed = composeVerifier(
+    env,
+    {
+      record: (attempt) => {
+        attempts.push(attempt);
+        log?.record(attempt);
+      },
+    },
+    choice.data,
+    {
+      ...(deps.sources !== undefined && { sources: deps.sources(env) }),
+      ...(db !== undefined && { profileCache: (deps.profileCache ?? drizzleProfileCache)(db) }),
+    },
+  );
+  if (!composed.ok) {
+    console.error(composed.error);
+    return usageError;
+  }
+  const { verifier, leftOut } = composed.value;
+  if (leftOut.length > 0) console.error(`sources left out, no credential: ${leftOut.join(', ')}`);
+  const run: Run = { env, verifier, attempts, poolFlags: flags.poolFlags };
+  try {
+    const code = await dispatch(run);
+    const cache = cacheUse(attempts);
+    if (cache !== undefined) console.log(cache);
+    return code;
+  } finally {
+    const failed = (await log?.flush()) ?? 0;
+    if (failed > 0) console.error(`check log: ${String(failed)} attempts not stored`);
+  }
+};
+
+export const run = async (argv: readonly string[], deps: CliDeps): Promise<number> => {
+  const parsed = parse(argv);
+  if (typeof parsed === 'string') {
+    console.error(parsed);
+    console.error(usage);
+    return usageError;
+  }
+  const { positionals, values } = parsed;
+  const command = parseCommand(positionals, values);
+  if (command === undefined) {
+    console.error(usage);
+    return usageError;
+  }
+  if (!command.ok) {
+    console.error(command.error);
+    return usageError;
+  }
+  const loaded = readEnv(deps.env);
+  if (!loaded.ok) {
+    for (const line of loaded.error) console.error(line);
+    return usageError;
+  }
+  const env = loaded.value;
+  const flags = { source: values.source, poolFlags: values['verification-account'] };
+  if (env.DATABASE_URL === undefined) {
+    if (needsDatabase(command.value)) {
+      console.error(`${command.value.kind} needs DATABASE_URL`);
+      return usageError;
+    }
+    const memoryCommand = command.value;
+    console.error(inMemory);
+    return runCommand(deps, env, memoryCommand, flags, undefined, (run) =>
+      inMemoryCommand(run, memoryCommand),
+    );
+  }
+  const client = createDatabase(env.DATABASE_URL);
+  try {
+    if (!(await migrationsApplied(client.db))) {
+      console.error(missingSchema);
+      return usageError;
+    }
+    return await runCommand(deps, env, command.value, flags, client.db, (run) =>
+      databaseCommand(run, client.db, command.value),
+    );
+  } finally {
+    await client.close();
+  }
+};

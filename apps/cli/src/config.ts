@@ -24,6 +24,7 @@ const order = z
   .optional();
 
 export const envSchema = z.object({
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }).optional(),
   TIKTOK_SIGNER_URL: z.url().default('http://localhost:8080'),
   LAMATOK_ACCESS_KEY: z.string().optional(),
   ENSEMBLEDATA_TOKEN: z.string().optional(),
@@ -37,7 +38,6 @@ export const envSchema = z.object({
     .default('true')
     .transform((value) => value === 'true'),
   OUTBOUND_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
-  CLAIMS_FILE: z.string().min(1).default('claims.local.json'),
   CLI_USER_ID: z.string().min(1).default('local'),
   MEASUREMENT_LOG_FILE: z.string().min(1).default('measurements.jsonl'),
   MEASUREMENT_HMAC_KEY: z.string().optional(),
@@ -45,6 +45,8 @@ export const envSchema = z.object({
 });
 
 export type Env = z.infer<typeof envSchema>;
+
+export const databaseUserId = z.uuid();
 
 export const readEnv = (source: Record<string, string | undefined>): Result<Env, string[]> => {
   const parsed = envSchema.safeParse(

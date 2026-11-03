@@ -29,6 +29,13 @@ const measured = (attempts: readonly Attempt[]): string => {
   return `latency ${String(latency)} ms, requests ${String(spent('request'))}${units > 0 ? `, units ${String(units)}` : ''}`;
 };
 
+export const cacheUse = (attempts: readonly Attempt[]): string | undefined => {
+  const profiles = attempts.filter((attempt) => attempt.check === 'profile');
+  if (profiles.length === 0) return undefined;
+  const hits = profiles.filter((attempt) => attempt.source === 'cache').length;
+  return `profile cache hits ${String(hits)}, misses ${String(profiles.length - hits)}`;
+};
+
 export const outcomeOf = (outcome: Outcome, attempts: readonly Attempt[]): string => {
   const kind = attempts.at(-1)?.error?.kind;
   return outcome === 'source_error' && kind !== undefined ? `${outcome} (${kind})` : outcome;

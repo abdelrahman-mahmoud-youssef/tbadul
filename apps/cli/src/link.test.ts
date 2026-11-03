@@ -13,7 +13,7 @@ import {
   sameOrder,
 } from '@engagement-exchange/verification/testing';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
-import { linkStart } from './link.ts';
+import { describeError, linkStart } from './link.ts';
 
 const cost = { unit: 'request', amount: 1 } as const;
 
@@ -73,5 +73,14 @@ describe('linkStart', () => {
     expect(log.mock.calls.flat()).toContain(
       'refused: @some.creator already follows every verification account given',
     );
+  });
+});
+
+describe('describeError', () => {
+  it.each([
+    [{ kind: 'account_already_linked' }, 'you have already linked this account'],
+    [{ kind: 'version_conflict' }, 'the claim changed while this command ran: run it again'],
+  ] as const)('explains %o', (error, line) => {
+    expect(describeError(error)).toBe(line);
   });
 });

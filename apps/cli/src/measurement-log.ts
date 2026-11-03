@@ -1,9 +1,12 @@
 import { createHmac } from 'node:crypto';
 import { appendFileSync } from 'node:fs';
+import type { Database } from '@engagement-exchange/db';
 import {
+  drizzleCheckLog,
   err,
   ok,
   type Attempt,
+  type CheckSubjects,
   type MeasurementSink,
   type PlatformScoped,
   type Result,
@@ -32,6 +35,13 @@ const subjectsOf = (demo: Demo): Subjects => {
   }
 };
 
+const checkSubjectsOf = (demo: Demo): CheckSubjects => {
+  const { performer, target } = subjectsOf(demo);
+  return demo.command === 'profile' || demo.command === 'owns'
+    ? { subject: performer }
+    : { performer, ...(target && { target }) };
+};
+
 const line = (key: string, demo: Demo, attempt: Attempt): string => {
   const digest = (scoped: PlatformScoped) =>
     createHmac('sha256', key).update(scoped.value).digest('hex');
@@ -53,12 +63,32 @@ const line = (key: string, demo: Demo, attempt: Attempt): string => {
   });
 };
 
-export const measurementLog = (env: Env, demo: Demo): Result<MeasurementSink, string> => {
+export interface MeasurementLog extends MeasurementSink {
+  flush(): Promise<number>;
+}
+
+export const measurementLog = (
+  env: Env,
+  demo: Demo,
+  db?: Database,
+): Result<MeasurementLog, string> => {
   const key = env.MEASUREMENT_HMAC_KEY;
   if (key === undefined) return err(missingKey);
+  const checkLog = db === undefined ? undefined : drizzleCheckLog(db, key);
+  const subjects = checkSubjectsOf(demo);
+  const appends: Promise<boolean>[] = [];
   return ok({
     record: (attempt) => {
       appendFileSync(env.MEASUREMENT_LOG_FILE, `${line(key, demo, attempt)}\n`);
+      if (checkLog !== undefined) {
+        appends.push(
+          checkLog.append(attempt, subjects).then(
+            () => true,
+            () => false,
+          ),
+        );
+      }
     },
+    flush: async () => (await Promise.all(appends)).filter((stored) => !stored).length,
   });
 };

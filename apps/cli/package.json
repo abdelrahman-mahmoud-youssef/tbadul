@@ -13,6 +13,7 @@
     "start": "node --env-file-if-exists=../../.env dist/main.js"
   },
   "dependencies": {
+    "@engagement-exchange/db": "workspace:*",
     "@engagement-exchange/social-accounts": "workspace:*",
     "@engagement-exchange/verification": "workspace:*",
     "zod": "catalog:"

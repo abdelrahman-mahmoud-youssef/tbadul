@@ -45,6 +45,10 @@ export const describeError = (error: ClaimError): string => {
       return `account unavailable: ${error.outcome}`;
     case 'claim_not_verifiable':
       return `claim is ${error.state}, nothing to verify`;
+    case 'account_already_linked':
+      return 'you have already linked this account';
+    case 'version_conflict':
+      return 'the claim changed while this command ran: run it again';
     default:
       return error.kind.replaceAll('_', ' ');
   }

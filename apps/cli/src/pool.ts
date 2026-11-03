@@ -1,4 +1,16 @@
-import { err, ok, parseHandle, type Handle, type Result } from '@engagement-exchange/verification';
+import type {
+  DrizzleVerificationAccountPool,
+  PooledAccount,
+} from '@engagement-exchange/social-accounts';
+import {
+  err,
+  ok,
+  parseHandle,
+  type Handle,
+  type Result,
+  type Verifier,
+} from '@engagement-exchange/verification';
+import { exitCodes, outcomeOf } from './follows.ts';
 
 export const missingPool =
   'no verification account: pass --verification-account <handle> (repeatable) or set VERIFICATION_ACCOUNTS';
@@ -16,4 +28,44 @@ export const verificationPool = (
     pool.push(parsed.value);
   }
   return ok(pool);
+};
+
+export const emptyPool = 'no verification account: add one with pool add <handle>';
+
+export const poolAdd = async (
+  verifier: Verifier,
+  pool: DrizzleVerificationAccountPool,
+  account: Handle,
+): Promise<number> => {
+  const verdict = await verifier.verify({ kind: 'profile', subject: account });
+  if (verdict.outcome !== 'verified') {
+    console.error(`profile @${account.value}: ${outcomeOf(verdict.outcome, verdict.attempts)}`);
+    return exitCodes[verdict.outcome];
+  }
+  const added = await pool.add(
+    { handle: account, accountId: verdict.evidence.accountId },
+    Date.now(),
+  );
+  console.log(
+    added === 'added'
+      ? `@${account.value} added to the verification pool`
+      : `@${account.value} is already in the verification pool`,
+  );
+  return 0;
+};
+
+const named = (account: PooledAccount): string =>
+  account.handle === undefined
+    ? `account id ${account.accountId.value}`
+    : `@${account.handle.value}`;
+
+export const poolList = async (pool: DrizzleVerificationAccountPool): Promise<number> => {
+  const accounts = await pool.list('tiktok');
+  if (accounts.length === 0) console.log(emptyPool);
+  for (const account of accounts) {
+    console.log(
+      `${named(account)}  ${account.active ? 'active' : 'inactive'}  assigned ${String(account.assignedCount)}`,
+    );
+  }
+  return 0;
 };

@@ -295,6 +295,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@engagement-exchange/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@engagement-exchange/social-accounts':
         specifier: workspace:*
         version: link:../../packages/social-accounts
