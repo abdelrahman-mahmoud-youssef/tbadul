@@ -22,4 +22,5 @@ export const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
-export const readEnv = (source: Record<string, string | undefined>): Env => envSchema.parse(source);
+export const readEnv = (source: Record<string, string | undefined>): Env =>
+  envSchema.parse(Object.fromEntries(Object.entries(source).filter(([, value]) => value !== '')));
