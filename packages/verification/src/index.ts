@@ -1,3 +1,5 @@
+export type { EnsembledataDeps } from './adapters/ensembledata/ensembledata-client.ts';
+export { ensembledataSource } from './adapters/ensembledata/ensembledata-source.ts';
 export { createHttpClient, type HttpClient } from './adapters/http/http-client.ts';
 export { fetchTransport, type Transport } from './adapters/http/transport.ts';
 export type { LamatokDeps } from './adapters/lamatok/lamatok-client.ts';

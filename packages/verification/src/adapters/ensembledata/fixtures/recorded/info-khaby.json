@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "units_charged": "1"
+  },
+  "body": {
+    "data": {
+      "user": {
+        "id": "127905465618821121",
+        "uniqueId": "khaby.lame",
+        "secUid": "MS4wLjABAAAAwAg0rSzO65WQfz4RzQgGv2Xdv108BgPXhRrrmNVIHQZ9PO8-flwwRtEppYTS0OjA",
+        "signature": "Se vuoi ridere sei nel posto giusto😎 If u wanna laugh u r in the right place😎",
+        "privateAccount": false,
+        "openFavorite": false,
+        "create_time": 0,
+        "avatarThumb": "https://p16-common-sign.tiktokcdn.com/tos-maliva-avt-0068/08987e23b94057953fd4f1738694bf5f~tplv-tiktokx-cropcenter-q:100:100:q70.webp?x-expires=1793800800&x-signature=stripped"
+      },
+      "stats": {
+        "followerCount": 162971569,
+        "followingCount": 82,
+        "videoCount": 1360
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "data": {
+      "tiktok": 0,
+      "instagram": 0,
+      "reddit": 0,
+      "youtube": 0,
+      "twitch": 0,
+      "twitter": 0,
+      "threads": 0,
+      "snapchat": 0
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "units_charged": "1"
+  },
+  "body": {
+    "data": {
+      "info": "Liked posts not public."
+    }
+  }
+}

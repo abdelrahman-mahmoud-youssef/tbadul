@@ -1,0 +1,260 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "units_charged": "2"
+  },
+  "body": {
+    "data": {
+      "followings": [
+        {
+          "unique_id": "xeviuniverse"
+        },
+        {
+          "unique_id": "user38180545530128"
+        },
+        {
+          "unique_id": "fifaworldcup"
+        },
+        {
+          "unique_id": "tiktokcreators"
+        },
+        {
+          "unique_id": "christianzammataro"
+        },
+        {
+          "unique_id": "mouhamed.mamba"
+        },
+        {
+          "unique_id": "emerson.royal22"
+        },
+        {
+          "unique_id": "willsmith"
+        },
+        {
+          "unique_id": "terrycrews"
+        },
+        {
+          "unique_id": "giannis_an34"
+        },
+        {
+          "unique_id": "mfcbqtr_"
+        },
+        {
+          "unique_id": "naomi"
+        },
+        {
+          "unique_id": "cicciogamer89"
+        },
+        {
+          "unique_id": "boss"
+        },
+        {
+          "unique_id": "yuripomoart"
+        },
+        {
+          "unique_id": "jlo"
+        },
+        {
+          "unique_id": "kidzuna._"
+        },
+        {
+          "unique_id": "rosalia"
+        },
+        {
+          "unique_id": "roccomercurio0"
+        },
+        {
+          "unique_id": "mrbeast"
+        },
+        {
+          "unique_id": "djkhaled"
+        },
+        {
+          "unique_id": "steveharvey"
+        },
+        {
+          "unique_id": "_cjkilla_"
+        },
+        {
+          "unique_id": "argenby"
+        },
+        {
+          "unique_id": "lupitanyongo"
+        },
+        {
+          "unique_id": "zlatanibrahimovic"
+        },
+        {
+          "unique_id": "paulodybala"
+        },
+        {
+          "unique_id": "zachking"
+        },
+        {
+          "unique_id": "universalpics"
+        },
+        {
+          "unique_id": "idriselba"
+        },
+        {
+          "unique_id": "inaki.godoy"
+        },
+        {
+          "unique_id": "snoopdogg"
+        },
+        {
+          "unique_id": "lelepons"
+        },
+        {
+          "unique_id": "esultareallakhaby"
+        },
+        {
+          "unique_id": "luvadepedreiro"
+        },
+        {
+          "unique_id": "nickmayhugh"
+        },
+        {
+          "unique_id": "jeremylynch"
+        },
+        {
+          "unique_id": "jehvong"
+        },
+        {
+          "unique_id": "daveardito"
+        },
+        {
+          "unique_id": "blakegray"
+        },
+        {
+          "unique_id": "benedettaa.delucaa"
+        },
+        {
+          "unique_id": "federerso"
+        },
+        {
+          "unique_id": "mariocarus.o"
+        },
+        {
+          "unique_id": "shakira"
+        },
+        {
+          "unique_id": "itskingchris"
+        },
+        {
+          "unique_id": "vietmyusa"
+        },
+        {
+          "unique_id": "jbalvin"
+        },
+        {
+          "unique_id": "official_zakinho"
+        },
+        {
+          "unique_id": "romoloandrea"
+        },
+        {
+          "unique_id": "labbruttaggente"
+        },
+        {
+          "unique_id": "samuellgeronimoo"
+        },
+        {
+          "unique_id": "tiktok"
+        },
+        {
+          "unique_id": "alessandrodelpiero"
+        },
+        {
+          "unique_id": "kingbach"
+        },
+        {
+          "unique_id": "instintoecoscienza"
+        },
+        {
+          "unique_id": "douglascosta"
+        },
+        {
+          "unique_id": "tony.berry"
+        },
+        {
+          "unique_id": "tiktokofbanana"
+        },
+        {
+          "unique_id": "arnaldomangini"
+        },
+        {
+          "unique_id": "fonzo1996"
+        },
+        {
+          "unique_id": "nick_radogna"
+        },
+        {
+          "unique_id": "fatimaniang"
+        },
+        {
+          "unique_id": "carreraalessandro"
+        },
+        {
+          "unique_id": "simleysimo"
+        },
+        {
+          "unique_id": "esportpalace"
+        },
+        {
+          "unique_id": "rafael.nistor"
+        },
+        {
+          "unique_id": "fortuneduru"
+        },
+        {
+          "unique_id": "gioffy"
+        },
+        {
+          "unique_id": "chaimaacherbal"
+        },
+        {
+          "unique_id": "osama.zaifri"
+        },
+        {
+          "unique_id": "fishball__"
+        },
+        {
+          "unique_id": "ilgiannega"
+        },
+        {
+          "unique_id": "fedeasso"
+        },
+        {
+          "unique_id": "miglietz"
+        },
+        {
+          "unique_id": "locobarber.03"
+        },
+        {
+          "unique_id": "saimon_mh"
+        },
+        {
+          "unique_id": "kalvin_yt"
+        },
+        {
+          "unique_id": "dudu.lame"
+        },
+        {
+          "unique_id": "isabo.ita"
+        },
+        {
+          "unique_id": "kevin.believe"
+        },
+        {
+          "unique_id": "francescorotella"
+        },
+        {
+          "unique_id": "gagliardi38"
+        }
+      ],
+      "total": 83
+    }
+  }
+}

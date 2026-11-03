@@ -1,0 +1,9 @@
+{
+  "status": 491,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "detail": "Token not found, please sign up at https://dashboard.ensembledata.com/register"
+  }
+}

@@ -1,0 +1,316 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "units_charged": "2"
+  },
+  "body": {
+    "data": {
+      "followings": [
+        {
+          "unique_id": "joseluisperez09"
+        },
+        {
+          "unique_id": "calligraphilic"
+        },
+        {
+          "unique_id": "justjules09"
+        },
+        {
+          "unique_id": "morgandrinkscoffee"
+        },
+        {
+          "unique_id": "lamarjackson"
+        },
+        {
+          "unique_id": "mickycashflow"
+        },
+        {
+          "unique_id": "marcsebastianf"
+        },
+        {
+          "unique_id": "marcustudrick"
+        },
+        {
+          "unique_id": "creator.space.mod2"
+        },
+        {
+          "unique_id": "creator.space.mod1"
+        },
+        {
+          "unique_id": "yaseenthatguy"
+        },
+        {
+          "unique_id": "_charihawkins"
+        },
+        {
+          "unique_id": "ladyyasmina1"
+        },
+        {
+          "unique_id": "lacreatorstudio_test"
+        },
+        {
+          "unique_id": "evanthorizon"
+        },
+        {
+          "unique_id": "itslifeofannie"
+        },
+        {
+          "unique_id": "ghobs"
+        },
+        {
+          "unique_id": "peachietech"
+        },
+        {
+          "unique_id": "alexander_widener"
+        },
+        {
+          "unique_id": "listmanguy"
+        },
+        {
+          "unique_id": "rachelszero"
+        },
+        {
+          "unique_id": "just_liketeezus"
+        },
+        {
+          "unique_id": "itsnatashamartinez"
+        },
+        {
+          "unique_id": "ricciorecaps"
+        },
+        {
+          "unique_id": "devindrain"
+        },
+        {
+          "unique_id": "iheartpodcast"
+        },
+        {
+          "unique_id": "holdensmith962"
+        },
+        {
+          "unique_id": "ryerwin"
+        },
+        {
+          "unique_id": "rocketrileychannel"
+        },
+        {
+          "unique_id": "lelepons"
+        },
+        {
+          "unique_id": "iheartradio"
+        },
+        {
+          "unique_id": "zacharyreality"
+        },
+        {
+          "unique_id": "kayladsoto"
+        },
+        {
+          "unique_id": "mooreamor"
+        },
+        {
+          "unique_id": "jackijing"
+        },
+        {
+          "unique_id": "mondariaa"
+        },
+        {
+          "unique_id": "blivxx"
+        },
+        {
+          "unique_id": "tiktokradio"
+        },
+        {
+          "unique_id": "tiktokpodcastnetwork"
+        },
+        {
+          "unique_id": "quensadillareturns"
+        },
+        {
+          "unique_id": "jasonsappy"
+        },
+        {
+          "unique_id": "markballas1"
+        },
+        {
+          "unique_id": "justinescameraroll"
+        },
+        {
+          "unique_id": "forrestsautoreviews"
+        },
+        {
+          "unique_id": "sandiegozoo"
+        },
+        {
+          "unique_id": "joejonas"
+        },
+        {
+          "unique_id": "laurenashleybeck"
+        },
+        {
+          "unique_id": "simonescott33"
+        },
+        {
+          "unique_id": "haleyybaylee"
+        },
+        {
+          "unique_id": "cocognz"
+        },
+        {
+          "unique_id": "jessthereporter"
+        },
+        {
+          "unique_id": "anamazingappetite"
+        },
+        {
+          "unique_id": "shutthekellup"
+        },
+        {
+          "unique_id": "tiktokmena"
+        },
+        {
+          "unique_id": "1billionsummit"
+        },
+        {
+          "unique_id": "tiktokarabcreators"
+        },
+        {
+          "unique_id": "narins.beauty_"
+        },
+        {
+          "unique_id": "johnnellis_"
+        },
+        {
+          "unique_id": "cheffotto"
+        },
+        {
+          "unique_id": "mandykayschendel"
+        },
+        {
+          "unique_id": "fantasticfrankey"
+        },
+        {
+          "unique_id": "timbosliceoflife12"
+        },
+        {
+          "unique_id": "bria.stuart"
+        },
+        {
+          "unique_id": "_ashbyflorence_"
+        },
+        {
+          "unique_id": "bobthedragqueen"
+        },
+        {
+          "unique_id": "trixie"
+        },
+        {
+          "unique_id": "jordan_the_stallion8"
+        },
+        {
+          "unique_id": "thelawntools"
+        },
+        {
+          "unique_id": "logagm"
+        },
+        {
+          "unique_id": "tinekeyounger"
+        },
+        {
+          "unique_id": "chrisandfinck"
+        },
+        {
+          "unique_id": "ronclark__"
+        },
+        {
+          "unique_id": "taylortiminskas"
+        },
+        {
+          "unique_id": "turkuazkitchen"
+        },
+        {
+          "unique_id": "cybersecuritygirl"
+        },
+        {
+          "unique_id": "samueljhyun"
+        },
+        {
+          "unique_id": "calebsaysthings"
+        },
+        {
+          "unique_id": "drewkey5000"
+        },
+        {
+          "unique_id": "findjeremiah"
+        },
+        {
+          "unique_id": "soyeddynieblas"
+        },
+        {
+          "unique_id": "thatgirlsydjo"
+        },
+        {
+          "unique_id": "glamzilla"
+        },
+        {
+          "unique_id": "katiefanggg"
+        },
+        {
+          "unique_id": "meredithduxbury"
+        },
+        {
+          "unique_id": "missdarcei"
+        },
+        {
+          "unique_id": "boise_brooke"
+        },
+        {
+          "unique_id": "giniglow"
+        },
+        {
+          "unique_id": "itsmekelsc"
+        },
+        {
+          "unique_id": "klothesminded"
+        },
+        {
+          "unique_id": "lexirosenstein"
+        },
+        {
+          "unique_id": "afamstudies"
+        },
+        {
+          "unique_id": "alexisanddean"
+        },
+        {
+          "unique_id": "lawbymike"
+        },
+        {
+          "unique_id": "oddanimalspecimens"
+        },
+        {
+          "unique_id": "eliesparzaa"
+        },
+        {
+          "unique_id": "jonathantilkin"
+        },
+        {
+          "unique_id": "ezeexnatalie"
+        },
+        {
+          "unique_id": "kiralise"
+        },
+        {
+          "unique_id": "jourdanblue"
+        },
+        {
+          "unique_id": "liahyoo"
+        }
+      ],
+      "total": 570,
+      "nextCursor": 1766078346,
+      "nextPageToken": "eyJtYXhfY3Vyc29yIjoxNzkyMDg5NzE4LCJtaW5fY3Vyc29yIjoxNzY2MDc4MzQ2LCJmaW5pc2hfaW5zZXJ0X21hZiI6dHJ1ZX0="
+    }
+  }
+}

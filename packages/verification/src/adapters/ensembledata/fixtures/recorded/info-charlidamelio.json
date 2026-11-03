@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "units_charged": "1"
+  },
+  "body": {
+    "data": {
+      "user": {
+        "id": "5831967",
+        "uniqueId": "charlidamelio",
+        "secUid": "MS4wLjABAAAA-VASjiXTh7wDDyXvjk10VFhMWUAoxr8bgfO1kAL1-9s",
+        "signature": "orca enthusiast\nmeg thee stallion fan\ni post on youtube on saturdays (for the most part)",
+        "privateAccount": false,
+        "openFavorite": false,
+        "create_time": 0,
+        "avatarThumb": "https://p19-common-sign.tiktokcdn.com/tos-maliva-avt-0068/ee31de49ddf64b45c5b2e3c55fbd0ea4~tplv-tiktokx-cropcenter-q:100:100:q70.webp?x-expires=1793800800&x-signature=stripped"
+      },
+      "stats": {
+        "followerCount": 160276634,
+        "followingCount": 1457,
+        "videoCount": 3287
+      }
+    }
+  }
+}

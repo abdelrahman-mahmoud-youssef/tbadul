@@ -1,0 +1,44 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "units_charged": "2"
+  },
+  "body": {
+    "data": {
+      "followings": [
+        {
+          "unique_id": "tiktokcreators"
+        },
+        {
+          "unique_id": "brittany_broski"
+        },
+        {
+          "unique_id": "miagillespiee"
+        },
+        {
+          "unique_id": "officialham159"
+        },
+        {
+          "unique_id": "treynkennedy"
+        },
+        {
+          "unique_id": "jameshenry"
+        },
+        {
+          "unique_id": "autumnsklein"
+        },
+        {
+          "unique_id": "amrezy"
+        },
+        {
+          "unique_id": "daniellesandler"
+        },
+        {
+          "unique_id": "h2balla"
+        }
+      ],
+      "total": 11
+    }
+  }
+}
