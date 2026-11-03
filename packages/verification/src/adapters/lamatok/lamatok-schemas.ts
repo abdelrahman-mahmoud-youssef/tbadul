@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-const pageToken = z
-  .union([z.string(), z.number()])
-  .nullish()
-  .transform((value) =>
-    value === null || value === undefined || value === '' ? undefined : String(value),
-  );
+const pageToken = z.union([z.string(), z.number()]).transform(String);
 
 export const balanceSchema = z.object({ requests: z.number() });
 
@@ -29,14 +24,14 @@ export const userSchema = z.object({
 export const followingPageSchema = z.object({
   statusCode: z.number().int(),
   userList: z.array(z.object({ user: z.object({ uniqueId: z.string() }) })).optional(),
-  next_page_id: pageToken,
+  next_page_id: pageToken.nullable().optional(),
 });
 
 export const likesPageSchema = z.object({
   statusCode: z.number().int(),
   itemList: z.array(z.object({ id: z.string() })).optional(),
   hasMore: z.boolean().optional(),
-  cursor: pageToken,
+  cursor: pageToken.optional(),
 });
 
 export type FollowingPage = z.infer<typeof followingPageSchema>;

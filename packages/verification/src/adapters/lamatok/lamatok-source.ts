@@ -66,9 +66,10 @@ const followingPage = (page: FollowingPage): PageRead<{ user: { uniqueId: string
   if (page.statusCode === listHidden) return { outcome: 'private' };
   if (page.statusCode !== 0) return err(unknownStatus(page.statusCode));
   if (page.userList === undefined) return err(missing('userList'));
+  if (page.next_page_id === undefined) return err(missing('next_page_id'));
   return ok({
     items: page.userList,
-    ...(page.next_page_id !== undefined && { next: page.next_page_id }),
+    ...(page.next_page_id !== null && page.next_page_id !== '' && { next: page.next_page_id }),
   });
 };
 
@@ -77,10 +78,10 @@ const likesPage = (page: LikesPage): PageRead<{ id: string }> => {
   if (page.itemList === undefined) {
     return page.hasMore === true ? { outcome: 'private' } : err(missing('itemList'));
   }
-  return ok({
-    items: page.itemList,
-    ...(page.hasMore === true && page.cursor !== undefined && { next: page.cursor }),
-  });
+  if (page.hasMore === undefined) return err(missing('hasMore'));
+  if (!page.hasMore) return ok({ items: page.itemList });
+  if (page.cursor === undefined) return err(missing('cursor'));
+  return ok({ items: page.itemList, next: page.cursor });
 };
 
 interface ListEndpoint<S, T> {

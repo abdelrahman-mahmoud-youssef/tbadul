@@ -335,6 +335,11 @@ describe('lamatokSource', () => {
       ],
       ['a page without userList', '{"statusCode":0,"next_page_id":null}', { kind: 'parse' }],
       ['a body without statusCode', '{"users":[],"next_page_id":null}', { kind: 'parse' }],
+      [
+        'a page without next_page_id',
+        '{"statusCode":0,"userList":[],"hasMore":true,"minCursor":"5"}',
+        { kind: 'parse', message: 'lamatok next_page_id missing' },
+      ],
       ['a body that is not JSON', '<html>', { kind: 'parse' }],
     ])('answers source_error for %s', async (_label, body, error) => {
       followingById(body);
@@ -439,6 +444,8 @@ describe('lamatokSource', () => {
 
     it.each([
       ['a page without itemList that does not say more', '{"statusCode":0,"hasMore":false}'],
+      ['a page without hasMore', '{"statusCode":0,"itemList":[],"has_more":1,"max_cursor":5}'],
+      ['a page with more items but no cursor', '{"statusCode":0,"itemList":[],"hasMore":true}'],
       ['a body that is not JSON', 'not json'],
     ])('answers parse for %s', async (_label, body) => {
       likes(body);
