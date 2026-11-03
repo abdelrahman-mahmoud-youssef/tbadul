@@ -7,15 +7,7 @@ import {
   platformAccounts,
   type Database,
 } from '@engagement-exchange/db';
-import {
-  accountId,
-  err,
-  ok,
-  type AccountId,
-  type Handle,
-  type Platform,
-  type Result,
-} from '@engagement-exchange/verification';
+import { accountId, err, ok, type Platform, type Result } from '@engagement-exchange/verification';
 import { and, asc, eq, gt, lte, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { AccountClaim } from '../../domain/claim.ts';
@@ -26,10 +18,14 @@ import type {
   CreateClaimError,
   VerifyClaimError,
 } from '../../ports/account-claim-repository.ts';
-import { handleOf, sameAccount, single, violates } from './rows.ts';
-
-type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
-type Executor = Database | Transaction;
+import {
+  handleOf,
+  platformAccountOf,
+  sameAccount,
+  violates,
+  type Executor,
+  type Transaction,
+} from './rows.ts';
 
 const verification = alias(platformAccounts, 'verification_account');
 
@@ -110,27 +106,6 @@ const countHeld = async (
     ),
   );
   return links + open;
-};
-
-const platformAccountOf = async (
-  tx: Transaction,
-  account: AccountId,
-  handle: Handle | undefined,
-  seenAt: number,
-): Promise<string> => {
-  await tx
-    .insert(platformAccounts)
-    .values({
-      platform: account.platform,
-      externalId: account.value,
-      ...(handle !== undefined && { handle: handle.value, handleSeenAt: new Date(seenAt) }),
-    })
-    .onConflictDoNothing({ target: [platformAccounts.platform, platformAccounts.externalId] });
-  const rows = await tx
-    .select({ id: platformAccounts.id })
-    .from(platformAccounts)
-    .where(sameAccount(account));
-  return single(rows).id;
 };
 
 const appendAttempts = async (tx: Transaction, claim: AccountClaim, stored: number) => {

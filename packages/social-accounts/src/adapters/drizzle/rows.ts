@@ -1,4 +1,4 @@
-import { platformAccounts } from '@engagement-exchange/db';
+import { platformAccounts, type Database } from '@engagement-exchange/db';
 import type { AccountId, Handle, Platform } from '@engagement-exchange/verification';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -24,3 +24,28 @@ export const violates = (error: unknown, constraint: string): boolean =>
   z
     .object({ cause: z.object({ code: z.literal('23505'), constraint: z.literal(constraint) }) })
     .safeParse(error).success;
+
+export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
+export type Executor = Database | Transaction;
+
+export const platformAccountOf = async (
+  db: Executor,
+  account: AccountId,
+  handle: Handle | undefined,
+  seenAt: number,
+): Promise<string> => {
+  await db
+    .insert(platformAccounts)
+    .values({
+      platform: account.platform,
+      externalId: account.value,
+      ...(handle !== undefined && { handle: handle.value, handleSeenAt: new Date(seenAt) }),
+    })
+    .onConflictDoNothing({ target: [platformAccounts.platform, platformAccounts.externalId] });
+  const rows = await db
+    .select({ id: platformAccounts.id })
+    .from(platformAccounts)
+    .where(sameAccount(account));
+  return single(rows).id;
+};
