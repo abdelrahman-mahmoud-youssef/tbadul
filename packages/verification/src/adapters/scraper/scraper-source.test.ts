@@ -286,6 +286,29 @@ describe('scraperSource', () => {
     const video = content('7000000000000000001');
     const check = { kind: 'liked', performer, content: video } as const;
 
+    it('reads the liked list by id without loading the profile page', async () => {
+      let signed = 0;
+      const countingSigner: RequestSigner = {
+        sign: (url) => {
+          signed += 1;
+          return Promise.resolve(ok({ url, headers: signedHeaders }));
+        },
+      };
+      const direct = scraperSource({
+        http: createHttpClient({ headers: () => ({}) }),
+        signer: countingSigner,
+      });
+      liked(listPage({ itemList: [{ id: '7000000000000000001' }], hasMore: false, cursor: 0 }));
+      await expect(
+        direct.answer({ ...check, performerId: accountId('tiktok', profileSecUid) }, context()),
+      ).resolves.toEqual({
+        outcome: 'verified',
+        evidence: { pagesRead: 1, listExhausted: false },
+        cost: { unit: 'request', amount: 1 },
+      });
+      expect(signed).toBe(1);
+    });
+
     it('answers private from the profile when likes are hidden', async () => {
       profile(fixture('profile-public.html'));
       await expect(source.answer(check, context())).resolves.toEqual({

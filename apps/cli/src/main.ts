@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util';
 import type { Attempt } from '@engagement-exchange/verification';
 import { composeSocialAccounts, composeVerifier } from './compose.ts';
 import { readEnv } from './config.ts';
-import { followsCommand, usageError } from './follows.ts';
+import { followsCommand, likedCommand, usageError } from './follows.ts';
 import { linkStart, linkVerify } from './link.ts';
 import { verificationPool } from './pool.ts';
 
@@ -11,6 +11,7 @@ const usage = [
   '  cli link start <handle-or-url> [--verification-account <handle>]...',
   '  cli link verify <claim-id>',
   '  cli follows <performer> <target>',
+  '  cli liked <performer> <video-id-or-url>',
 ].join('\n');
 
 const run = async (argv: readonly string[]): Promise<number> => {
@@ -35,6 +36,9 @@ const run = async (argv: readonly string[]): Promise<number> => {
   }
   const { verifier, leftOut } = composed.value;
   if (leftOut.length > 0) console.error(`sources left out, no credential: ${leftOut.join(', ')}`);
+  if (group === 'liked' && first !== undefined && second !== undefined) {
+    return likedCommand(verifier, attempts, first, second);
+  }
   if (group === 'follows' && first !== undefined && second !== undefined) {
     return followsCommand(verifier, attempts, first, second);
   }
