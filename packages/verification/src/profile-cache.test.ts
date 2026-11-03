@@ -16,6 +16,7 @@ const cost = { unit: 'request', amount: 1 } as const;
 const evidence: ProfileEvidence = { ...profileEvidence('a bio'), followerCount: 1200 };
 const verified: Answer<'profile'> = { outcome: 'verified', evidence, cost };
 const profile = { kind: 'profile', subject: performer } as const;
+const down = () => Promise.reject(new Error('cache down'));
 const config: VerifierConfig = {
   order: sameOrder(['lamatok']),
   timeoutMs: 1000,
@@ -150,6 +151,30 @@ describe('the profile cache in front of the chain', () => {
     await verifier.verifyOwnership(performer, token('EX-7Q2M9K'));
 
     expect(source.calls).toHaveLength(2);
+  });
+
+  it('treats a failing cache lookup as a miss', async () => {
+    const { source, verifier } = setup(verified, {
+      ...inMemoryProfileCache(),
+      byId: down,
+      byHandle: down,
+    });
+
+    await verifier.verify(profile);
+    await expect(
+      verifier.verify({ ...profile, subjectId: evidence.accountId }),
+    ).resolves.toMatchObject({ outcome: 'verified', source: 'lamatok', evidence });
+    expect(source.calls).toHaveLength(2);
+  });
+
+  it('returns the chain verdict when storing it in the cache fails', async () => {
+    const { verifier } = setup(verified, { ...inMemoryProfileCache(), store: down });
+
+    await expect(verifier.verify(profile)).resolves.toMatchObject({
+      outcome: 'verified',
+      source: 'lamatok',
+      evidence,
+    });
   });
 
   it('asks the chain every time when no cache is configured', async () => {

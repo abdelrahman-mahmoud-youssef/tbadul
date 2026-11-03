@@ -38,7 +38,7 @@ const verifyProfile = async (
   options: VerifyOptions,
 ): Promise<Verdict<'profile'>> => {
   const startedAt = deps.clock.now();
-  const cached = await lookup(deps, check, startedAt);
+  const cached = await lookup(deps, check, startedAt).catch(() => undefined);
   const maxAgeMs = options.maxAgeMs ?? deps.ttl.statsTtlMs;
   if (cached?.fetchedAt != null && startedAt - cached.fetchedAt <= maxAgeMs) {
     const attempt: Attempt = {
@@ -60,12 +60,14 @@ const verifyProfile = async (
   }
   const verdict = await deps.verify(check, options);
   if (verdict.outcome === 'verified') {
-    await deps.cache.store({
-      handle: check.subject,
-      evidence: verdict.evidence,
-      source: verdict.source,
-      fetchedAt: deps.clock.now(),
-    });
+    await deps.cache
+      .store({
+        handle: check.subject,
+        evidence: verdict.evidence,
+        source: verdict.source,
+        fetchedAt: deps.clock.now(),
+      })
+      .catch(() => undefined);
   }
   return verdict;
 };
