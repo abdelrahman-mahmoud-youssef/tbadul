@@ -5,6 +5,13 @@ import tseslint from 'typescript-eslint';
 
 const layers = ['domain', 'ports', 'application', 'adapters', 'testing', 'root'];
 
+const coreModules = {
+  from: { element: { type: '*' } },
+  allow: { to: { module: { origin: 'core' } } },
+};
+
+const noTestFiles = { disallow: { to: { file: { categories: 'test' } } } };
+
 export default defineConfig(
   globalIgnores(['**/dist/', '**/.turbo/']),
   {
@@ -42,7 +49,11 @@ export default defineConfig(
           default: 'disallow',
           checkAllOrigins: true,
           policies: [
-            { from: { element: { type: '*' } }, allow: { to: { module: { origin: 'core' } } } },
+            coreModules,
+            {
+              from: { element: { type: ['adapters', 'testing', 'root'] } },
+              allow: { to: { module: { source: '@engagement-exchange/db' } } },
+            },
             {
               from: { element: { type: ['application', 'ports', 'adapters', 'testing', 'root'] } },
               allow: {
@@ -114,7 +125,27 @@ export default defineConfig(
               from: { element: { type: 'testing' } },
               allow: { to: { element: { type: 'application' } }, dependency: { kind: 'type' } },
             },
-            { disallow: { to: { file: { categories: 'test' } } } },
+            noTestFiles,
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/db/src/**/*.ts'],
+    rules: {
+      'boundaries/dependencies': [
+        2,
+        {
+          default: 'disallow',
+          checkAllOrigins: true,
+          policies: [
+            coreModules,
+            {
+              from: { element: { type: 'root' } },
+              allow: { to: { module: { source: ['drizzle-orm', 'pg', 'better-auth', 'zod'] } } },
+            },
+            noTestFiles,
           ],
         },
       ],
