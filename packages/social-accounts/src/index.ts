@@ -1,4 +1,6 @@
 export { configVerificationAccountPool } from './adapters/config-verification-account-pool.ts';
+export { drizzleClaimRepository } from './adapters/drizzle/drizzle-claim-repository.ts';
+export { drizzleVerificationAccountPool } from './adapters/drizzle/drizzle-verification-account-pool.ts';
 export { fileClaimRepository } from './adapters/file-claim-repository.ts';
 export { inMemoryClaimRepository } from './adapters/in-memory-claim-repository.ts';
 export { uuidIds } from './adapters/uuid-ids.ts';

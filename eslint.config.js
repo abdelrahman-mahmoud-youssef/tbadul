@@ -55,6 +55,10 @@ export default defineConfig(
               allow: { to: { module: { source: '@engagement-exchange/db' } } },
             },
             {
+              from: { element: { type: 'adapters' } },
+              allow: { to: { module: { source: 'drizzle-orm' } } },
+            },
+            {
               from: { element: { type: ['application', 'ports', 'adapters', 'testing', 'root'] } },
               allow: {
                 to: {
