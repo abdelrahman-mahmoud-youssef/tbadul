@@ -21,7 +21,12 @@ const run = async (argv: readonly string[]): Promise<number> => {
     options: { 'verification-account': { type: 'string', multiple: true, default: [] } },
   });
   const [group, first, second] = positionals;
-  const env = readEnv(process.env);
+  const loaded = readEnv(process.env);
+  if (!loaded.ok) {
+    for (const line of loaded.error) console.error(line);
+    return usageError;
+  }
+  const env = loaded.value;
   if (group === 'follows' && first !== undefined && second !== undefined) {
     const attempts: Attempt[] = [];
     const verifier = composeVerifier(env, { record: (attempt) => attempts.push(attempt) });

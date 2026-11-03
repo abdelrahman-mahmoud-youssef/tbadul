@@ -58,7 +58,7 @@ describe('followsCommand', () => {
     ['not_following', { outcome: 'not_following', evidence: listEvidence, cost }, 1],
     ['private', { outcome: 'private', cost }, 2],
     ['not_found', { outcome: 'not_found', cost }, 3],
-    ['source_error', failed({ kind: 'blocked', message: 'waf' }, cost), 4],
+    ['source_error (blocked)', failed({ kind: 'blocked', message: 'waf' }, cost), 4],
   ] as const)(
     'prints %s with its exit code, latency and requests',
     async (outcome, answer, code) => {

@@ -24,6 +24,11 @@ const measured = (attempts: readonly Attempt[]): string => {
   return `latency ${String(latency)} ms, requests ${String(requests)}`;
 };
 
+const outcomeOf = (outcome: Outcome, attempts: readonly Attempt[]): string => {
+  const kind = attempts.at(-1)?.error?.kind;
+  return outcome === 'source_error' && kind !== undefined ? `${outcome} (${kind})` : outcome;
+};
+
 export const followsCommand = async (
   verifier: Verifier,
   attempts: readonly Attempt[],
@@ -39,7 +44,7 @@ export const followsCommand = async (
   }
   const resolved = await verifier.verify({ kind: 'profile', subject: target.value });
   if (resolved.outcome === 'not_found' || resolved.outcome === 'source_error') {
-    console.log(`target @${target.value.value}: ${resolved.outcome}`);
+    console.log(`target @${target.value.value}: ${outcomeOf(resolved.outcome, attempts)}`);
     console.log(measured(attempts));
     return exitCodes[resolved.outcome];
   }
@@ -48,7 +53,9 @@ export const followsCommand = async (
     performer: performer.value,
     target: target.value,
   });
-  console.log(`@${performer.value.value} follows @${target.value.value}: ${verdict.outcome}`);
+  console.log(
+    `@${performer.value.value} follows @${target.value.value}: ${outcomeOf(verdict.outcome, attempts)}`,
+  );
   console.log(measured(attempts));
   return exitCodes[verdict.outcome];
 };

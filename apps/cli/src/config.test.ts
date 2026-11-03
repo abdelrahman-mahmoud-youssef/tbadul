@@ -9,12 +9,15 @@ describe('readEnv', () => {
         VERIFICATION_ACCOUNTS: ' verify.one, verify.two ',
       }),
     ).toEqual({
-      TIKTOK_SIGNER_URL: 'http://localhost:8080',
-      VERIFICATION_ACCOUNTS: ['verify.one', 'verify.two'],
-      VERIFICATION_SOURCE_ORDER: ['scraper'],
-      OUTBOUND_TIMEOUT_MS: 15_000,
-      CLAIMS_FILE: 'claims.local.json',
-      CLI_USER_ID: 'local',
+      ok: true,
+      value: {
+        TIKTOK_SIGNER_URL: 'http://localhost:8080',
+        VERIFICATION_ACCOUNTS: ['verify.one', 'verify.two'],
+        VERIFICATION_SOURCE_ORDER: ['scraper'],
+        OUTBOUND_TIMEOUT_MS: 15_000,
+        CLAIMS_FILE: 'claims.local.json',
+        CLI_USER_ID: 'local',
+      },
     });
   });
 
@@ -29,20 +32,38 @@ describe('readEnv', () => {
         CLI_USER_ID: '',
       }),
     ).toMatchObject({
-      TIKTOK_SIGNER_URL: 'http://localhost:8080',
-      VERIFICATION_ACCOUNTS: [],
-      VERIFICATION_SOURCE_ORDER: ['scraper'],
-      OUTBOUND_TIMEOUT_MS: 15_000,
-      CLAIMS_FILE: 'claims.local.json',
-      CLI_USER_ID: 'local',
+      ok: true,
+      value: {
+        TIKTOK_SIGNER_URL: 'http://localhost:8080',
+        VERIFICATION_ACCOUNTS: [],
+        VERIFICATION_SOURCE_ORDER: ['scraper'],
+        OUTBOUND_TIMEOUT_MS: 15_000,
+        CLAIMS_FILE: 'claims.local.json',
+        CLI_USER_ID: 'local',
+      },
     });
   });
 
   it('defaults the signer url when it is unset', () => {
-    expect(readEnv({}).TIKTOK_SIGNER_URL).toBe('http://localhost:8080');
+    expect(readEnv({})).toMatchObject({
+      ok: true,
+      value: { TIKTOK_SIGNER_URL: 'http://localhost:8080' },
+    });
   });
 
-  it('rejects a signer url that is not a url', () => {
-    expect(() => readEnv({ TIKTOK_SIGNER_URL: 'localhost' })).toThrow();
+  it('names the variable when a signer url is not a url', () => {
+    const result = readEnv({ TIKTOK_SIGNER_URL: 'localhost' });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error[0]).toMatch(/^config TIKTOK_SIGNER_URL: /);
+  });
+
+  it('names the position of an unknown source without echoing it', () => {
+    const result = readEnv({ VERIFICATION_SOURCE_ORDER: 'scraper, some.account' });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toHaveLength(1);
+      expect(result.error[0]).toMatch(/^config VERIFICATION_SOURCE_ORDER\.1: /);
+      expect(result.error[0]).not.toContain('some.account');
+    }
   });
 });
