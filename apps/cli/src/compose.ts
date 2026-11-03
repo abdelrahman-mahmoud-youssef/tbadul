@@ -8,6 +8,7 @@ import {
 import {
   createHttpClient,
   createVerifier,
+  ensembledataSource,
   lamatokSource,
   scraperSource,
   sidecarSigner,
@@ -35,6 +36,9 @@ const availableSources = (env: Env): Map<CliSourceName, VerificationSource> => {
   ]);
   if (env.LAMATOK_ACCESS_KEY !== undefined) {
     sources.set('lamatok', lamatokSource({ http, accessKey: env.LAMATOK_ACCESS_KEY }));
+  }
+  if (env.ENSEMBLEDATA_TOKEN !== undefined) {
+    sources.set('ensemble', ensembledataSource({ http, token: env.ENSEMBLEDATA_TOKEN }));
   }
   return sources;
 };

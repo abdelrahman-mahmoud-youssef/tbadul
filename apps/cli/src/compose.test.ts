@@ -16,6 +16,19 @@ describe('composeVerifier', () => {
     });
   });
 
+  it('includes ensemble when its token is configured', () => {
+    expect(composeVerifier(env({ ENSEMBLEDATA_TOKEN: 'configured' }))).toMatchObject({
+      ok: true,
+      value: { leftOut: ['lamatok'] },
+    });
+  });
+
+  it('leaves no source out when every credential is configured', () => {
+    expect(
+      composeVerifier(env({ LAMATOK_ACCESS_KEY: 'configured', ENSEMBLEDATA_TOKEN: 'configured' })),
+    ).toMatchObject({ ok: true, value: { leftOut: [] } });
+  });
+
   it('leaves lamatok out when its access key is missing', () => {
     expect(composeVerifier(env({}))).toMatchObject({
       ok: true,
