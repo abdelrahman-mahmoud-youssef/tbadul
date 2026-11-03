@@ -6,7 +6,7 @@ import type { SourceError } from '../../domain/outcome.ts';
 import { err, ok } from '../../domain/result.ts';
 import type { CallContext, VerificationSource } from '../../ports/verification-source.ts';
 import { defineSource } from '../define-source.ts';
-import { requests, scanList, withPerformer, type PageRead } from '../list-scan.ts';
+import { perRequest, requests, scanList, withPerformer, type PageRead } from '../list-scan.ts';
 import { lamatokClient, type LamatokClient, type LamatokDeps } from './lamatok-client.ts';
 import {
   followingPageSchema,
@@ -134,7 +134,7 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
             read: followingPage,
           }),
           (entry) => entry.user.uniqueId.toLowerCase() === check.target.value,
-          0,
+          perRequest(0),
         ),
       liked: (check, context) =>
         withPerformer(
@@ -152,7 +152,7 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
                 read: likesPage,
               }),
               (item) => item.id === check.content.value,
-              costBefore,
+              perRequest(costBefore),
             ),
         ),
     },

@@ -6,27 +6,32 @@ import type { Cost, SourceError } from '../domain/outcome.ts';
 import type { Result } from '../domain/result.ts';
 import type { CallContext } from '../ports/verification-source.ts';
 
-interface ListPage<T> {
+interface ListPage<T, C> {
   readonly items: readonly T[];
-  readonly next?: string;
+  readonly next?: C;
 }
 
-export type PageRead<T> =
-  Result<ListPage<T>, SourceError> | { readonly outcome: 'private' | 'not_found' };
+export type PageRead<T, C = string> =
+  Result<ListPage<T, C>, SourceError> | { readonly outcome: 'private' | 'not_found' };
 
 export const requests = (amount: number): Cost => ({ unit: 'request', amount });
 
-export const scanList = async <T>(
+export const perRequest =
+  (costBefore: number) =>
+  (pagesRead: number): Cost =>
+    requests(costBefore + pagesRead);
+
+export const scanList = async <T, C = string>(
   context: CallContext,
-  readPage: (cursor: string | undefined) => Promise<PageRead<T>>,
+  readPage: (cursor: C | undefined) => Promise<PageRead<T, C>>,
   matches: (item: T) => boolean,
-  costBefore: number,
+  costOf: (pagesRead: number) => Cost,
 ): Promise<Answer<'follows'>> => {
-  let cursor: string | undefined;
+  let cursor: C | undefined;
   let entriesRead = 0;
   for (let page = 1; page <= context.pageCap; page += 1) {
-    const cost = requests(costBefore + page);
     const read = await readPage(cursor);
+    const cost = costOf(page);
     if ('outcome' in read) return { outcome: read.outcome, cost };
     if (!read.ok) return failed(read.error, cost);
     entriesRead += read.value.items.length;
@@ -49,7 +54,7 @@ export const scanList = async <T>(
   return {
     outcome: 'not_following',
     evidence: { pagesRead: context.pageCap, listExhausted: false, entriesRead },
-    cost: requests(costBefore + context.pageCap),
+    cost: costOf(context.pageCap),
   };
 };
 
