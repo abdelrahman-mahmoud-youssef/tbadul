@@ -46,6 +46,8 @@ One method per source, `answer(check, context)`, with `Check` as a discriminated
 
 A `follows` or `liked` check may carry the performer's `AccountId` (`performerId`). A source that can read the list by that id skips resolving the handle; for the scraper this removes the profile page load, the scarcest request. The handle stays required so that handle-only sources still work. Added on 2026-11-03 for account linking (ADR 0002).
 
+A `follows` check carries the target's `AccountId` as `targetId`, and it is required. Every source matches a list entry by that id, never by handle: handles change and are reused, so a handle match could pass a follow of whoever holds the handle now for a follow of the account the caller resolved. The target `Handle` stays on the check as a display label. A source whose list entries carry no usable account id answers `source_error` with kind `unsupported` for follows instead of matching by handle. Added on 2026-11-04.
+
 The outcome set stays the five names given in the plan, including `not_following` for an absent like or an absent bio token. The vocabulary is frozen when the API phase starts; the plan carries the rename as an open question until then.
 
 ### Mechanical enforcement of the layer rule

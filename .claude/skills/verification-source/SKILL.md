@@ -27,6 +27,7 @@ Shared pieces stay shared and live under `src/adapters/`: the HTTP client wrappe
 - Build the source with `defineSource({ name, platform }, handlers)` from `src/adapters/define-source.ts`. Give a handler only for the check kinds the provider can answer; `supports` is derived from the handlers and the chain skips the rest.
 - Each handler receives the typed check (`subject`, or `performer` plus `target` or `content`) and a `CallContext` with `signal` and `pageCap`. Forward `signal` to every `fetch`. Never read more than `pageCap` pages.
 - Parse every provider response with its Zod schema in the client. Handlers receive typed values, never `unknown`.
+- Match a follows target by account id, never by handle: compare the list entry's account id field with `check.targetId.value`, exactly. `check.target` is a display label. Handles change and are reused, so a handle match can pass a follow of whoever holds the handle now. Make the entry's id field required in the Zod schema so an entry without it fails as `parse`. If the provider's list entries carry no account id, the follows handler answers `failed({ kind: 'unsupported', message })` before any call, and the facts register records why.
 - Return an `Answer`: `verified` or `not_following` with evidence and cost, `private` or `not_found` with cost, or `failed(error, cost?)` from `src/domain/answer.ts`. Build `AccountId` with `accountId(platform, value)`. Do not measure latency; the chain does.
 - Do not wrap the source in `withTimeout` yourself. The composition root does.
 
@@ -34,7 +35,7 @@ Shared pieces stay shared and live under `src/adapters/`: the HTTP client wrappe
 
 | Provider situation                                                                            | Outcome                                                                                       |
 | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Target found in the relevant list, or the profile was read                                    | `verified` with `ListEvidence` or `ProfileEvidence`                                           |
+| Target account id found in the relevant list, or the profile was read                         | `verified` with `ListEvidence` or `ProfileEvidence`                                           |
 | List read to completion or to `pageCap` and target absent                                     | `not_following` with `pagesRead` and `listExhausted`                                          |
 | Provider says the list or account is hidden or private                                        | `private`                                                                                     |
 | Account, content or handle does not exist                                                     | `not_found`                                                                                   |
@@ -48,7 +49,8 @@ Set `cost` on every answer that reached the provider. For a paid API, read the c
 
 ## 5. Test
 
-- One test per row of the mapping table, driven by a fixture file. Fixtures are recorded once from a real call, then stripped of tokens, cookies and personal data before being committed.
+- One test per row of the mapping table, driven by a fixture file.
+- For follows: an entry with the target's handle but another account id answers `not_following`; an entry with a new handle and the target's account id answers `verified`. Fixtures are recorded once from a real call, then stripped of tokens, cookies and personal data before being committed.
 - An unknown status code yields `unknown_status`; an unparseable body yields `parse`; an HTTP failure carries `httpStatus`.
 - A pagination test where the target sits on a later page, and one where `pageCap` stops the read with `listExhausted` false.
 - A test that the handler forwards `context.signal` to the client.
