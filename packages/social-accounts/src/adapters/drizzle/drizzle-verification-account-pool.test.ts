@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { createDatabase, platformAccounts, type DatabaseClient } from '@engagement-exchange/db';
+import {
+  createDatabase,
+  platformAccounts,
+  verificationAccounts,
+  type DatabaseClient,
+} from '@engagement-exchange/db';
 import { providedDatabaseUrl } from '@engagement-exchange/db/testing';
 import { accountId } from '@engagement-exchange/verification';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { insertVerificationAccount, uniqueHandle } from '../../testing/database.ts';
 import { drizzleVerificationAccountPool } from './drizzle-verification-account-pool.ts';
@@ -98,5 +103,27 @@ describe.skipIf(databaseUrl === null)('drizzleVerificationAccountPool', () => {
     await expect(pool.add(account, Date.now())).resolves.toBe('present');
 
     await expect(pool.candidates('tiktok')).resolves.toContainEqual(account);
+  });
+
+  it('answers inactive for a deactivated pool account and keeps it out of the candidates', async () => {
+    const pool = drizzleVerificationAccountPool(client.db);
+    const account = { handle: uniqueHandle('off'), accountId: accountId('tiktok', randomUUID()) };
+    await pool.add(account, Date.now());
+    await client.db
+      .update(verificationAccounts)
+      .set({ active: false })
+      .where(
+        inArray(
+          verificationAccounts.platformAccountId,
+          client.db
+            .select({ id: platformAccounts.id })
+            .from(platformAccounts)
+            .where(eq(platformAccounts.externalId, account.accountId.value)),
+        ),
+      );
+
+    await expect(pool.add(account, Date.now())).resolves.toBe('inactive');
+
+    await expect(pool.candidates('tiktok')).resolves.not.toContainEqual(account);
   });
 });

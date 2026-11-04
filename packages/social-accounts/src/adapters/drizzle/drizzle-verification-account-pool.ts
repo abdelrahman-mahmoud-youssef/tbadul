@@ -20,7 +20,7 @@ export interface PooledAccount {
 }
 
 export interface DrizzleVerificationAccountPool extends VerificationAccountPool {
-  add(account: VerificationCandidate, seenAt: number): Promise<'added' | 'present'>;
+  add(account: VerificationCandidate, seenAt: number): Promise<'added' | 'present' | 'inactive'>;
   list(platform: Platform): Promise<readonly PooledAccount[]>;
 }
 
@@ -67,7 +67,12 @@ export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificatio
         .values({ platformAccountId })
         .onConflictDoNothing({ target: verificationAccounts.platformAccountId })
         .returning({ id: verificationAccounts.id });
-      return inserted.length === 0 ? 'present' : 'added';
+      if (inserted.length > 0) return 'added';
+      const [pooled] = await tx
+        .select({ active: verificationAccounts.active })
+        .from(verificationAccounts)
+        .where(eq(verificationAccounts.platformAccountId, platformAccountId));
+      return pooled?.active === true ? 'present' : 'inactive';
     }),
   list: async (platform) => {
     const rows = await db

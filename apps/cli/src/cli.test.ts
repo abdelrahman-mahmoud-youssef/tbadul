@@ -240,6 +240,22 @@ describe.skipIf(databaseUrl === null)('the CLI on PostgreSQL', () => {
     expect(listed.out).toContain(`@${handle}  active  assigned 0`);
   });
 
+  it('fails pool add for an account that is pooled but inactive', async () => {
+    const handle = unique('paused');
+    await cli(['pool', 'add', handle], onDatabase);
+    await client.db.update(verificationAccounts).set({ active: false });
+    try {
+      const result = await cli(['pool', 'add', handle], onDatabase);
+
+      expect(result).toMatchObject({
+        code: 1,
+        err: [`@${handle} is in the verification pool but inactive: it is never assigned`],
+      });
+    } finally {
+      await client.db.update(verificationAccounts).set({ active: true });
+    }
+  });
+
   it('refuses link start for a user id that is not a uuid or names no user', async () => {
     const source = countingSource();
 

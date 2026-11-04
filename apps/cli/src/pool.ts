@@ -65,6 +65,12 @@ export const poolAdd = async (
     { handle: account, accountId: verdict.evidence.accountId },
     Date.now(),
   );
+  if (added === 'inactive') {
+    console.error(
+      `@${account.value} is in the verification pool but inactive: it is never assigned`,
+    );
+    return 1;
+  }
   console.log(
     added === 'added'
       ? `@${account.value} added to the verification pool`
