@@ -1,6 +1,6 @@
 import { platformAccounts, type Database } from '@engagement-exchange/db';
 import type { AccountId, Handle, Platform } from '@engagement-exchange/verification';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 export const handleOf = (platform: Platform, value: string): Handle =>
@@ -28,6 +28,34 @@ export const violates = (error: unknown, constraint: string): boolean =>
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export type Executor = Database | Transaction;
+
+export const accountWithHandle = async (
+  db: Transaction,
+  account: AccountId,
+  handle: Handle,
+  seenAt: number,
+): Promise<string> => {
+  const seen = { handle: handle.value, handleSeenAt: new Date(seenAt) };
+  await db
+    .update(platformAccounts)
+    .set({ handle: null, handleSeenAt: null })
+    .where(
+      and(
+        eq(platformAccounts.platform, handle.platform),
+        sql`lower(${platformAccounts.handle}) = lower(${handle.value})`,
+        ne(platformAccounts.externalId, account.value),
+      ),
+    );
+  const rows = await db
+    .insert(platformAccounts)
+    .values({ platform: account.platform, externalId: account.value, ...seen })
+    .onConflictDoUpdate({
+      target: [platformAccounts.platform, platformAccounts.externalId],
+      set: seen,
+    })
+    .returning({ id: platformAccounts.id });
+  return single(rows).id;
+};
 
 export const platformAccountOf = async (
   db: Executor,

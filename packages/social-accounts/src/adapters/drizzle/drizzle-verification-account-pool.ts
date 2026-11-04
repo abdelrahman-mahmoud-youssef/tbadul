@@ -10,7 +10,7 @@ import type {
   VerificationAccountPool,
   VerificationCandidate,
 } from '../../ports/verification-account-pool.ts';
-import { handleOf, platformAccountOf, sameAccount } from './rows.ts';
+import { accountWithHandle, handleOf, sameAccount } from './rows.ts';
 
 export interface PooledAccount {
   readonly accountId: AccountId;
@@ -54,20 +54,21 @@ export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificatio
         ),
       );
   },
-  add: async (account, seenAt) => {
-    const platformAccountId = await platformAccountOf(
-      db,
-      account.accountId,
-      account.handle,
-      seenAt,
-    );
-    const inserted = await db
-      .insert(verificationAccounts)
-      .values({ platformAccountId })
-      .onConflictDoNothing({ target: verificationAccounts.platformAccountId })
-      .returning({ id: verificationAccounts.id });
-    return inserted.length === 0 ? 'present' : 'added';
-  },
+  add: (account, seenAt) =>
+    db.transaction(async (tx) => {
+      const platformAccountId = await accountWithHandle(
+        tx,
+        account.accountId,
+        account.handle,
+        seenAt,
+      );
+      const inserted = await tx
+        .insert(verificationAccounts)
+        .values({ platformAccountId })
+        .onConflictDoNothing({ target: verificationAccounts.platformAccountId })
+        .returning({ id: verificationAccounts.id });
+      return inserted.length === 0 ? 'present' : 'added';
+    }),
   list: async (platform) => {
     const rows = await db
       .select({

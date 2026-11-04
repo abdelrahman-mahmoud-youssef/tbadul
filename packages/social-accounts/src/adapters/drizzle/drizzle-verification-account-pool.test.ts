@@ -65,4 +65,38 @@ describe.skipIf(databaseUrl === null)('drizzleVerificationAccountPool', () => {
       assignedCount: 1,
     });
   });
+
+  it('writes the resolved handle onto an account row that has none, making it a candidate', async () => {
+    const pool = drizzleVerificationAccountPool(client.db);
+    const account = { handle: uniqueHandle('stale'), accountId: accountId('tiktok', randomUUID()) };
+    const previous = accountId('tiktok', randomUUID());
+    await client.db.insert(platformAccounts).values([
+      { platform: 'tiktok', externalId: account.accountId.value },
+      { platform: 'tiktok', externalId: previous.value, handle: account.handle.value },
+    ]);
+
+    await expect(pool.add(account, Date.now())).resolves.toBe('added');
+    await expect(pool.add(account, Date.now())).resolves.toBe('present');
+
+    await expect(pool.candidates('tiktok')).resolves.toContainEqual(account);
+    const [holder] = await client.db
+      .select({ handle: platformAccounts.handle })
+      .from(platformAccounts)
+      .where(eq(platformAccounts.externalId, previous.value));
+    expect(holder).toEqual({ handle: null });
+  });
+
+  it('restores the handle of a pooled account whose row lost it', async () => {
+    const pool = drizzleVerificationAccountPool(client.db);
+    const account = { handle: uniqueHandle('lost'), accountId: accountId('tiktok', randomUUID()) };
+    await pool.add(account, Date.now());
+    await client.db
+      .update(platformAccounts)
+      .set({ handle: null, handleSeenAt: null })
+      .where(eq(platformAccounts.externalId, account.accountId.value));
+
+    await expect(pool.add(account, Date.now())).resolves.toBe('present');
+
+    await expect(pool.candidates('tiktok')).resolves.toContainEqual(account);
+  });
 });
