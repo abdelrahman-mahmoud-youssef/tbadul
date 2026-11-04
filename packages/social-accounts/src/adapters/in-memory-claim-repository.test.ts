@@ -1,6 +1,3 @@
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { accountId } from '@engagement-exchange/verification';
 import { handle } from '@engagement-exchange/verification/testing';
 import { describe, expect, it } from 'vitest';
@@ -9,11 +6,9 @@ import {
   eligibilityFailed,
   markRejected,
   markVerified,
-  type AccountClaim,
   type ClaimDraft,
 } from '../domain/claim.ts';
 import { claimId, userId } from '../domain/ids.ts';
-import { fileClaimRepository } from './file-claim-repository.ts';
 import { inMemoryClaimRepository } from './in-memory-claim-repository.ts';
 
 const ttlMs = 1000;
@@ -128,22 +123,5 @@ describe('inMemoryClaimRepository', () => {
       ok: false,
       error: 'version_conflict',
     });
-  });
-});
-
-describe('fileClaimRepository', () => {
-  it('persists every change across instances', async () => {
-    const path = join(mkdtempSync(join(tmpdir(), 'claims-')), 'claims.json');
-    const claim: AccountClaim = stored(
-      await fileClaimRepository(path).create(pending('a', 'alice', 'one'), limit),
-    );
-    await fileClaimRepository(path).verify(markVerified(claim));
-    const reopened = fileClaimRepository(path);
-    await expect(reopened.findById(claimId('a'))).resolves.toMatchObject({
-      state: 'verified',
-      version: 1,
-    });
-    await expect(reopened.findOwner(accountId('tiktok', 'one'))).resolves.toBe(alice);
-    await expect(reopened.countHeld(alice, 'tiktok', ttlMs)).resolves.toBe(1);
   });
 });

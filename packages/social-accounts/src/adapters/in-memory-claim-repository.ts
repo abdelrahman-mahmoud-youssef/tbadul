@@ -14,7 +14,8 @@ const openOn = (claim: AccountClaim, userId: UserId, accountId: AccountId): bool
   claim.userId === userId &&
   sameIdentity(claim.accountId, accountId);
 
-export const claimStore = (claims: Map<string, AccountClaim>): AccountClaimRepository => {
+export const inMemoryClaimRepository = (): AccountClaimRepository => {
+  const claims = new Map<string, AccountClaim>();
   const all = () => [...claims.values()];
   const current = (claim: AccountClaim) => claims.get(claim.id)?.version === claim.version;
   const store = (claim: AccountClaim) => {
@@ -73,5 +74,3 @@ export const claimStore = (claims: Map<string, AccountClaim>): AccountClaimRepos
     },
   };
 };
-
-export const inMemoryClaimRepository = (): AccountClaimRepository => claimStore(new Map());

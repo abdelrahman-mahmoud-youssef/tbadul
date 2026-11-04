@@ -5,7 +5,6 @@ export {
   type DrizzleVerificationAccountPool,
   type PooledAccount,
 } from './adapters/drizzle/drizzle-verification-account-pool.ts';
-export { fileClaimRepository } from './adapters/file-claim-repository.ts';
 export { inMemoryClaimRepository } from './adapters/in-memory-claim-repository.ts';
 export { uuidIds } from './adapters/uuid-ids.ts';
 export type { StartAccountClaim, StartClaimInput } from './application/start-account-claim.ts';
