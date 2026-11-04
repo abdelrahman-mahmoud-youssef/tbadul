@@ -225,6 +225,15 @@ describe('scraperSource', () => {
       });
     });
 
+    it('answers parse, never a handle match, for entries without an account id', async () => {
+      following(recordedListWith({ secUid: undefined }));
+      await expect(source.answer(byId, context())).resolves.toMatchObject({
+        outcome: 'source_error',
+        error: { kind: 'parse' },
+        cost: { unit: 'request', amount: 1 },
+      });
+    });
+
     it('answers verified for an entry with a new handle but the target account id', async () => {
       following(recordedListWith({ uniqueId: 'renamed.creators' }));
       await expect(source.answer(byId, context())).resolves.toEqual({
