@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { betterAuth } from 'better-auth';
 import { eq, sql } from 'drizzle-orm';
 import { DatabaseError } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { authOptions, authUserEmailIndex } from './auth-options.ts';
 import { createDatabase, type Database, type DatabaseClient } from './client.ts';
 import { applyMigrations, migrationsApplied } from './migrations.ts';
 import {
@@ -177,6 +179,32 @@ describe.skipIf(databaseUrl === null)('database schema', () => {
     } finally {
       await fresh.close();
     }
+  });
+
+  it('refuses a second user whose email differs only in case', async () => {
+    const email = `Case_${randomUUID()}@Example.test`;
+    await client.db.insert(auth_users).values({ email, name: 'first' });
+
+    const error = await failure(
+      client.db.insert(auth_users).values({ email: email.toLowerCase(), name: 'second' }),
+    );
+
+    expect(error.constraint).toBe(authUserEmailIndex);
+  });
+
+  it('lets Better Auth create a user and find it by email in any case', async () => {
+    const { internalAdapter } = await betterAuth(authOptions(client.db)).$context;
+    const email = `Auth_${randomUUID()}@Example.test`;
+
+    const created = await internalAdapter.createUser(
+      { email, name: 'someone' },
+      { method: 'admin' },
+    );
+
+    expect(created.email).toBe(email.toLowerCase());
+    await expect(internalAdapter.findUserByEmail(email.toUpperCase())).resolves.toMatchObject({
+      user: { id: created.id },
+    });
   });
 
   it('refuses a platform outside the platform list', async () => {

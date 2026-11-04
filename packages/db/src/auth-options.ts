@@ -2,6 +2,8 @@ import type { BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import type { Database } from './client.ts';
 
+export const authUserEmailIndex = 'auth_users_email_lower_unique';
+
 export const authOptions = (db: Database) =>
   ({
     database: drizzleAdapter(db, { provider: 'pg' }),

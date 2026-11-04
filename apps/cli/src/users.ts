@@ -10,7 +10,7 @@ export const userAdd = async (db: Database, email: string, name: string): Promis
   const [created] = await db
     .insert(auth_users)
     .values({ email, name })
-    .onConflictDoNothing({ target: auth_users.email })
+    .onConflictDoNothing()
     .returning({ id: auth_users.id });
   if (created === undefined) {
     console.error('a user with this email already exists');

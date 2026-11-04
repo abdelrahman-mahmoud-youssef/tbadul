@@ -2,7 +2,12 @@ import { createHmac, randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createDatabase, verificationAccounts, type DatabaseClient } from '@engagement-exchange/db';
+import {
+  auth_users,
+  createDatabase,
+  verificationAccounts,
+  type DatabaseClient,
+} from '@engagement-exchange/db';
 import { providedDatabaseUrl } from '@engagement-exchange/db/testing';
 import { accountId, type ProfileCache } from '@engagement-exchange/verification';
 import {
@@ -205,6 +210,15 @@ describe.skipIf(databaseUrl === null)('the CLI on PostgreSQL', () => {
       client.db.query.auth_users.findFirst({ where: (users, { eq }) => eq(users.id, id) }),
     ).resolves.toMatchObject({ email: email.toLowerCase(), name: 'Operator' });
     expect(again).toMatchObject({ code: 1, err: ['a user with this email already exists'] });
+  });
+
+  it('refuses a user whose email matches a stored mixed-case email', async () => {
+    const email = `${unique('Stored')}@Example.test`;
+    await client.db.insert(auth_users).values({ email, name: 'stored' });
+
+    const result = await cli(['user', 'add', email], onDatabase);
+
+    expect(result).toMatchObject({ code: 1, err: ['a user with this email already exists'] });
   });
 
   it('adds a verification account through the profile check and lists it', async () => {

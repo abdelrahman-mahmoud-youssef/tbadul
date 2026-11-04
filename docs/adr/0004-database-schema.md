@@ -28,6 +28,8 @@ The schema follows the domain. Tables exist only for contexts that exist: identi
 
 Better Auth owns its tables and generates them with its own CLI (`auth generate --adapter drizzle --dialect postgresql`) from one options object in `packages/db`, which the future API reuses at runtime. The generated file is never edited by hand. Its tables are renamed with `modelName` to `auth_users`, `auth_sessions`, `auth_accounts` and `auth_verifications`, so Better Auth's credential `account` table can never be confused with a social account. Better Auth generates its own ids (`generateId: "uuid"`, random UUIDs); this is the one recorded exception to UUIDv7, because regenerating must stay mechanical. `linked_accounts.user_id` has the same type as `auth_users.id`.
 
+Email is unique regardless of case through a unique index on `lower(email)` (`auth_users_email_lower_unique`), written in a custom migration (`0005`) beside Better Auth's own unique constraint on `email`. Better Auth 1.7.15 lowercases email on every write and lookup, so the index never refuses its writes and it keeps querying `email` by equality; the index refuses a case variant written by any other path. `citext` was rejected: the column type lives in the generated schema, so regenerating would revert it and `drizzle-kit` would emit a migration back to `text`. The index lives outside the generated file for the same reason.
+
 ### Tables
 
 | Table                   | Purpose                                           | Key constraints                                                                                                                          |
