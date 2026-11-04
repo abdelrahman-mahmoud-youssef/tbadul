@@ -1,6 +1,7 @@
 import {
   accountId,
   type Attempt,
+  type AccountId,
   type Check,
   type Handle,
   type ListEvidence,
@@ -14,7 +15,7 @@ import { profileEvidence } from '@engagement-exchange/verification/testing';
 
 export interface FakeVerifierScript {
   readonly profile?: (subject: Handle) => Outcome | ProfileEvidence;
-  readonly follows?: (performer: Handle, target: Handle) => Outcome;
+  readonly follows?: (performer: Handle, target: AccountId) => Outcome;
 }
 
 export interface FakeVerifier extends Verifier {
@@ -78,7 +79,7 @@ export const fakeVerifier = (script: FakeVerifierScript): FakeVerifier => {
         return Promise.resolve(
           verdict(
             check,
-            script.follows?.(check.performer, check.target) ?? 'not_following',
+            script.follows?.(check.performer, check.targetId) ?? 'not_following',
             listEvidence,
           ),
         );

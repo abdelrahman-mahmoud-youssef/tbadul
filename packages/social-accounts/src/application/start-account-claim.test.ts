@@ -35,7 +35,8 @@ const claimOn = (
       startedAt,
       ttlMs: 86_400_000,
     },
-    handle('verify.one'),
+    poolAccounts[0].handle,
+    poolAccounts[0].accountId,
   );
 
 const input = {
@@ -79,7 +80,7 @@ describe('startAccountClaim', () => {
   it('skips a verification account the claimed account already follows', async () => {
     const { deps } = harness({
       follows: (_performer, target) =>
-        target.value === 'verify.one' ? 'verified' : 'not_following',
+        target.value === poolAccounts[0].accountId.value ? 'verified' : 'not_following',
     });
     await expect(startAccountClaimWith(deps)(input)).resolves.toMatchObject({
       ok: true,

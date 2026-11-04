@@ -19,16 +19,17 @@ export const watchFollows = async (
   plan: WatchPlan,
   deps: WatchDeps,
 ): Promise<number> => {
-  const evidence = await resolveFollows(verifier, attempts, performer, target);
-  if (typeof evidence === 'number') return evidence;
+  const resolved = await resolveFollows(verifier, attempts, performer, target);
+  if (typeof resolved === 'number') return resolved;
   const label = followsLabel(performer, target);
   let seenVerified = false;
   for (let run = 1; ; run += 1) {
     const verdict = await verifier.verify({
       kind: 'follows',
       performer,
-      performerId: evidence.accountId,
+      performerId: resolved.performer.accountId,
       target,
+      targetId: resolved.targetId,
     });
     const at = new Date(deps.clock.now()).toISOString();
     console.log(`${at} ${label}: ${outcomeOf(verdict.outcome, verdict.attempts)}`);

@@ -15,6 +15,7 @@ export type Check =
       readonly performerId?: AccountId;
       readonly performerFollowingCount?: number;
       readonly target: Handle;
+      readonly targetId: AccountId;
     }
   | {
       readonly kind: 'liked';

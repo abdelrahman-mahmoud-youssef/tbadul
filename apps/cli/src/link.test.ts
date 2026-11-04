@@ -4,7 +4,7 @@ import {
   inMemoryClaimRepository,
   type SocialAccounts,
 } from '@engagement-exchange/social-accounts';
-import { createVerifier, type Answer } from '@engagement-exchange/verification';
+import { accountId, createVerifier, type Answer } from '@engagement-exchange/verification';
 import {
   fakeSource,
   handle,
@@ -34,7 +34,13 @@ const social = (follows: Answer<'follows'>): SocialAccounts => {
         },
       ),
       repository: inMemoryClaimRepository(),
-      pool: configVerificationAccountPool([handle('verify.one'), handle('verify.two')], () => 0),
+      pool: configVerificationAccountPool(
+        ['verify.one', 'verify.two'].map((name) => ({
+          handle: handle(name),
+          accountId: accountId('tiktok', `${name}-id`),
+        })),
+        () => 0,
+      ),
       ids: { next: () => `claim-${String(++counter)}` },
     },
   );

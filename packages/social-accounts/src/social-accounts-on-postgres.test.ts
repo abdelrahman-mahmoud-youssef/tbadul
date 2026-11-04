@@ -23,7 +23,7 @@ describe.skipIf(databaseUrl === null)('social accounts on PostgreSQL', () => {
   let client: DatabaseClient;
   let db: Database;
   let repository: AccountClaimRepository;
-  let verifyWith: Required<VerificationCandidate>;
+  let verifyWith: VerificationCandidate;
 
   beforeAll(async () => {
     client = createDatabase(databaseUrl ?? '');

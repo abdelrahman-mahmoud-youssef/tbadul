@@ -16,6 +16,8 @@ import {
 import { cooldownAfter } from './cooldown.ts';
 import { claimId, userId } from './ids.ts';
 
+const verificationId = accountId('tiktok', 'verify-one-id');
+
 const schedule = { stepsMs: [30_000, 60_000, 120_000, 300_000], afterwardsMs: 600_000 };
 const startedAt = Date.UTC(2026, 10, 2);
 const account = accountId('tiktok', 'MS4wLjABAAAA');
@@ -44,7 +46,7 @@ describe('cooldownAfter', () => {
 
 describe('claim transitions', () => {
   it('starts awaiting_follow with the assigned account, no attempts, an expiry and version 0', () => {
-    const claim = awaitingFollow(draft, handle('verify.one'));
+    const claim = awaitingFollow(draft, handle('verify.one'), verificationId);
     expect(claim).toMatchObject({
       state: 'awaiting_follow',
       accountId: account,
@@ -58,13 +60,13 @@ describe('claim transitions', () => {
   });
 
   it('holds the account while awaiting a follow only until the claim expires', () => {
-    const claim = awaitingFollow(draft, handle('verify.one'));
+    const claim = awaitingFollow(draft, handle('verify.one'), verificationId);
     expect(holdsAccount(claim, claim.expiresAt - 1)).toBe(true);
     expect(holdsAccount(claim, claim.expiresAt)).toBe(false);
   });
 
   it('records a failed attempt and pushes the next verify time along the schedule', () => {
-    let claim = awaitingFollow(draft, handle('verify.one'));
+    let claim = awaitingFollow(draft, handle('verify.one'), verificationId);
     const now = startedAt + 1000;
     const attempt = { at: now, outcome: 'not_following', source: 'fake', latencyMs: 12 } as const;
     claim = recordFailedAttempt(claim, attempt, schedule);
@@ -77,14 +79,14 @@ describe('claim transitions', () => {
   });
 
   it('expires at the expiry time and no earlier', () => {
-    const claim = awaitingFollow(draft, handle('verify.one'));
+    const claim = awaitingFollow(draft, handle('verify.one'), verificationId);
     expect(isExpired(claim, claim.expiresAt - 1)).toBe(false);
     expect(isExpired(claim, claim.expiresAt)).toBe(true);
     expect(markExpired(claim).state).toBe('expired');
   });
 
   it('marks verified and keeps holding the account past the expiry', () => {
-    const claim = markVerified(awaitingFollow(draft, handle('verify.one')));
+    const claim = markVerified(awaitingFollow(draft, handle('verify.one'), verificationId));
     expect(claim.state).toBe('verified');
     expect(holdsAccount(claim, claim.expiresAt + 1)).toBe(true);
   });

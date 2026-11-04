@@ -23,6 +23,7 @@ export const sourceErrorKinds = [
   'parse',
   'unknown_status',
   'incomplete_list',
+  'unsupported',
   'unexpected',
 ] as const;
 

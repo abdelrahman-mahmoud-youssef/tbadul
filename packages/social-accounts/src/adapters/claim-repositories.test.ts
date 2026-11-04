@@ -31,7 +31,11 @@ const draft = (id: string, user: string, account: string, startedAt = 0): ClaimD
   ttlMs,
 });
 const pending = (id: string, user: string, account: string, startedAt = 0) =>
-  awaitingFollow(draft(id, user, account, startedAt), handle('verify.one'));
+  awaitingFollow(
+    draft(id, user, account, startedAt),
+    handle('verify.one'),
+    accountId('tiktok', 'verify-one-id'),
+  );
 
 const stored = <T>(result: { ok: true; value: T } | { ok: false; error: unknown }): T => {
   if (!result.ok) throw new Error(`expected ok, got ${JSON.stringify(result.error)}`);

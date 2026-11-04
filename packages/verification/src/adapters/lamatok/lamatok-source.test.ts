@@ -37,6 +37,7 @@ const performer = handle('tiktok');
 const target = handle('tiktokcreators');
 const tiktokSecUid = 'MS4wLjABAAAAv7iSuuXDJGDvJkmH_vz1qkDZYo1apxgzaxdBSeIuPiM';
 const performerId = accountId('tiktok', tiktokSecUid);
+const targetSecUid = 'MS4wLjABAAAAXqqA-cLDC0hfQPIrS5APYNsg04zkl-socWCkqkI3UIOaEe6_Qnokg0GcWpLnMNQP';
 const request = (amount: number) => ({ unit: 'request', amount }) as const;
 const json = { 'content-type': 'application/json' };
 
@@ -46,6 +47,18 @@ const publicProfileWith = (user: Record<string, unknown>) => {
   };
   body.userInfo.user = { ...body.userInfo.user, ...user };
   return JSON.stringify(body);
+};
+
+const targetEntryWith = (user: Record<string, unknown>) => {
+  const page = JSON.parse(synthetic('following-target-present.json')) as {
+    userList: { user: Record<string, unknown> }[];
+  };
+  return JSON.stringify({
+    ...page,
+    userList: page.userList.map((entry) =>
+      entry.user['secUid'] === targetSecUid ? { user: { ...entry.user, ...user } } : entry,
+    ),
+  });
 };
 
 describe('lamatokSource', () => {
@@ -262,8 +275,40 @@ describe('lamatokSource', () => {
   });
 
   describe('follows', () => {
-    const check = { kind: 'follows', performer, target } as const;
+    const check = {
+      kind: 'follows',
+      performer,
+      target,
+      targetId: accountId('tiktok', targetSecUid),
+    } as const;
     const byId = { ...check, performerId } as const;
+
+    it('answers not_following for an entry with the target handle but another account id', async () => {
+      followingById(targetEntryWith({ secUid: 'MS4wLjABAAAA-another-account' }));
+      await expect(source.answer(byId, context())).resolves.toEqual({
+        outcome: 'not_following',
+        evidence: { pagesRead: 1, listExhausted: true, entriesRead: 2 },
+        cost: request(1),
+      });
+    });
+
+    it('answers verified for an entry with a new handle but the target account id', async () => {
+      followingById(targetEntryWith({ uniqueId: 'renamed.creators' }));
+      await expect(source.answer(byId, context())).resolves.toEqual({
+        outcome: 'verified',
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
+        cost: request(1),
+      });
+    });
+
+    it('answers parse, never a handle match, for entries without an account id', async () => {
+      followingById(targetEntryWith({ secUid: undefined }));
+      await expect(source.answer(byId, context())).resolves.toMatchObject({
+        outcome: 'source_error',
+        error: { kind: 'parse' },
+        cost: request(1),
+      });
+    });
 
     it('reads the list by secUid when the check carries the performer id', async () => {
       followingById(synthetic('following-target-present.json'), { page_id: null });

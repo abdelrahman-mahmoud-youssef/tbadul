@@ -34,7 +34,7 @@ describe.skipIf(databaseUrl === null)('drizzleClaimRepository', () => {
   let client: DatabaseClient;
   let db: Database;
   let repository: AccountClaimRepository;
-  let verifyWith: Required<VerificationCandidate>;
+  let verifyWith: VerificationCandidate;
 
   beforeAll(async () => {
     client = createDatabase(databaseUrl ?? '');

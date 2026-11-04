@@ -132,7 +132,7 @@ const signedPage =
     return read(reply.value);
   };
 
-const readFollowing = (reply: HttpReply): PageRead<{ user: { uniqueId: string } }> => {
+const readFollowing = (reply: HttpReply): PageRead<{ user: { secUid: string } }> => {
   const decoded = decodeJson(reply, followingListSchema);
   if (!decoded.ok) return decoded;
   const { statusCode, userList, hasMore, minCursor } = decoded.value;
@@ -173,7 +173,7 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
             scanList(
               context,
               signedPage(deps, context, (cursor) => followingUrl(secUid, cursor), readFollowing),
-              (entry) => entry.user.uniqueId.toLowerCase() === check.target.value,
+              (entry) => entry.user.secUid === check.targetId.value,
               perRequest(costBefore),
             ),
         ),

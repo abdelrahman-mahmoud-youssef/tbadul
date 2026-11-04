@@ -45,6 +45,7 @@ const pickVerificationAccount = async (
       performer: draft.handle,
       performerId: draft.accountId,
       target: candidate.handle,
+      targetId: candidate.accountId,
     });
 
     if (verdict.outcome === 'not_following') return { kind: 'assigned', account: candidate };

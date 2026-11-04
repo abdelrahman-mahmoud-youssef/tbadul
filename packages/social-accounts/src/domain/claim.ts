@@ -84,11 +84,11 @@ export const rejected = (draft: ClaimDraft, rejection: RejectionReason): Account
 export const awaitingFollow = (
   draft: ClaimDraft,
   verificationAccount: Handle,
-  verificationAccountId?: AccountId,
+  verificationAccountId: AccountId,
 ): AccountClaim => ({
   ...base(draft),
   verificationAccount,
-  ...(verificationAccountId !== undefined && { verificationAccountId }),
+  verificationAccountId,
   state: 'awaiting_follow',
 });
 

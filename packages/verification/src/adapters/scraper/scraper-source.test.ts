@@ -32,6 +32,7 @@ const source = scraperSource({
 const performer = handle('tiktok');
 const target = handle('tiktokcreators');
 const profileSecUid = 'MS4wLjABAAAAv7iSuuXDJGDvJkmH_vz1qkDZYo1apxgzaxdBSeIuPiM';
+const targetSecUid = 'MS4wLjABAAAAXqqA-cLDC0hfQPIrS5APYNsg04zkl-socWCkqkI3UIOaEe6_Qnokg0GcWpLnMNQP';
 
 const profilePage = (user: Record<string, unknown>) =>
   `<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__">${JSON.stringify({
@@ -56,6 +57,16 @@ const profilePage = (user: Record<string, unknown>) =>
 
 const listPage = (page: Record<string, unknown>) =>
   JSON.stringify({ statusCode: 0, status_code: 0, status_msg: '', ...page });
+
+const recordedListWith = (user: Record<string, unknown>) => {
+  const page = JSON.parse(fixture('following-page-exhausted.json')) as {
+    userList: { user: Record<string, unknown> }[];
+  };
+  return JSON.stringify({
+    ...page,
+    userList: page.userList.map((entry) => ({ user: { ...entry.user, ...user } })),
+  });
+};
 
 describe('scraperSource', () => {
   let pool: Interceptable;
@@ -146,7 +157,13 @@ describe('scraperSource', () => {
   });
 
   describe('follows', () => {
-    const check = { kind: 'follows', performer, target } as const;
+    const check = {
+      kind: 'follows',
+      performer,
+      target,
+      targetId: accountId('tiktok', targetSecUid),
+    } as const;
+    const byId = { ...check, performerId: accountId('tiktok', profileSecUid) } as const;
 
     it('answers verified when the target is on the first page', async () => {
       profile(fixture('profile-public.html'));
@@ -171,9 +188,7 @@ describe('scraperSource', () => {
         signer: countingSigner,
       });
       following(fixture('following-page-exhausted.json'), { secUid: profileSecUid });
-      await expect(
-        direct.answer({ ...check, performerId: accountId('tiktok', profileSecUid) }, context()),
-      ).resolves.toEqual({
+      await expect(direct.answer(byId, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 1 },
@@ -183,9 +198,10 @@ describe('scraperSource', () => {
 
     it('answers private from the list status when the performer id is known', async () => {
       following(fixture('following-hidden.json'));
-      await expect(
-        source.answer({ ...check, performerId: accountId('tiktok', profileSecUid) }, context()),
-      ).resolves.toEqual({ outcome: 'private', cost: { unit: 'request', amount: 1 } });
+      await expect(source.answer(byId, context())).resolves.toEqual({
+        outcome: 'private',
+        cost: { unit: 'request', amount: 1 },
+      });
     });
 
     it('answers not_following when the list ends without the target', async () => {
@@ -193,12 +209,28 @@ describe('scraperSource', () => {
       following(
         listPage({ userList: [{ user: { uniqueId: 'other', secUid: 's' } }], hasMore: false }),
       );
-      await expect(
-        source.answer({ ...check, target: handle('khaby.lame') }, context()),
-      ).resolves.toEqual({
+      await expect(source.answer(check, context())).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 1, listExhausted: true, entriesRead: 1 },
         cost: { unit: 'request', amount: 2 },
+      });
+    });
+
+    it('answers not_following for an entry with the target handle but another account id', async () => {
+      following(recordedListWith({ secUid: 'MS4wLjABAAAA-another-account' }));
+      await expect(source.answer(byId, context())).resolves.toEqual({
+        outcome: 'not_following',
+        evidence: { pagesRead: 1, listExhausted: true, entriesRead: 1 },
+        cost: { unit: 'request', amount: 1 },
+      });
+    });
+
+    it('answers verified for an entry with a new handle but the target account id', async () => {
+      following(recordedListWith({ uniqueId: 'renamed.creators' }));
+      await expect(source.answer(byId, context())).resolves.toEqual({
+        outcome: 'verified',
+        evidence: { pagesRead: 1, listExhausted: false, entriesRead: 1 },
+        cost: { unit: 'request', amount: 1 },
       });
     });
 

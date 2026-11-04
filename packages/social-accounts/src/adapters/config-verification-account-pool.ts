@@ -2,7 +2,6 @@ import {
   identityKey,
   samePlatform,
   type AccountId,
-  type Handle,
   type Platform,
 } from '@engagement-exchange/verification';
 import type {
@@ -10,17 +9,12 @@ import type {
   VerificationCandidate,
 } from '../ports/verification-account-pool.ts';
 
-const asCandidate = (account: Handle | VerificationCandidate): VerificationCandidate =>
-  'handle' in account ? account : { handle: account };
-
 export const configVerificationAccountPool = (
-  accounts: readonly (Handle | VerificationCandidate)[],
+  candidates: readonly VerificationCandidate[],
   random: () => number = Math.random,
 ): VerificationAccountPool => {
-  const candidates = accounts.map(asCandidate);
   const assigned = new Map<string, number>();
-  const assignedTo = (account: AccountId | undefined) =>
-    account === undefined ? 0 : (assigned.get(identityKey(account)) ?? 0);
+  const assignedTo = (account: AccountId) => assigned.get(identityKey(account)) ?? 0;
   return {
     candidates: (platform: Platform) =>
       Promise.resolve(

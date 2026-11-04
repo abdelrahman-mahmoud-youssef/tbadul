@@ -63,7 +63,7 @@ const readProfile = async (
   };
 };
 
-const followingPage = (page: FollowingPage): PageRead<{ user: { uniqueId: string } }> => {
+const followingPage = (page: FollowingPage): PageRead<{ user: { secUid: string } }> => {
   if (page.statusCode === listHidden) return { outcome: 'private' };
   if (page.statusCode !== 0) return err(unknownStatus(page.statusCode));
   if (page.userList === undefined) return err(missing('userList'));
@@ -133,7 +133,7 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
             schema: followingPageSchema,
             read: followingPage,
           }),
-          (entry) => entry.user.uniqueId.toLowerCase() === check.target.value,
+          (entry) => entry.user.secUid === check.targetId.value,
           perRequest(0),
         ),
       liked: (check, context) =>

@@ -140,3 +140,35 @@ describe('verify', () => {
     await expect(pending).rejects.toThrow('aborted');
   });
 });
+
+describe('verify with not_following confirmed by a later source', () => {
+  const confirming = (...sources: FakeAnswers[]) =>
+    verifyWith({
+      sources: everyKind(sources.map((answers, index) => fakeSource(`s${index}`, answers))),
+      clock: manualClock(),
+      measurements: recordingSink(),
+      pageCap: 3,
+      confirmNotFollowing: true,
+    });
+
+  it('answers source_error when the only confirming source cannot match by account id', async () => {
+    const verdict = await confirming(
+      { follows: notFollowing },
+      { follows: failed({ kind: 'unsupported', message: 'no account id in list entries' }) },
+    )(followsCheck);
+    expect(verdict.outcome).toBe('source_error');
+    expect(verdict.attempts.map((a) => [a.source, a.outcome, a.error?.kind])).toEqual([
+      ['s0', 'not_following', undefined],
+      ['s1', 'source_error', 'unsupported'],
+    ]);
+  });
+
+  it('settles not_following once a later source confirms it', async () => {
+    const verdict = await confirming(
+      { follows: notFollowing },
+      { follows: failed({ kind: 'unsupported', message: 'no account id in list entries' }) },
+      { follows: notFollowing },
+    )(followsCheck);
+    expect(verdict).toMatchObject({ outcome: 'not_following', source: 's2' });
+  });
+});

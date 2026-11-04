@@ -29,7 +29,7 @@ export const insertVerificationAccount = async (
   db: Database,
   account: Handle,
   assignedCount = 0,
-): Promise<Required<VerificationCandidate>> => {
+): Promise<VerificationCandidate> => {
   const external = randomUUID();
   const row = single(
     await db

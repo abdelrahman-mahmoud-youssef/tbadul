@@ -6,6 +6,7 @@ import { createHttpClient } from './adapters/http/http-client.ts';
 import { lamatokSource } from './adapters/lamatok/lamatok-source.ts';
 import { scraperSource } from './adapters/scraper/scraper-source.ts';
 import { createVerifier } from './create-verifier.ts';
+import { accountId } from './domain/account-id.ts';
 import { ok } from './domain/result.ts';
 import type { RequestSigner } from './ports/request-signer.ts';
 import { handle } from './testing/fixtures.ts';
@@ -27,6 +28,14 @@ const passThroughSigner: RequestSigner = {
   sign: (url) => Promise.resolve(ok({ url, headers: {} })),
 };
 const http = createHttpClient({ headers: () => ({}) });
+const followedId = accountId(
+  'tiktok',
+  (
+    JSON.parse(fixture('./adapters/scraper/fixtures/following-page-exhausted.json')) as {
+      userList: { user: { secUid: string } }[];
+    }
+  ).userList[0]?.user.secUid ?? '',
+);
 
 describe('a lamatok profile answer feeding a scraper list read', () => {
   it('reads the following list by the account id lamatok resolved', async () => {
@@ -76,6 +85,7 @@ describe('a lamatok profile answer feeding a scraper list read', () => {
       performer,
       performerId: profile.evidence.accountId,
       target: handle('tiktokcreators'),
+      targetId: followedId,
     });
     expect(follows).toMatchObject({
       outcome: 'verified',
@@ -134,6 +144,7 @@ describe('an ensembledata profile answer feeding a scraper list read', () => {
       performer,
       performerId: profile.evidence.accountId,
       target: handle('tiktokcreators'),
+      targetId: followedId,
     });
     expect(follows).toMatchObject({
       outcome: 'verified',

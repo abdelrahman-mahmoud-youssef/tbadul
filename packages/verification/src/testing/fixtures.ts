@@ -22,7 +22,9 @@ export const performer = handle('performer');
 export const target = handle('target');
 export const video = content('7000000000000000000');
 
-export const followsCheck: Check = { kind: 'follows', performer, target };
+export const targetId = accountId('tiktok', 'MS4wLjABAAAA-target');
+
+export const followsCheck: Check = { kind: 'follows', performer, target, targetId };
 export const likedCheck: Check = { kind: 'liked', performer, content: video };
 export const profileCheck: Check = { kind: 'profile', subject: performer };
 

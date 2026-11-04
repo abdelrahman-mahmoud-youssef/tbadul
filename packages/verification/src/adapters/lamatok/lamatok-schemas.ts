@@ -29,7 +29,7 @@ export const userSchema = z.object({
 
 export const followingPageSchema = z.object({
   statusCode: z.number().int(),
-  userList: z.array(z.object({ user: z.object({ uniqueId: z.string() }) })).optional(),
+  userList: z.array(z.object({ user: z.object({ secUid: z.string() }) })).optional(),
   next_page_id: pageToken.nullable().optional(),
 });
 

@@ -1,6 +1,7 @@
 import type {
   DrizzleVerificationAccountPool,
   PooledAccount,
+  VerificationCandidate,
 } from '@engagement-exchange/social-accounts';
 import {
   err,
@@ -28,6 +29,24 @@ export const verificationPool = (
     pool.push(parsed.value);
   }
   return ok(pool);
+};
+
+export const resolvePool = async (
+  verifier: Verifier,
+  handles: readonly Handle[],
+): Promise<VerificationCandidate[] | number> => {
+  const candidates: VerificationCandidate[] = [];
+  for (const handle of handles) {
+    const verdict = await verifier.verify({ kind: 'profile', subject: handle });
+    if (verdict.outcome !== 'verified') {
+      console.error(
+        `verification account @${handle.value}: ${outcomeOf(verdict.outcome, verdict.attempts)}`,
+      );
+      return exitCodes[verdict.outcome];
+    }
+    candidates.push({ handle, accountId: verdict.evidence.accountId });
+  }
+  return candidates;
 };
 
 export const emptyPool = 'no verification account: add one with pool add <handle>';

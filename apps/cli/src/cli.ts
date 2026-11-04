@@ -28,7 +28,7 @@ import {
 } from './follows.ts';
 import { linkStart, linkVerify } from './link.ts';
 import { measurementLog, type MeasurementLog } from './measurement-log.ts';
-import { emptyPool, poolAdd, poolList, verificationPool } from './pool.ts';
+import { emptyPool, poolAdd, poolList, resolvePool, verificationPool } from './pool.ts';
 import { invalidUser, unknownUser, userAdd, userExists } from './users.ts';
 import { watchFollows } from './watch.ts';
 
@@ -134,10 +134,12 @@ const inMemoryCommand = async (
         console.error(pool.error);
         return usageError;
       }
+      const candidates = await resolvePool(run.verifier, pool.value);
+      if (typeof candidates === 'number') return candidates;
       const social = composeSocialAccounts(
         run.verifier,
         inMemoryClaimRepository(),
-        configVerificationAccountPool(pool.value),
+        configVerificationAccountPool(candidates),
       );
       return linkStart(social, run.env.CLI_USER_ID, command.account);
     }

@@ -1,4 +1,5 @@
 import type {
+  AccountId,
   Attempt,
   BioToken,
   ContentId,
@@ -115,14 +116,19 @@ const resolve = async (verifier: Verifier, subject: Handle): Promise<Resolved> =
 export const followsLabel = (performer: Handle, target: Handle): string =>
   `@${performer.value} follows @${target.value}`;
 
+export interface ResolvedFollows {
+  readonly performer: ProfileEvidence;
+  readonly targetId: AccountId;
+}
+
 export const resolveFollows = async (
   verifier: Verifier,
   attempts: readonly Attempt[],
   performer: Handle,
   target: Handle,
-): Promise<ProfileEvidence | number> => {
+): Promise<ResolvedFollows | number> => {
   const targetProfile = await resolve(verifier, target);
-  if (!targetProfile.ok && targetProfile.outcome !== 'private') {
+  if (!targetProfile.ok) {
     return finish(`target @${target.value}`, targetProfile.outcome, attempts);
   }
   const performerProfile = await resolve(verifier, performer);
@@ -133,7 +139,7 @@ export const resolveFollows = async (
   if (evidence.isPrivate || evidence.followingVisible === false) {
     return finish(followsLabel(performer, target), 'private', attempts);
   }
-  return evidence;
+  return { performer: evidence, targetId: targetProfile.evidence.accountId };
 };
 
 export const followsCommand = async (
@@ -142,8 +148,9 @@ export const followsCommand = async (
   performer: Handle,
   target: Handle,
 ): Promise<number> => {
-  const evidence = await resolveFollows(verifier, attempts, performer, target);
-  if (typeof evidence === 'number') return evidence;
+  const resolved = await resolveFollows(verifier, attempts, performer, target);
+  if (typeof resolved === 'number') return resolved;
+  const { performer: evidence, targetId } = resolved;
   const verdict = await verifier.verify({
     kind: 'follows',
     performer,
@@ -152,6 +159,7 @@ export const followsCommand = async (
       performerFollowingCount: evidence.followingCount,
     }),
     target,
+    targetId,
   });
   return finish(followsLabel(performer, target), verdict.outcome, attempts);
 };

@@ -99,6 +99,36 @@ describe('the CLI without a database', () => {
     );
   });
 
+  it('resolves each verification account and checks the follow by its account id', async () => {
+    const source = countingSource();
+
+    await cli(
+      ['link', 'start', 'some.creator', '--verification-account', 'verify.one'],
+      {},
+      source,
+    );
+
+    expect(source.calls.find((check) => check.kind === 'follows')).toMatchObject({
+      targetId: accountId('tiktok', 'id-verify.one'),
+    });
+  });
+
+  it('refuses link start when a verification account cannot be resolved', async () => {
+    const source = fakeSource('scraper', { profile: { outcome: 'not_found', cost } });
+
+    const result = await cli(
+      ['link', 'start', 'some.creator', '--verification-account', 'verify.gone'],
+      {},
+      source,
+    );
+
+    expect(result).toMatchObject({
+      code: 3,
+      err: [inMemory, 'verification account @verify.gone: not_found'],
+    });
+    expect(source.calls.map((check) => check.kind)).toEqual(['profile']);
+  });
+
   it.each([
     ['user', 'add', 'someone@example.test'],
     ['pool', 'add', 'verify.one'],

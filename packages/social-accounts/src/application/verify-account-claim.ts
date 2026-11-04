@@ -27,7 +27,12 @@ export const verifyAccountClaimWith =
   async (id) => {
     const claim = await deps.repository.findById(id);
     if (claim === undefined) return err({ kind: 'claim_not_found' });
-    if (claim.state !== 'awaiting_follow' || claim.verificationAccount === undefined) {
+    const { verificationAccount, verificationAccountId } = claim;
+    if (
+      claim.state !== 'awaiting_follow' ||
+      verificationAccount === undefined ||
+      verificationAccountId === undefined
+    ) {
       return err({ kind: 'claim_not_verifiable', state: claim.state });
     }
     const now = deps.clock.now();
@@ -42,7 +47,8 @@ export const verifyAccountClaimWith =
       kind: 'follows',
       performer: claim.handle,
       performerId: claim.accountId,
-      target: claim.verificationAccount,
+      target: verificationAccount,
+      targetId: verificationAccountId,
     });
     switch (verdict.outcome) {
       case 'verified': {

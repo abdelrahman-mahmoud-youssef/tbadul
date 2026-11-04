@@ -8,6 +8,7 @@ import { alice, bob, creator, harness, own, seed, type Harness } from '../testin
 import { verifyAccountClaimWith } from './verify-account-claim.ts';
 
 const claimedId = accountId('tiktok', 'MS4wLjABAAAA');
+const verificationId = accountId('tiktok', 'MS4wLjABAAAA-verify-one');
 
 const pending = (h: Harness, overrides: Partial<AccountClaim> = {}): AccountClaim => ({
   ...awaitingFollow(
@@ -21,6 +22,7 @@ const pending = (h: Harness, overrides: Partial<AccountClaim> = {}): AccountClai
       ttlMs: 86_400_000,
     },
     handle('verify.one'),
+    verificationId,
   ),
   ...overrides,
 });
@@ -148,6 +150,7 @@ describe('verifyAccountClaim', () => {
         performer: creator,
         performerId: claimedId,
         target: handle('verify.one'),
+        targetId: verificationId,
       },
     ]);
   });

@@ -20,7 +20,7 @@ export interface PooledAccount {
 }
 
 export interface DrizzleVerificationAccountPool extends VerificationAccountPool {
-  add(account: Required<VerificationCandidate>, seenAt: number): Promise<'added' | 'present'>;
+  add(account: VerificationCandidate, seenAt: number): Promise<'added' | 'present'>;
   list(platform: Platform): Promise<readonly PooledAccount[]>;
 }
 

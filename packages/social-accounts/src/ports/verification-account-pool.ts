@@ -2,7 +2,7 @@ import type { AccountId, Handle, Platform } from '@engagement-exchange/verificat
 
 export interface VerificationCandidate {
   readonly handle: Handle;
-  readonly accountId?: AccountId;
+  readonly accountId: AccountId;
 }
 
 export interface VerificationAccountPool {
