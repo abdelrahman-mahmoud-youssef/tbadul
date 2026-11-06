@@ -88,7 +88,7 @@ export const verifyWith =
       serves(source, platform, check.kind),
     );
     let awaitingConfirmation = false;
-    for (const [index, source] of eligible.entries()) {
+    for (const source of eligible) {
       const startedAt = deps.clock.now();
       const answer = rejectShortList(check, await askSource(source, check, context));
       const attempt = toAttempt(source, check.kind, answer, startedAt, deps.clock.now());
@@ -100,7 +100,7 @@ export const verifyWith =
         check.kind !== 'profile' &&
         deps.confirmNotFollowing &&
         !awaitingConfirmation &&
-        index < eligible.length - 1;
+        eligible.length > 1;
       if (!confirm) return settle(check, answer, source.name, attempts);
       awaitingConfirmation = true;
     }

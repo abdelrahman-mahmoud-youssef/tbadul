@@ -16,7 +16,14 @@ import {
   type FakeSource,
 } from '@engagement-exchange/verification/testing';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { inMemory, missingSchema, poolFlagWithDatabase, run, type CliDeps } from './cli.ts';
+import {
+  inMemory,
+  missingSchema,
+  noConfirmer,
+  poolFlagWithDatabase,
+  run,
+  type CliDeps,
+} from './cli.ts';
 import { invalidClaimId } from './command.ts';
 import { emptyPool } from './pool.ts';
 import { invalidUser, unknownUser } from './users.ts';
@@ -75,6 +82,7 @@ const cli = async (
     const code = await run(argv, {
       env: {
         VERIFICATION_SOURCE_ORDER: 'scraper',
+        VERIFICATION_CONFIRM_NOT_FOLLOWING: 'false',
         MEASUREMENT_HMAC_KEY: key,
         MEASUREMENT_LOG_FILE: join(directory, 'measurements.jsonl'),
         ...env,
@@ -116,6 +124,45 @@ describe('the CLI without a database', () => {
     expect(source.calls.find((check) => check.kind === 'follows')).toMatchObject({
       targetId: accountId('tiktok', 'id-verify.one'),
     });
+  });
+
+  it('refuses link start when no second source can confirm a not_following', async () => {
+    const source = countingSource();
+
+    const result = await cli(
+      ['link', 'start', 'some.creator', '--verification-account', 'verify.one'],
+      { VERIFICATION_CONFIRM_NOT_FOLLOWING: 'true' },
+      source,
+    );
+
+    expect(result).toMatchObject({ code: 64, err: [inMemory, noConfirmer] });
+    expect(source.calls).toEqual([]);
+  });
+
+  it('starts a link once a second source confirms the baseline not_following', async () => {
+    const scraper = countingSource();
+    const confirmer = fakeSource('scraptik', {
+      follows: { outcome: 'not_following', evidence: listEvidence, cost },
+    });
+
+    const result = await cli(
+      ['link', 'start', 'some.creator', '--verification-account', 'verify.one'],
+      {
+        VERIFICATION_CONFIRM_NOT_FOLLOWING: 'true',
+        VERIFICATION_SOURCE_ORDER_FOLLOWS: 'scraper,scraptik',
+      },
+      scraper,
+      {
+        sources: () =>
+          new Map([
+            ['scraper', scraper],
+            ['scraptik', confirmer],
+          ]),
+      },
+    );
+
+    expect(result.code).toBe(0);
+    expect(confirmer.calls.map((check) => check.kind)).toEqual(['follows']);
   });
 
   it('refuses link start when a verification account cannot be resolved', async () => {

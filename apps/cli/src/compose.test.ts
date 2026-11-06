@@ -9,31 +9,48 @@ const env = (source: Record<string, string>): Env => {
 };
 
 describe('composeVerifier', () => {
-  it('includes lamatok when its access key is configured', () => {
-    expect(composeVerifier(env({ LAMATOK_ACCESS_KEY: 'configured' }))).toMatchObject({
-      ok: true,
-      value: { leftOut: ['ensemble'] },
-    });
-  });
-
-  it('includes ensemble when its token is configured', () => {
+  it('confirms follows with ensemble when its token is configured', () => {
     expect(composeVerifier(env({ ENSEMBLEDATA_TOKEN: 'configured' }))).toMatchObject({
       ok: true,
-      value: { leftOut: ['lamatok'] },
+      value: { leftOut: ['scraptik'], followsConfirmed: true },
     });
   });
 
-  it('leaves no source out when every credential is configured', () => {
-    expect(
-      composeVerifier(env({ LAMATOK_ACCESS_KEY: 'configured', ENSEMBLEDATA_TOKEN: 'configured' })),
-    ).toMatchObject({ ok: true, value: { leftOut: [] } });
+  it('confirms follows with scraptik when its key is configured', () => {
+    expect(composeVerifier(env({ SCRAPTIK_RAPIDAPI_KEY: 'configured' }))).toMatchObject({
+      ok: true,
+      value: { leftOut: ['ensemble'], followsConfirmed: true },
+    });
   });
 
-  it('leaves lamatok out when its access key is missing', () => {
+  it('leaves no source out when every default credential is configured', () => {
+    expect(
+      composeVerifier(
+        env({ ENSEMBLEDATA_TOKEN: 'configured', SCRAPTIK_RAPIDAPI_KEY: 'configured' }),
+      ),
+    ).toMatchObject({ ok: true, value: { leftOut: [], followsConfirmed: true } });
+  });
+
+  it('reports no confirmer when only the scraper can read a following list', () => {
     expect(composeVerifier(env({}))).toMatchObject({
       ok: true,
-      value: { leftOut: ['lamatok', 'ensemble'] },
+      value: { leftOut: ['ensemble', 'scraptik'], followsConfirmed: false },
     });
+  });
+
+  it('needs no confirmer when confirmation is switched off', () => {
+    expect(composeVerifier(env({ VERIFICATION_CONFIRM_NOT_FOLLOWING: 'false' }))).toMatchObject({
+      ok: true,
+      value: { followsConfirmed: true },
+    });
+  });
+
+  it('counts only sources that answer follows as confirmers', () => {
+    expect(
+      composeVerifier(
+        env({ LAMATOK_ACCESS_KEY: 'configured', VERIFICATION_SOURCE_ORDER: 'scraper,lamatok' }),
+      ),
+    ).toMatchObject({ ok: true, value: { leftOut: [], followsConfirmed: true } });
   });
 
   it('leaves nothing out when one configured source is named', () => {
@@ -43,9 +60,9 @@ describe('composeVerifier', () => {
   });
 
   it('names a chosen source whose credential is missing', () => {
-    expect(composeVerifier(env({}), undefined, 'ensemble')).toEqual({
+    expect(composeVerifier(env({}), undefined, 'scraptik')).toEqual({
       ok: false,
-      error: 'source ensemble has no credential configured',
+      error: 'source scraptik has no credential configured',
     });
   });
 });

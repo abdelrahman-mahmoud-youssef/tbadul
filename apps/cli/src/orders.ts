@@ -4,9 +4,9 @@ import type { CliSourceName, Env, SourceChoice } from './config.ts';
 export type Orders = Readonly<Record<CheckKind, readonly CliSourceName[]>>;
 
 export const defaultOrders: Orders = {
-  profile: ['lamatok', 'ensemble', 'scraper'],
-  follows: ['scraper', 'lamatok', 'ensemble'],
-  liked: ['scraper', 'lamatok', 'ensemble'],
+  profile: ['ensemble', 'scraper'],
+  follows: ['scraper', 'ensemble', 'scraptik'],
+  liked: ['scraper', 'ensemble'],
 };
 
 export const configuredOrders = (env: Env): Orders => ({

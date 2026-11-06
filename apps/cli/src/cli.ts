@@ -45,8 +45,8 @@ export const usage = [
   '  cli pool add <handle> [--source <name>]',
   '  cli pool list',
   '',
-  '  --source scraper|lamatok|ensemble|chain   one source for every check, or the configured',
-  '                                            per-kind orders (chain, the default)',
+  '  --source <name>                           scraper, lamatok, ensemble or scraptik for one',
+  '                                            source, or chain for the per-kind orders (default)',
   '  --every <seconds>                         wait between watch runs (WATCH_INTERVAL_SECONDS, 60)',
   '  --times <n>                               stop after n runs; unbounded when absent',
   '  --verification-account <handle>           the pool for one link start without DATABASE_URL',
@@ -63,6 +63,9 @@ export const inMemory =
 
 export const missingSchema =
   'the database schema is missing or behind: run pnpm --filter @engagement-exchange/db migrate';
+
+export const noConfirmer =
+  'no confirmer for follows checks: a not_following cannot be confirmed by a second source; set ENSEMBLEDATA_TOKEN or SCRAPTIK_RAPIDAPI_KEY';
 
 export const poolFlagWithDatabase =
   '--verification-account applies without DATABASE_URL; add accounts with pool add <handle>';
@@ -234,8 +237,17 @@ const runCommand = async (
     console.error(composed.error);
     return usageError;
   }
-  const { verifier, leftOut } = composed.value;
+  const { verifier, leftOut, followsConfirmed } = composed.value;
   if (leftOut.length > 0) console.error(`sources left out, no credential: ${leftOut.join(', ')}`);
+  const links = command.kind === 'link start' || command.kind === 'link verify';
+  const watchesFollows =
+    command.kind === 'demo' &&
+    (command.demo.command === 'follows' || command.demo.command === 'watch') &&
+    choice.data === 'chain';
+  if (!followsConfirmed && (links || watchesFollows)) {
+    console.error(noConfirmer);
+    if (links) return usageError;
+  }
   const run: Run = { env, verifier, attempts, poolFlags: flags.poolFlags };
   try {
     const code = await dispatch(run);

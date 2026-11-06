@@ -50,15 +50,15 @@ describe('ordersFor', () => {
 
 describe('planOrders', () => {
   it('leaves out sources that are not available and names them once', () => {
-    expect(planOrders(defaultOrders, new Set(['scraper', 'lamatok']))).toEqual({
+    expect(planOrders(defaultOrders, new Set(['scraper', 'ensemble']))).toEqual({
       ok: true,
       value: {
         orders: {
-          profile: ['lamatok', 'scraper'],
-          follows: ['scraper', 'lamatok'],
-          liked: ['scraper', 'lamatok'],
+          profile: ['ensemble', 'scraper'],
+          follows: ['scraper', 'ensemble'],
+          liked: ['scraper', 'ensemble'],
         },
-        leftOut: ['ensemble'],
+        leftOut: ['scraptik'],
       },
     });
   });

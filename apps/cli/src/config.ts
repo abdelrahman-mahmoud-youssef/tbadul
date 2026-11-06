@@ -7,7 +7,7 @@ const split = (value: string): string[] =>
     .map((item) => item.trim())
     .filter((item) => item !== '');
 
-export const sourceNames = ['scraper', 'lamatok', 'ensemble'] as const;
+export const sourceNames = ['scraper', 'lamatok', 'ensemble', 'scraptik'] as const;
 
 export type CliSourceName = (typeof sourceNames)[number];
 
@@ -28,6 +28,7 @@ export const envSchema = z.object({
   TIKTOK_SIGNER_URL: z.url().default('http://localhost:8080'),
   LAMATOK_ACCESS_KEY: z.string().optional(),
   ENSEMBLEDATA_TOKEN: z.string().optional(),
+  SCRAPTIK_RAPIDAPI_KEY: z.string().optional(),
   VERIFICATION_ACCOUNTS: z.string().default('').transform(split),
   VERIFICATION_SOURCE_ORDER: order,
   VERIFICATION_SOURCE_ORDER_PROFILE: order,

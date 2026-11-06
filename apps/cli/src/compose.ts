@@ -11,6 +11,7 @@ import {
   ensembledataSource,
   lamatokSource,
   scraperSource,
+  scraptikSource,
   sidecarSigner,
   err,
   ok,
@@ -28,6 +29,7 @@ const discard: MeasurementSink = { record: () => undefined };
 export interface ComposedVerifier {
   readonly verifier: Verifier;
   readonly leftOut: readonly CliSourceName[];
+  readonly followsConfirmed: boolean;
 }
 
 export type Sources = ReadonlyMap<CliSourceName, VerificationSource>;
@@ -47,6 +49,9 @@ const availableSources = (env: Env): Sources => {
   }
   if (env.ENSEMBLEDATA_TOKEN !== undefined) {
     sources.set('ensemble', ensembledataSource({ http, token: env.ENSEMBLEDATA_TOKEN }));
+  }
+  if (env.SCRAPTIK_RAPIDAPI_KEY !== undefined) {
+    sources.set('scraptik', scraptikSource({ http, rapidApiKey: env.SCRAPTIK_RAPIDAPI_KEY }));
   }
   return sources;
 };
@@ -80,7 +85,14 @@ export const composeVerifier = (
       ...(parts.profileCache !== undefined && { profileCache: parts.profileCache }),
     },
   );
-  return ok({ verifier, leftOut: planned.value.leftOut });
+  const followsSources = planned.value.orders.follows.filter(
+    (name) => sources.get(name)?.supports.has('follows') === true,
+  );
+  return ok({
+    verifier,
+    leftOut: planned.value.leftOut,
+    followsConfirmed: !env.VERIFICATION_CONFIRM_NOT_FOLLOWING || followsSources.length > 1,
+  });
 };
 
 export const composeSocialAccounts = (

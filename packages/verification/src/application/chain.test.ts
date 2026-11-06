@@ -163,6 +163,27 @@ describe('verify with not_following confirmed by a later source', () => {
     ]);
   });
 
+  it('answers source_error when the last source says not_following and nobody confirms it', async () => {
+    const verdict = await confirming(
+      { follows: failed(timedOut) },
+      { follows: failed(timedOut) },
+      { follows: notFollowing },
+    )(followsCheck);
+    expect(verdict.outcome).toBe('source_error');
+    expect(verdict.attempts.map((a) => a.outcome)).toEqual([
+      'source_error',
+      'source_error',
+      'not_following',
+    ]);
+  });
+
+  it('lets a single source answer not_following when it is the only one in the order', async () => {
+    await expect(confirming({ follows: notFollowing })(followsCheck)).resolves.toMatchObject({
+      outcome: 'not_following',
+      source: 's0',
+    });
+  });
+
   it('settles not_following once a later source confirms it', async () => {
     const verdict = await confirming(
       { follows: notFollowing },
