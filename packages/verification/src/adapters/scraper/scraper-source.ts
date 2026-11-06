@@ -176,10 +176,15 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
           check,
           (performer) => readProfile(deps, performer, context),
           (evidence) => evidence.followingVisible !== false,
-          (secUid, costBefore) =>
+          (account, costBefore) =>
             scanList(
               context,
-              signedPage(deps, context, (cursor) => followingUrl(secUid, cursor), readFollowing),
+              signedPage(
+                deps,
+                context,
+                (cursor) => followingUrl(account.value, cursor),
+                readFollowing,
+              ),
               (entry) =>
                 matchAccount(check.targetId, {
                   value: entry.user.secUid,
@@ -193,10 +198,10 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
           check,
           (performer) => readProfile(deps, performer, context),
           (evidence) => evidence.likesVisible !== false,
-          (secUid, costBefore) =>
+          (account, costBefore) =>
             scanList(
               context,
-              signedPage(deps, context, (cursor) => likedUrl(secUid, cursor), readLiked),
+              signedPage(deps, context, (cursor) => likedUrl(account.value, cursor), readLiked),
               (item) => sameValue(item.id, check.content.value),
               perRequest(costBefore),
             ),

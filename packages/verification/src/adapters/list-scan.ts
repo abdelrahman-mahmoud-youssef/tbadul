@@ -85,15 +85,15 @@ export const withPerformer = async <K extends 'follows' | 'liked'>(
   check: { readonly performer: Handle; readonly performerId?: AccountId },
   readProfile: (performer: Handle) => Promise<Answer<'profile'>>,
   visible: (evidence: ProfileEvidence) => boolean,
-  scan: (secUid: string, costBefore: number) => Promise<Answer<K>>,
+  scan: (performer: AccountId, costBefore: number) => Promise<Answer<K>>,
 ): Promise<Answer<K>> => {
-  if (check.performerId !== undefined) return scan(check.performerId.value, 0);
+  if (check.performerId !== undefined) return scan(check.performerId, 0);
 
   const profile = await readProfile(check.performer);
   switch (profile.outcome) {
     case 'verified':
       if (!visible(profile.evidence)) return { outcome: 'private', cost: profile.cost };
-      return scan(profile.evidence.accountId.value, profile.cost.amount);
+      return scan(profile.evidence.accountId, profile.cost.amount);
     case 'not_following':
       return failed({ kind: 'unexpected', message: 'profile read answered not_following' });
     case 'private':

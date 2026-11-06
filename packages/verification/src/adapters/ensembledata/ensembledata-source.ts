@@ -1,9 +1,9 @@
 import type { z } from 'zod';
-import { accountId } from '../../domain/account-id.ts';
+import { accountId, matchAccount, type AccountId } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
 import type { Handle } from '../../domain/handle.ts';
 import type { Cost, SourceError } from '../../domain/outcome.ts';
-import { ok, type Result } from '../../domain/result.ts';
+import { err, ok, type Result } from '../../domain/result.ts';
 import type { VerificationSource } from '../../ports/verification-source.ts';
 import { defineSource } from '../define-source.ts';
 import { sameValue, scanList, withPerformer, type PageRead } from '../list-scan.ts';
@@ -13,7 +13,18 @@ import {
   type EnsembledataDeps,
   type EnsembledataRead,
 } from './ensembledata-client.ts';
-import { likedPostsSchema, userInfoSchema, type LikedPosts } from './ensembledata-schemas.ts';
+import {
+  followingsSchema,
+  likedPostsSchema,
+  userInfoSchema,
+  type Followings,
+  type LikedPosts,
+} from './ensembledata-schemas.ts';
+
+interface FollowingsCursor {
+  readonly cursor: string;
+  readonly pageToken: string;
+}
 
 interface Meter {
   read<T>(
@@ -71,6 +82,21 @@ const readProfile = async (
   };
 };
 
+const followingsPage = (
+  page: Followings,
+): PageRead<{ sec_uid: string; uid: string }, FollowingsCursor> => {
+  if (page.data === null) return { outcome: 'private' };
+  const { followings, nextCursor, nextPageToken } = page.data;
+  if (nextCursor === undefined && nextPageToken === undefined) return ok({ items: followings });
+  if (nextCursor === undefined || nextPageToken === undefined) {
+    return err({
+      kind: 'parse',
+      message: 'ensembledata followings page carries only one of nextCursor and nextPageToken',
+    });
+  }
+  return ok({ items: followings, next: { cursor: nextCursor, pageToken: nextPageToken } });
+};
+
 const likedPostsPage = (page: LikedPosts): PageRead<{ aweme_id: string }> => {
   if ('info' in page.data) return { outcome: 'private' };
   const { liked_posts, nextCursor } = page.data;
@@ -100,26 +126,45 @@ export const ensembledataSource = (deps: EnsembledataDeps): VerificationSource =
     { name: 'ensemble', platform: 'tiktok' },
     {
       profile: (check, context) => readProfile(meter(client), check.subject, context.signal),
-      follows: () =>
-        Promise.resolve(
-          failed({
-            kind: 'unsupported',
-            message: 'ensembledata followings entries carry no account id to match the target by',
-          }),
-        ),
+      follows: (check, context) => {
+        const units = meter(client);
+        const { performerId, ...rest } = check;
+        return withPerformer(
+          performerId?.numericId === undefined ? rest : check,
+          (performer) => readProfile(units, performer, context.signal),
+          () => true,
+          (performer: AccountId) =>
+            scanList(
+              context,
+              pageReader(units, context.signal, {
+                path: '/tt/user/followings',
+                query: (cursor: FollowingsCursor | undefined) => ({
+                  id: performer.numericId ?? '',
+                  secUid: performer.value,
+                  ...(cursor && { cursor: cursor.cursor, page_token: cursor.pageToken }),
+                }),
+                schema: followingsSchema,
+                read: followingsPage,
+              }),
+              (entry) =>
+                matchAccount(check.targetId, { value: entry.sec_uid, numericId: entry.uid }),
+              units.cost,
+            ),
+        );
+      },
       liked: (check, context) => {
         const units = meter(client);
         return withPerformer(
           check,
           (performer) => readProfile(units, performer, context.signal),
           (evidence) => evidence.likesVisible !== false,
-          (secUid) =>
+          (performer) =>
             scanList(
               context,
               pageReader(units, context.signal, {
                 path: '/tt/user/liked-posts',
                 query: (cursor: string | undefined) => ({
-                  secUid,
+                  secUid: performer.value,
                   ...(cursor !== undefined && { cursor }),
                 }),
                 schema: likedPostsSchema,

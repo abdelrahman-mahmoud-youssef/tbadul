@@ -148,12 +148,12 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
           check,
           (performer) => readProfile(client, performer, context),
           (evidence) => evidence.likesVisible !== false,
-          (secUid, costBefore) =>
+          (account, costBefore) =>
             scanList(
               context,
               pageReader(client, context.signal, {
                 path: '/v2/user/likes/by/secUid',
-                query: { secUid },
+                query: { secUid: account.value },
                 cursorParam: 'cursor',
                 schema: likesPageSchema,
                 read: likesPage,

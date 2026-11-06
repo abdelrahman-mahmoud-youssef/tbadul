@@ -30,6 +30,16 @@ export const userInfoSchema = z.object({
     .nullable(),
 });
 
+export const followingsSchema = z.object({
+  data: z
+    .object({
+      followings: z.array(z.object({ sec_uid: z.string(), uid: z.string() })),
+      nextCursor: cursor.nullish().transform(absentWhenNull),
+      nextPageToken: z.string().nullish().transform(absentWhenNull),
+    })
+    .nullable(),
+});
+
 export const likedPostsSchema = z.object({
   data: z.union([
     z.object({
@@ -40,4 +50,5 @@ export const likedPostsSchema = z.object({
   ]),
 });
 
+export type Followings = z.infer<typeof followingsSchema>;
 export type LikedPosts = z.infer<typeof likedPostsSchema>;
