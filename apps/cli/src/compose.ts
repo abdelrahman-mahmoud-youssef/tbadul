@@ -34,6 +34,7 @@ export interface ComposedVerifier {
   readonly verifier: Verifier;
   readonly leftOut: readonly CliSourceName[];
   readonly unconfirmed: readonly ListCheck[];
+  readonly unused: readonly CliSourceName[];
 }
 
 export type Sources = ReadonlyMap<CliSourceName, VerificationSource>;
@@ -94,6 +95,9 @@ export const composeVerifier = (
   return ok({
     verifier,
     leftOut: planned.value.leftOut,
+    unused: [...sources.keys()].filter(
+      (name) => !Object.values(planned.value.orders).some((names) => names.includes(name)),
+    ),
     unconfirmed: env.VERIFICATION_CONFIRM_NOT_FOLLOWING
       ? listChecks.filter((kind) => serving(kind).length < 2)
       : [],

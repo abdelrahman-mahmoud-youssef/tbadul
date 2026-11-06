@@ -53,6 +53,23 @@ describe('composeVerifier', () => {
     ).toMatchObject({ ok: true, value: { leftOut: [], unconfirmed: [] } });
   });
 
+  it('names a configured source that no order uses', () => {
+    expect(
+      composeVerifier(env({ LAMATOK_ACCESS_KEY: 'configured', ENSEMBLEDATA_TOKEN: 'configured' })),
+    ).toMatchObject({ ok: true, value: { unused: ['lamatok'] } });
+  });
+
+  it('uses lamatok once an order names it', () => {
+    expect(
+      composeVerifier(
+        env({
+          LAMATOK_ACCESS_KEY: 'configured',
+          VERIFICATION_SOURCE_ORDER_FOLLOWS: 'scraper,lamatok',
+        }),
+      ),
+    ).toMatchObject({ ok: true, value: { unused: [] } });
+  });
+
   it('leaves nothing out when one configured source is named', () => {
     expect(
       composeVerifier(env({ LAMATOK_ACCESS_KEY: 'configured' }), undefined, 'lamatok'),

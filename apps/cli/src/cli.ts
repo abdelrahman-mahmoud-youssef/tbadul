@@ -21,6 +21,7 @@ import {
   readEnv,
   sourceChoice,
   sourceChoices,
+  type CliSourceName,
   type Env,
   type SourceChoice,
 } from './config.ts';
@@ -79,6 +80,9 @@ const confirmerKeys: Readonly<Record<ListCheck, string>> = {
 
 export const noConfirmer = (kind: ListCheck): string =>
   `no confirmer for ${kind} checks: a not_following cannot be confirmed by a second source; set ${confirmerKeys[kind]}`;
+
+export const unusedSources = (names: readonly CliSourceName[]): string =>
+  `configured but in no order: ${names.join(', ')}; lamatok stays out of the defaults until it is funded, name a source in VERIFICATION_SOURCE_ORDER_<KIND> to use it`;
 
 export const poolFlagWithDatabase =
   '--verification-account applies without DATABASE_URL; add accounts with pool add <handle>';
@@ -263,8 +267,9 @@ const runCommand = async (
     console.error(composed.error);
     return usageError;
   }
-  const { verifier, leftOut, unconfirmed } = composed.value;
+  const { verifier, leftOut, unconfirmed, unused } = composed.value;
   if (leftOut.length > 0) console.error(`sources left out, no credential: ${leftOut.join(', ')}`);
+  if (unused.length > 0) console.error(unusedSources(unused));
   const links = command.kind === 'link start' || command.kind === 'link verify';
   const listCheck = links ? 'follows' : listCheckOf(command, choice.data);
   if (listCheck !== undefined && unconfirmed.includes(listCheck)) {
