@@ -107,6 +107,54 @@ describe('ensembledataSource', () => {
   const profileCheck = { kind: 'profile', subject: handle('tiktok') } as const;
 
   describe('profile', () => {
+    const latest = { ...profileCheck, latestPost: true } as const;
+    const posts = (reply: Fixture | ReturnType<typeof raw>) =>
+      replay('/apis/tt/user/posts-from-secuid', { secUid: tiktokSecUid, depth: '1' }, reply);
+    const postsWith = (pinnedNewest: boolean): Fixture => {
+      const page = recorded('posts-tiktok.json');
+      const body = structuredClone(page.body) as {
+        data: { create_time: number; is_top: number }[];
+      };
+      body.data = body.data.map((post, index) => ({
+        ...post,
+        is_top: pinnedNewest && index === 0 ? 1 : post.is_top,
+      }));
+      return { ...page, body };
+    };
+
+    it('adds the newest post time when a latest post is asked for', async () => {
+      info(recorded('info-tiktok.json'));
+      posts(recorded('posts-tiktok.json'));
+      await expect(source.answer(latest, context())).resolves.toMatchObject({
+        outcome: 'verified',
+        evidence: { latestPostAt: 1793921629000 },
+        cost: units(2),
+      });
+    });
+
+    it('skips a pinned post when it takes the newest post time', async () => {
+      info(recorded('info-tiktok.json'));
+      posts(postsWith(true));
+      await expect(source.answer(latest, context())).resolves.toMatchObject({
+        evidence: { latestPostAt: 1793907535000 },
+      });
+    });
+
+    it('leaves the post time out when the posts read fails, keeping the profile', async () => {
+      info(recorded('info-tiktok.json'));
+      posts(raw(500, '{"detail":"Internal error."}'));
+      const answer = await source.answer(latest, context());
+      expect(answer).toMatchObject({ outcome: 'verified', cost: units(1) });
+      expect(answer.outcome === 'verified' && answer.evidence).not.toHaveProperty('latestPostAt');
+    });
+
+    it('reads no posts unless a latest post is asked for', async () => {
+      info(recorded('info-tiktok.json'));
+      const answer = await source.answer(profileCheck, context());
+      expect(answer).toMatchObject({ outcome: 'verified', cost: units(1) });
+      expect(answer.outcome === 'verified' && answer.evidence).not.toHaveProperty('latestPostAt');
+    });
+
     it('reads the recorded profile into evidence and charges the units header', async () => {
       info(recorded('info-tiktok.json'));
       await expect(source.answer(profileCheck, context())).resolves.toEqual({

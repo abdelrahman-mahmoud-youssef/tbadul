@@ -40,6 +40,10 @@ export const followingsSchema = z.object({
     .nullable(),
 });
 
+export const userPostsSchema = z.object({
+  data: z.array(z.object({ create_time: z.number().int(), is_top: z.number().int().optional() })),
+});
+
 export const likedPostsSchema = z.object({
   data: z.union([
     z.object({

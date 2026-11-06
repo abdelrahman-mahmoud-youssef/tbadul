@@ -40,7 +40,11 @@ const verifyProfile = async (
   const startedAt = deps.clock.now();
   const cached = await lookup(deps, check, startedAt).catch(() => undefined);
   const maxAgeMs = options.maxAgeMs ?? deps.ttl.statsTtlMs;
-  if (cached?.fetchedAt != null && startedAt - cached.fetchedAt <= maxAgeMs) {
+  if (
+    cached?.fetchedAt != null &&
+    startedAt - cached.fetchedAt <= maxAgeMs &&
+    (check.latestPost !== true || cached.evidence.latestPostAt !== undefined)
+  ) {
     const attempt: Attempt = {
       source: cacheSource,
       platform: check.subject.platform,

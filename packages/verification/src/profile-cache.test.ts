@@ -67,6 +67,28 @@ describe('the profile cache in front of the chain', () => {
     expect(sink.attempts).toEqual([expect.objectContaining({ source: 'lamatok', cost }), hit]);
   });
 
+  it('asks the chain when a latest post is wanted and the cached profile has none', async () => {
+    const { source, verifier } = setup();
+    await verifier.verify(profile);
+
+    await verifier.verify({ ...profile, latestPost: true });
+
+    expect(source.calls).toEqual([profile, { ...profile, latestPost: true }]);
+  });
+
+  it('answers a latest-post check from the cache once the cached profile carries one', async () => {
+    const { source, verifier } = setup({
+      ...verified,
+      evidence: { ...evidence, latestPostAt: Date.UTC(2026, 10, 1) },
+    });
+    await verifier.verify({ ...profile, latestPost: true });
+
+    const again = await verifier.verify({ ...profile, latestPost: true });
+
+    expect(again).toMatchObject({ outcome: 'verified', source: 'cache' });
+    expect(source.calls).toHaveLength(1);
+  });
+
   it('asks the chain again once the stats are older than statsTtlMs', async () => {
     const { source, clock, verifier } = setup();
     await verifier.verify({ ...profile, subjectId: evidence.accountId });

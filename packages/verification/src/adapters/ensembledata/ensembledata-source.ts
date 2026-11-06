@@ -17,6 +17,7 @@ import {
   followingsSchema,
   likedPostsSchema,
   userInfoSchema,
+  userPostsSchema,
   type Followings,
   type LikedPosts,
 } from './ensembledata-schemas.ts';
@@ -52,6 +53,7 @@ const readProfile = async (
   units: Meter,
   handle: Handle,
   signal: AbortSignal,
+  latestPost = false,
 ): Promise<Answer<'profile'>> => {
   const reply = await units.read(
     '/tt/user/info',
@@ -64,6 +66,10 @@ const readProfile = async (
   const { data } = reply.value.body;
   if (data === null) return { outcome: 'not_found', cost: units.cost() };
   const { user, stats } = data;
+  const latestPostAt =
+    latestPost && !user.privateAccount
+      ? await readLatestPost(units, user.secUid, signal)
+      : undefined;
   return {
     outcome: 'verified',
     evidence: {
@@ -77,9 +83,28 @@ const readProfile = async (
         videoCount: stats.videoCount,
       }),
       ...(user.avatarThumb !== undefined && { avatarUrl: user.avatarThumb.split('?')[0] }),
+      ...(latestPostAt !== undefined && { latestPostAt }),
     },
     cost: units.cost(),
   };
+};
+
+const readLatestPost = async (
+  units: Meter,
+  secUid: string,
+  signal: AbortSignal,
+): Promise<number | undefined> => {
+  const reply = await units.read(
+    '/tt/user/posts-from-secuid',
+    { secUid, depth: '1' },
+    userPostsSchema,
+    signal,
+  );
+  if (!reply.ok || 'outcome' in reply.value) return undefined;
+  const times = reply.value.body.data
+    .filter((post) => post.is_top !== 1)
+    .map((post) => post.create_time * 1000);
+  return times.length === 0 ? undefined : Math.max(...times);
 };
 
 const followingsPage = (
@@ -125,7 +150,8 @@ export const ensembledataSource = (deps: EnsembledataDeps): VerificationSource =
   return defineSource(
     { name: 'ensemble', platform: 'tiktok' },
     {
-      profile: (check, context) => readProfile(meter(client), check.subject, context.signal),
+      profile: (check, context) =>
+        readProfile(meter(client), check.subject, context.signal, check.latestPost === true),
       follows: (check, context) => {
         const units = meter(client);
         const { performerId, ...rest } = check;

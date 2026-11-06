@@ -63,7 +63,7 @@ export const startAccountClaimWith =
     if (!handle.ok) return err({ kind: 'invalid_handle', reason: handle.error.reason });
 
     const profile = await deps.verifier.verify(
-      { kind: 'profile', subject: handle.value },
+      { kind: 'profile', subject: handle.value, latestPost: true },
       { maxAgeMs: deps.policy.eligibilityMaxAgeMs },
     );
     switch (profile.outcome) {
