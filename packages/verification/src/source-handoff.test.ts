@@ -5,6 +5,7 @@ import { ensembledataSource } from './adapters/ensembledata/ensembledata-source.
 import { createHttpClient } from './adapters/http/http-client.ts';
 import { lamatokSource } from './adapters/lamatok/lamatok-source.ts';
 import { scraperSource } from './adapters/scraper/scraper-source.ts';
+import { scraptikSource } from './adapters/scraptik/scraptik-source.ts';
 import { createVerifier } from './create-verifier.ts';
 import { accountId } from './domain/account-id.ts';
 import { ok } from './domain/result.ts';
@@ -14,6 +15,7 @@ import { handle } from './testing/fixtures.ts';
 const lamatok = 'https://api.lamatok.com';
 const ensembledata = 'https://ensembledata.com';
 const web = 'https://www.tiktok.com';
+const rapidapi = 'https://scraptik.p.rapidapi.com';
 const agent = new MockAgent();
 agent.disableNetConnect();
 setGlobalDispatcher(agent);
@@ -158,6 +160,91 @@ describe('an ensembledata profile answer feeding a scraper list read', () => {
       platform: 'tiktok',
       value: ensembleSecUid,
       numericId: recorded.body.data.user.id,
+    });
+  });
+});
+
+describe('scraptik confirming a scraper not_following when ensembledata fails', () => {
+  const performerId = accountId(
+    'tiktok',
+    'MS4wLjABAAAAv7iSuuXDJGDvJkmH_vz1qkDZYo1apxgzaxdBSeIuPiM',
+    '107955',
+  );
+  const check = {
+    kind: 'follows',
+    performer: handle('tiktok'),
+    performerId,
+    target: handle('account_001'),
+    targetId: accountId('tiktok', 'MS4wLjABAAAA-placeholder-001', '7000000000000000001'),
+  } as const;
+  const scraptikPage = (name: string) =>
+    JSON.stringify(
+      (
+        JSON.parse(fixture(`./adapters/scraptik/fixtures/recorded/${name}`)) as {
+          body: unknown;
+        }
+      ).body,
+    );
+
+  const replay = (scraptikBody: string) => {
+    agent
+      .get(web)
+      .intercept({ path: (path) => path.startsWith('/api/user/list/'), method: 'GET' })
+      .reply(200, fixture('./adapters/scraper/fixtures/following-page-exhausted.json'), {
+        headers: json,
+      });
+    agent
+      .get(ensembledata)
+      .intercept({
+        path: (path) => new URL(path, ensembledata).pathname === '/apis/tt/user/followings',
+        method: 'GET',
+      })
+      .reply(500, '{"detail":"Internal error."}', { headers: json });
+    agent
+      .get(rapidapi)
+      .intercept({ path: (path) => path.startsWith('/list-following'), method: 'GET' })
+      .reply(200, scraptikBody, { headers: json });
+  };
+
+  const verifier = () =>
+    createVerifier(
+      {
+        order: {
+          profile: ['ensemble'],
+          follows: ['scraper', 'ensemble', 'scraptik'],
+          liked: ['scraper'],
+        },
+        timeoutMs: 1000,
+        pageCap: 3,
+      },
+      {
+        sources: [
+          scraperSource({ http, signer: passThroughSigner }),
+          ensembledataSource({ http, token: 'rePlay7oken9Qz4X' }),
+          scraptikSource({ http, rapidApiKey: 'replay-rapidapi-key' }),
+        ],
+      },
+    );
+
+  it('settles verified from scraptik after ensembledata errors', async () => {
+    replay(scraptikPage('list-following-tiktok.json'));
+
+    const verdict = await verifier().verify(check);
+
+    expect(verdict).toMatchObject({ outcome: 'verified', source: 'scraptik' });
+    expect(verdict.attempts.map((attempt) => [attempt.source, attempt.outcome])).toEqual([
+      ['scraper', 'not_following'],
+      ['ensemble', 'source_error'],
+      ['scraptik', 'verified'],
+    ]);
+  });
+
+  it('settles not_following once scraptik agrees with the scraper', async () => {
+    replay(JSON.stringify({ status_code: 0, followings: [], has_more: false }));
+
+    await expect(verifier().verify(check)).resolves.toMatchObject({
+      outcome: 'not_following',
+      source: 'scraptik',
     });
   });
 });
