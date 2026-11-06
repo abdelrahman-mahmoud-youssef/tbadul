@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  avatarNotDefault,
   evaluateEligibility,
   followingVisible,
-  minAccountAge,
   minFollowers,
   minPosts,
   publicAccount,
@@ -17,9 +15,7 @@ const now = Date.UTC(2026, 10, 2);
 const config: EligibilityConfig = {
   minFollowers: 10,
   minPosts: 1,
-  minAccountAgeDays: 30,
   activeWithinDays: 90,
-  defaultAvatarMarkers: ['default-avatar'],
   inconclusiveBlocks: false,
 };
 const omit = (facts: ProfileFacts, key: keyof ProfileFacts): ProfileFacts =>
@@ -41,13 +37,6 @@ describe('eligibility rules', () => {
     ['following_visible', followingVisible, { followingVisible: false }, 'following_hidden'],
     ['min_followers', minFollowers, { followerCount: 9 }, 'followers_below_minimum'],
     ['min_posts', minPosts, { videoCount: 0 }, 'no_posts'],
-    [
-      'avatar_not_default',
-      avatarNotDefault,
-      { avatarUrl: 'https://cdn/default-avatar.png' },
-      'default_avatar',
-    ],
-    ['min_account_age', minAccountAge, { createdAt: now - 29 * day }, 'account_too_new'],
     ['recent_activity', recentActivity, { latestPostAt: now - 91 * day }, 'inactive'],
   ] as const)('%s passes on the threshold and fails below it', (rule, evaluate, bad, reason) => {
     expect(evaluate(good, now, config)).toEqual({ rule, result: 'pass' });
@@ -58,8 +47,6 @@ describe('eligibility rules', () => {
     ['following_visible', followingVisible, 'followingVisible', 'following_visibility_unknown'],
     ['min_followers', minFollowers, 'followerCount', 'followers_unknown'],
     ['min_posts', minPosts, 'videoCount', 'posts_unknown'],
-    ['avatar_not_default', avatarNotDefault, 'avatarUrl', 'avatar_unknown'],
-    ['min_account_age', minAccountAge, 'createdAt', 'account_age_unknown'],
     ['recent_activity', recentActivity, 'latestPostAt', 'activity_unknown'],
   ] as const)('%s is inconclusive without the fact', (rule, evaluate, missing, reason) => {
     expect(evaluate(omit(good, missing), now, config)).toEqual({
@@ -68,21 +55,23 @@ describe('eligibility rules', () => {
       reason,
     });
   });
-
-  it('avatar rule is inconclusive when no default marker is configured', () => {
-    expect(avatarNotDefault(good, now, { ...config, defaultAvatarMarkers: [] })).toEqual({
-      rule: 'avatar_not_default',
-      result: 'inconclusive',
-      reason: 'avatar_unknown',
-    });
-  });
 });
 
 describe('evaluateEligibility', () => {
   it('is eligible when every rule passes', () => {
     const report = evaluateEligibility(good, now, config);
     expect(report.eligible).toBe(true);
-    expect(report.results).toHaveLength(7);
+    expect(report.results).toHaveLength(5);
+  });
+
+  it('records account creation time and avatar as signals without judging them', () => {
+    const report = evaluateEligibility({ ...good, createdAt: now - day }, now, config);
+
+    expect(report.eligible).toBe(true);
+    expect(report.signals).toEqual({
+      accountCreatedAt: now - day,
+      avatarUrl: 'https://cdn.example/avatar/abc.jpeg',
+    });
   });
 
   it('is not eligible when one rule fails and keeps every result', () => {

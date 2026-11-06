@@ -18,9 +18,7 @@ export const socialAccountsConfigSchema = z.object({
   eligibility: z.object({
     minFollowers: z.number().int().nonnegative().default(10),
     minPosts: z.number().int().nonnegative().default(1),
-    minAccountAgeDays: z.number().int().nonnegative().default(30),
     activeWithinDays: positiveInt.default(90),
-    defaultAvatarMarkers: z.array(z.string().min(1)).default([]),
     inconclusiveBlocks: z.boolean().default(false),
   }),
   cooldown: z.object({

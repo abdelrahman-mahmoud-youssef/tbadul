@@ -3,9 +3,7 @@ import type { ProfileFacts } from './profile-facts.ts';
 export interface EligibilityConfig {
   readonly minFollowers: number;
   readonly minPosts: number;
-  readonly minAccountAgeDays: number;
   readonly activeWithinDays: number;
-  readonly defaultAvatarMarkers: readonly string[];
   readonly inconclusiveBlocks: boolean;
 }
 
@@ -14,8 +12,6 @@ export const ruleNames = [
   'following_visible',
   'min_followers',
   'min_posts',
-  'avatar_not_default',
-  'min_account_age',
   'recent_activity',
 ] as const;
 
@@ -29,10 +25,6 @@ export type ReasonCode =
   | 'followers_unknown'
   | 'no_posts'
   | 'posts_unknown'
-  | 'default_avatar'
-  | 'avatar_unknown'
-  | 'account_too_new'
-  | 'account_age_unknown'
   | 'inactive'
   | 'activity_unknown';
 
@@ -50,9 +42,15 @@ export type EligibilityRule = (
   config: EligibilityConfig,
 ) => RuleResult;
 
+export interface EligibilitySignals {
+  readonly accountCreatedAt?: number;
+  readonly avatarUrl?: string;
+}
+
 export interface EligibilityReport {
   readonly eligible: boolean;
   readonly results: readonly RuleResult[];
+  readonly signals?: EligibilitySignals;
 }
 
 const dayMs = 86_400_000;
@@ -89,23 +87,6 @@ export const minPosts: EligibilityRule = (facts, _now, config) => {
   return facts.videoCount >= config.minPosts ? pass('min_posts') : fail('min_posts', 'no_posts');
 };
 
-export const avatarNotDefault: EligibilityRule = (facts, _now, config) => {
-  if (facts.avatarUrl === undefined || config.defaultAvatarMarkers.length === 0) {
-    return inconclusive('avatar_not_default', 'avatar_unknown');
-  }
-  const url = facts.avatarUrl;
-  return config.defaultAvatarMarkers.some((marker) => url.includes(marker))
-    ? fail('avatar_not_default', 'default_avatar')
-    : pass('avatar_not_default');
-};
-
-export const minAccountAge: EligibilityRule = (facts, now, config) => {
-  if (facts.createdAt === undefined) return inconclusive('min_account_age', 'account_age_unknown');
-  return now - facts.createdAt >= config.minAccountAgeDays * dayMs
-    ? pass('min_account_age')
-    : fail('min_account_age', 'account_too_new');
-};
-
 export const recentActivity: EligibilityRule = (facts, now, config) => {
   if (facts.latestPostAt === undefined) return inconclusive('recent_activity', 'activity_unknown');
   return now - facts.latestPostAt <= config.activeWithinDays * dayMs
@@ -113,13 +94,16 @@ export const recentActivity: EligibilityRule = (facts, now, config) => {
     : fail('recent_activity', 'inactive');
 };
 
+const signalsOf = (facts: ProfileFacts): EligibilitySignals => ({
+  ...(facts.createdAt !== undefined && { accountCreatedAt: facts.createdAt }),
+  ...(facts.avatarUrl !== undefined && { avatarUrl: facts.avatarUrl }),
+});
+
 export const eligibilityRules: readonly EligibilityRule[] = [
   publicAccount,
   followingVisible,
   minFollowers,
   minPosts,
-  avatarNotDefault,
-  minAccountAge,
   recentActivity,
 ];
 
@@ -134,5 +118,5 @@ export const evaluateEligibility = (
     (result) =>
       result.result === 'fail' || (result.result === 'inconclusive' && config.inconclusiveBlocks),
   );
-  return { eligible: !blocked, results };
+  return { eligible: !blocked, results, signals: signalsOf(facts) };
 };

@@ -12,9 +12,7 @@ export const policy: ClaimPolicy = {
   eligibility: {
     minFollowers: 10,
     minPosts: 1,
-    minAccountAgeDays: 30,
     activeWithinDays: 90,
-    defaultAvatarMarkers: [],
     inconclusiveBlocks: false,
   },
   cooldown: { stepsMs: [30_000, 60_000, 120_000, 300_000], afterwardsMs: 600_000 },
