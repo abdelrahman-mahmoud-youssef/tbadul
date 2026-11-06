@@ -278,10 +278,12 @@ describe.skipIf(databaseUrl === null)('the CLI on PostgreSQL', () => {
     expect(added).toMatchObject({ code: 0 });
     expect(added.out).toEqual([
       `@${handle} added to the verification pool`,
+      expect.stringMatching(/^profile via scraper: verified in \d+ ms, 1 request$/),
       'profile cache hits 0, misses 1',
     ]);
     expect(again.out).toEqual([
       `@${handle} is already in the verification pool`,
+      expect.stringMatching(/^profile via cache: verified in \d+ ms$/),
       'profile cache hits 1, misses 0',
     ]);
     expect(listed.out).toContain(`@${handle}  active  assigned 0`);

@@ -30,6 +30,14 @@ const measured = (attempts: readonly Attempt[]): string => {
   return `latency ${String(latency)} ms, requests ${String(spent('request'))}${units > 0 ? `, units ${String(units)}` : ''}`;
 };
 
+export const attemptLines = (attempts: readonly Attempt[]): string[] =>
+  attempts.map((attempt) => {
+    const error = attempt.error === undefined ? '' : ` (${attempt.error.kind})`;
+    const cost =
+      attempt.cost === undefined ? '' : `, ${String(attempt.cost.amount)} ${attempt.cost.unit}`;
+    return `${attempt.check} via ${attempt.source}: ${attempt.outcome}${error} in ${String(attempt.latencyMs)} ms${cost}`;
+  });
+
 export const cacheUse = (attempts: readonly Attempt[]): string | undefined => {
   const profiles = attempts.filter((attempt) => attempt.check === 'profile');
   if (profiles.length === 0) return undefined;

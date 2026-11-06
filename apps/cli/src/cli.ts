@@ -19,6 +19,7 @@ import { composeSocialAccounts, composeVerifier, type Sources } from './compose.
 import { databaseUserId, readEnv, sourceChoice, sourceChoices, type Env } from './config.ts';
 import type { Demo } from './demo.ts';
 import {
+  attemptLines,
   cacheUse,
   followsCommand,
   likedCommand,
@@ -251,6 +252,7 @@ const runCommand = async (
   const run: Run = { env, verifier, attempts, poolFlags: flags.poolFlags };
   try {
     const code = await dispatch(run);
+    if (command.kind !== 'demo') for (const line of attemptLines(attempts)) console.log(line);
     const cache = cacheUse(attempts);
     if (cache !== undefined) console.log(cache);
     return code;
