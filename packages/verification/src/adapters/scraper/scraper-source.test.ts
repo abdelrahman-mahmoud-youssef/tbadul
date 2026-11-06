@@ -114,7 +114,7 @@ describe('scraperSource', () => {
       ).resolves.toEqual({
         outcome: 'verified',
         evidence: {
-          accountId: { platform: 'tiktok', value: profileSecUid },
+          accountId: { platform: 'tiktok', value: profileSecUid, numericId: '107955' },
           bio: 'Your next discovery is waiting on TikTok.',
           isPrivate: false,
           followingVisible: true,
@@ -232,6 +232,26 @@ describe('scraperSource', () => {
         error: { kind: 'parse' },
         cost: { unit: 'request', amount: 1 },
       });
+    });
+
+    it('matches by uid as well when the target carries its numeric id', async () => {
+      following(recordedListWith({ uniqueId: 'renamed.creators' }));
+      await expect(
+        source.answer(
+          { ...byId, targetId: accountId('tiktok', targetSecUid, '6551237489917432832') },
+          context(),
+        ),
+      ).resolves.toMatchObject({ outcome: 'verified' });
+    });
+
+    it('answers identity_conflict when the entry secUid agrees but its uid differs', async () => {
+      following(recordedListWith({}));
+      await expect(
+        source.answer(
+          { ...byId, targetId: accountId('tiktok', targetSecUid, '7000000000000000001') },
+          context(),
+        ),
+      ).resolves.toMatchObject({ outcome: 'source_error', error: { kind: 'identity_conflict' } });
     });
 
     it('answers verified for an entry with a new handle but the target account id', async () => {

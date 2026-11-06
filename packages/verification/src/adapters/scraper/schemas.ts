@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const followingListSchema = z.object({
   statusCode: z.number().int(),
-  userList: z.array(z.object({ user: z.object({ secUid: z.string() }) })).optional(),
+  userList: z
+    .array(z.object({ user: z.object({ secUid: z.string(), id: z.string().exactOptional() }) }))
+    .optional(),
   minCursor: z.coerce.string().optional(),
   hasMore: z.boolean().optional(),
 });

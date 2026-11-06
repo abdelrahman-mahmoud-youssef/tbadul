@@ -6,7 +6,7 @@ import type { Cost, SourceError } from '../../domain/outcome.ts';
 import { ok, type Result } from '../../domain/result.ts';
 import type { VerificationSource } from '../../ports/verification-source.ts';
 import { defineSource } from '../define-source.ts';
-import { scanList, withPerformer, type PageRead } from '../list-scan.ts';
+import { sameValue, scanList, withPerformer, type PageRead } from '../list-scan.ts';
 import {
   ensembledataClient,
   type EnsembledataClient,
@@ -56,7 +56,7 @@ const readProfile = async (
   return {
     outcome: 'verified',
     evidence: {
-      accountId: accountId(handle.platform, user.secUid),
+      accountId: accountId(handle.platform, user.secUid, user.id),
       bio: user.signature,
       isPrivate: user.privateAccount,
       ...(user.openFavorite !== undefined && { likesVisible: user.openFavorite }),
@@ -125,7 +125,7 @@ export const ensembledataSource = (deps: EnsembledataDeps): VerificationSource =
                 schema: likedPostsSchema,
                 read: likedPostsPage,
               }),
-              (post) => post.aweme_id === check.content.value,
+              (post) => sameValue(post.aweme_id, check.content.value),
               units.cost,
             ),
         );

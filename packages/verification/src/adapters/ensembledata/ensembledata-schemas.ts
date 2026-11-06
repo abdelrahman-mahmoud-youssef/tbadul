@@ -12,6 +12,7 @@ export const userInfoSchema = z.object({
   data: z
     .object({
       user: z.object({
+        id: z.string(),
         secUid: z.string(),
         signature: z.string(),
         privateAccount: z.boolean(),

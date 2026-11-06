@@ -20,7 +20,7 @@ const minimal = (): ProfileEvidence => ({
 });
 
 const full = (): ProfileEvidence => ({
-  accountId: accountId('tiktok', randomUUID()),
+  accountId: accountId('tiktok', randomUUID(), String(Date.now())),
   bio: 'a creator',
   isPrivate: false,
   followingVisible: true,

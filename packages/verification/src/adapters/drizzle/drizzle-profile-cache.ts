@@ -27,7 +27,7 @@ const cachedProfileOf = (row: PlatformAccountRow): CachedProfile => {
     ...handle,
     fetchedAt: row.profileFetchedAt.getTime(),
     evidence: {
-      accountId: accountId(row.platform, row.externalId),
+      accountId: accountId(row.platform, row.externalId, row.numericId ?? undefined),
       ...extrasSchema.parse(row.extras),
       isPrivate: row.isPrivate,
       ...present(row.followingVisible, (followingVisible) => ({ followingVisible })),
@@ -75,6 +75,7 @@ export const drizzleProfileCache = (db: Database): ProfileCache => ({
         ...extras
       } = evidence;
       const profile = {
+        ...(account.numericId !== undefined && { numericId: account.numericId }),
         handle: handle.value,
         handleSeenAt: new Date(fetchedAt),
         isPrivate,

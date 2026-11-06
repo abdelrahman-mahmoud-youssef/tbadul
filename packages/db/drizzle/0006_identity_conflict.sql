@@ -1,0 +1,2 @@
+ALTER TABLE "verification_checks" DROP CONSTRAINT "verification_checks_error_kind_check";--> statement-breakpoint
+ALTER TABLE "verification_checks" ADD CONSTRAINT "verification_checks_error_kind_check" CHECK ("verification_checks"."error_kind" in ('timeout', 'network', 'http', 'auth', 'rate_limited', 'blocked', 'parse', 'unknown_status', 'incomplete_list', 'unsupported', 'identity_conflict', 'unexpected'));

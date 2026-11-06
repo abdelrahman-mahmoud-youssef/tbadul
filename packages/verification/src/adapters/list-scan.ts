@@ -1,4 +1,4 @@
-import type { AccountId } from '../domain/account-id.ts';
+import type { AccountId, AccountMatch } from '../domain/account-id.ts';
 import { failed, type Answer } from '../domain/answer.ts';
 import type { ProfileEvidence } from '../domain/evidence.ts';
 import type { Handle } from '../domain/handle.ts';
@@ -21,10 +21,31 @@ export const perRequest =
   (pagesRead: number): Cost =>
     requests(costBefore + pagesRead);
 
+export const sameValue = (listed: string, wanted: string): AccountMatch =>
+  listed === wanted ? 'same' : 'other';
+
+const unmatchable: Record<'conflict' | 'unknown', SourceError> = {
+  conflict: {
+    kind: 'identity_conflict',
+    message: 'a list entry agrees with the target on one id and differs on another',
+  },
+  unknown: {
+    kind: 'unsupported',
+    message: 'a list entry carries no id the target is known by',
+  },
+};
+
+const settlePage = (matches: readonly AccountMatch[]): AccountMatch => {
+  if (matches.includes('same')) return 'same';
+  if (matches.includes('conflict')) return 'conflict';
+  if (matches.includes('unknown')) return 'unknown';
+  return 'other';
+};
+
 export const scanList = async <T, C = string>(
   context: CallContext,
   readPage: (cursor: C | undefined) => Promise<PageRead<T, C>>,
-  matches: (item: T) => boolean,
+  match: (item: T) => AccountMatch,
   costOf: (pagesRead: number) => Cost,
 ): Promise<Answer<'follows'>> => {
   let cursor: C | undefined;
@@ -35,13 +56,15 @@ export const scanList = async <T, C = string>(
     if ('outcome' in read) return { outcome: read.outcome, cost };
     if (!read.ok) return failed(read.error, cost);
     entriesRead += read.value.items.length;
-    if (read.value.items.some(matches)) {
+    const settled = settlePage(read.value.items.map(match));
+    if (settled === 'same') {
       return {
         outcome: 'verified',
         evidence: { pagesRead: page, listExhausted: false, entriesRead },
         cost,
       };
     }
+    if (settled !== 'other') return failed(unmatchable[settled], cost);
     if (read.value.next === undefined) {
       return {
         outcome: 'not_following',

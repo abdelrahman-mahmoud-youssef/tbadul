@@ -43,6 +43,13 @@
       "when": 1793807822575,
       "tag": "0005_auth_email_case_insensitive",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793974731034,
+      "tag": "0006_identity_conflict",
+      "breakpoints": true
     }
   ]
 }

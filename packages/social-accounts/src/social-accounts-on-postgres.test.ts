@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { createDatabase, type Database, type DatabaseClient } from '@engagement-exchange/db';
+import { accountId } from '@engagement-exchange/verification';
 import { providedDatabaseUrl } from '@engagement-exchange/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { drizzleClaimRepository } from './adapters/drizzle/drizzle-claim-repository.ts';
@@ -69,6 +71,34 @@ describe.skipIf(databaseUrl === null)('social accounts on PostgreSQL', () => {
       value: { claim: { state: 'verified', version: 1 } },
     });
     await expect(repository.findOwner(started.value.accountId)).resolves.toBe(user);
+  });
+
+  it('checks the follow against the pooled account by its secUid and numeric id', async () => {
+    const pooled = {
+      handle: uniqueHandle('numeric'),
+      accountId: accountId('tiktok', randomUUID(), String(Date.now())),
+    };
+    await drizzleVerificationAccountPool(db).add(pooled, now);
+    const candidate = (await drizzleVerificationAccountPool(db).candidates('tiktok')).find(
+      (entry) => entry.accountId.value === pooled.accountId.value,
+    );
+    if (candidate === undefined) throw new Error('pooled account is not a candidate');
+    const claim = await seed(repository, openClaim(await insertUser(db), candidate, now));
+    const verifier = fakeVerifier({ follows: () => 'not_following' });
+
+    await createSocialAccounts(
+      { eligibility: {}, cooldown: {} },
+      {
+        verifier,
+        repository,
+        pool: drizzleVerificationAccountPool(db),
+        ids: uuidIds,
+        clock: { now: () => now },
+      },
+    ).verifyAccountClaim(claim.id);
+
+    expect(candidate.accountId).toEqual(pooled.accountId);
+    expect(verifier.calls).toMatchObject([{ kind: 'follows', targetId: pooled.accountId }]);
   });
 
   it('lets exactly one of two users verifying the same account at once own it', async () => {

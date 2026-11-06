@@ -7,7 +7,7 @@ import {
   platformAccounts,
   type Database,
 } from '@engagement-exchange/db';
-import { accountId, err, ok, type Platform, type Result } from '@engagement-exchange/verification';
+import { err, ok, type Platform, type Result } from '@engagement-exchange/verification';
 import { and, asc, eq, gt, lte, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { AccountClaim } from '../../domain/claim.ts';
@@ -19,6 +19,7 @@ import type {
   VerifyClaimError,
 } from '../../ports/account-claim-repository.ts';
 import {
+  accountOf,
   handleOf,
   platformAccountOf,
   sameAccount,
@@ -34,7 +35,9 @@ const selectClaims = (db: Executor, where: SQL | undefined) =>
     .select({
       claim: accountClaims,
       externalId: platformAccounts.externalId,
+      numericId: platformAccounts.numericId,
       verificationExternalId: verification.externalId,
+      verificationNumericId: verification.numericId,
     })
     .from(accountClaims)
     .innerJoin(platformAccounts, eq(platformAccounts.id, accountClaims.platformAccountId))
@@ -59,12 +62,15 @@ const findClaim = async (
     userId: userId(claim.userId),
     platform: claim.platform,
     handle: handleOf(claim.platform, claim.handle),
-    accountId: accountId(claim.platform, row.externalId),
+    accountId: accountOf(claim.platform, row),
     ...(claim.verificationHandle !== null && {
       verificationAccount: handleOf(claim.platform, claim.verificationHandle),
     }),
     ...(row.verificationExternalId !== null && {
-      verificationAccountId: accountId(claim.platform, row.verificationExternalId),
+      verificationAccountId: accountOf(claim.platform, {
+        externalId: row.verificationExternalId,
+        numericId: row.verificationNumericId,
+      }),
     }),
     eligibility: claim.eligibility as EligibilityReport,
     state: claim.state,

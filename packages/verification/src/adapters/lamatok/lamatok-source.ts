@@ -1,12 +1,19 @@
 import type { z } from 'zod';
-import { accountId } from '../../domain/account-id.ts';
+import { accountId, matchAccount } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
 import type { Handle } from '../../domain/handle.ts';
 import type { SourceError } from '../../domain/outcome.ts';
 import { err, ok } from '../../domain/result.ts';
 import type { CallContext, VerificationSource } from '../../ports/verification-source.ts';
 import { defineSource } from '../define-source.ts';
-import { perRequest, requests, scanList, withPerformer, type PageRead } from '../list-scan.ts';
+import {
+  perRequest,
+  requests,
+  sameValue,
+  scanList,
+  withPerformer,
+  type PageRead,
+} from '../list-scan.ts';
 import { lamatokClient, type LamatokClient, type LamatokDeps } from './lamatok-client.ts';
 import {
   followingPageSchema,
@@ -133,7 +140,7 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
             schema: followingPageSchema,
             read: followingPage,
           }),
-          (entry) => entry.user.secUid === check.targetId.value,
+          (entry) => matchAccount(check.targetId, { value: entry.user.secUid }),
           perRequest(0),
         ),
       liked: (check, context) =>
@@ -151,7 +158,7 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
                 schema: likesPageSchema,
                 read: likesPage,
               }),
-              (item) => item.id === check.content.value,
+              (item) => sameValue(item.id, check.content.value),
               perRequest(costBefore),
             ),
         ),

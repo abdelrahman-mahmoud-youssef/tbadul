@@ -100,7 +100,10 @@ describe('an ensembledata profile answer feeding a scraper list read', () => {
   it('reads the following list by the account id ensembledata resolved', async () => {
     const recorded = JSON.parse(
       fixture('./adapters/ensembledata/fixtures/recorded/info-tiktok.json'),
-    ) as { headers: Record<string, string>; body: { data: { user: { secUid: string } } } };
+    ) as {
+      headers: Record<string, string>;
+      body: { data: { user: { secUid: string; id: string } } };
+    };
     const ensembleSecUid = recorded.body.data.user.secUid;
     agent
       .get(ensembledata)
@@ -151,6 +154,10 @@ describe('an ensembledata profile answer feeding a scraper list read', () => {
       source: 'scraper',
       evidence: { pagesRead: 1, listExhausted: false },
     });
-    expect(profile.evidence.accountId).toEqual({ platform: 'tiktok', value: ensembleSecUid });
+    expect(profile.evidence.accountId).toEqual({
+      platform: 'tiktok',
+      value: ensembleSecUid,
+      numericId: recorded.body.data.user.id,
+    });
   });
 });

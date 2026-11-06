@@ -1,4 +1,4 @@
-import { accountId } from '../../domain/account-id.ts';
+import { accountId, matchAccount } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
 import type { Handle } from '../../domain/handle.ts';
 import type { SourceError } from '../../domain/outcome.ts';
@@ -12,7 +12,14 @@ import {
   type HttpClient,
   type HttpReply,
 } from '../http/http-client.ts';
-import { perRequest, requests, scanList, withPerformer, type PageRead } from '../list-scan.ts';
+import {
+  perRequest,
+  requests,
+  sameValue,
+  scanList,
+  withPerformer,
+  type PageRead,
+} from '../list-scan.ts';
 import { extractUserDetail, type UserDetail } from './profile-page.ts';
 import { followingListSchema, likedListSchema } from './schemas.ts';
 
@@ -84,7 +91,7 @@ const profileAnswer = (detail: UserDetail, handle: Handle): Answer<'profile'> =>
   return {
     outcome: 'verified',
     evidence: {
-      accountId: accountId(handle.platform, user.secUid),
+      accountId: accountId(handle.platform, user.secUid, user.id),
       bio: user.signature,
       isPrivate: user.privateAccount,
       ...(user.followingVisibility !== undefined && {
@@ -132,7 +139,7 @@ const signedPage =
     return read(reply.value);
   };
 
-const readFollowing = (reply: HttpReply): PageRead<{ user: { secUid: string } }> => {
+const readFollowing = (reply: HttpReply): PageRead<{ user: { secUid: string; id?: string } }> => {
   const decoded = decodeJson(reply, followingListSchema);
   if (!decoded.ok) return decoded;
   const { statusCode, userList, hasMore, minCursor } = decoded.value;
@@ -173,7 +180,11 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
             scanList(
               context,
               signedPage(deps, context, (cursor) => followingUrl(secUid, cursor), readFollowing),
-              (entry) => entry.user.secUid === check.targetId.value,
+              (entry) =>
+                matchAccount(check.targetId, {
+                  value: entry.user.secUid,
+                  ...(entry.user.id !== undefined && { numericId: entry.user.id }),
+                }),
               perRequest(costBefore),
             ),
         ),
@@ -186,7 +197,7 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
             scanList(
               context,
               signedPage(deps, context, (cursor) => likedUrl(secUid, cursor), readLiked),
-              (item) => item.id === check.content.value,
+              (item) => sameValue(item.id, check.content.value),
               perRequest(costBefore),
             ),
         ),

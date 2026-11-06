@@ -19,6 +19,7 @@ export const sourceErrorKinds = [
   'unknown_status',
   'incomplete_list',
   'unsupported',
+  'identity_conflict',
   'unexpected',
 ] as const;
 

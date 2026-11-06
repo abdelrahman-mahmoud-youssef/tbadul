@@ -48,6 +48,8 @@ A `follows` or `liked` check may carry the performer's `AccountId` (`performerId
 
 A `follows` check carries the target's `AccountId` as `targetId`, and it is required. Every source matches a list entry by that id, never by handle: handles change and are reused, so a handle match could pass a follow of whoever holds the handle now for a follow of the account the caller resolved. The target `Handle` stays on the check as a display label. A source whose list entries carry no usable account id answers `source_error` with kind `unsupported` for follows instead of matching by handle. Added on 2026-11-04.
 
+An `AccountId` may carry the platform's numeric id beside its primary value (`numericId`; TikTok's numeric `uid` beside the `secUid`). Identity stays the primary value; the numeric id is a second key that is as stable. Sources match list entries through one domain rule, `matchAccount`: an entry is the target when every id known on both sides agrees, another account when every such id differs, an `identity_conflict` source error when some agree and some differ, and an `unsupported` source error when no id is known on both sides. A conflict or an unmatchable entry is never a match and never `not_following`. Added on 2026-11-06.
+
 The outcome set stays the five names given in the plan, including `not_following` for an absent like or an absent bio token. The vocabulary is frozen when the API phase starts; the plan carries the rename as an open question until then.
 
 ### Mechanical enforcement of the layer rule

@@ -1,16 +1,11 @@
 import { platformAccounts, verificationAccounts, type Database } from '@engagement-exchange/db';
-import {
-  accountId,
-  type AccountId,
-  type Handle,
-  type Platform,
-} from '@engagement-exchange/verification';
+import type { AccountId, Handle, Platform } from '@engagement-exchange/verification';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type {
   VerificationAccountPool,
   VerificationCandidate,
 } from '../../ports/verification-account-pool.ts';
-import { accountWithHandle, handleOf, sameAccount } from './rows.ts';
+import { accountOf, accountWithHandle, handleOf, sameAccount } from './rows.ts';
 
 export interface PooledAccount {
   readonly accountId: AccountId;
@@ -27,7 +22,11 @@ export interface DrizzleVerificationAccountPool extends VerificationAccountPool 
 export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificationAccountPool => ({
   candidates: async (platform) => {
     const rows = await db
-      .select({ handle: platformAccounts.handle, externalId: platformAccounts.externalId })
+      .select({
+        handle: platformAccounts.handle,
+        externalId: platformAccounts.externalId,
+        numericId: platformAccounts.numericId,
+      })
       .from(verificationAccounts)
       .innerJoin(platformAccounts, eq(platformAccounts.id, verificationAccounts.platformAccountId))
       .where(and(eq(verificationAccounts.active, true), eq(platformAccounts.platform, platform)))
@@ -38,7 +37,7 @@ export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificatio
         : [
             {
               handle: handleOf(platform, row.handle),
-              accountId: accountId(platform, row.externalId),
+              accountId: accountOf(platform, row),
             },
           ],
     );
@@ -79,6 +78,7 @@ export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificatio
       .select({
         handle: platformAccounts.handle,
         externalId: platformAccounts.externalId,
+        numericId: platformAccounts.numericId,
         active: verificationAccounts.active,
         assignedCount: verificationAccounts.assignedCount,
       })
@@ -87,7 +87,7 @@ export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificatio
       .where(eq(platformAccounts.platform, platform))
       .orderBy(asc(verificationAccounts.addedAt), asc(verificationAccounts.id));
     return rows.map((row) => ({
-      accountId: accountId(platform, row.externalId),
+      accountId: accountOf(platform, row),
       ...(row.handle !== null && { handle: handleOf(platform, row.handle) }),
       active: row.active,
       assignedCount: row.assignedCount,

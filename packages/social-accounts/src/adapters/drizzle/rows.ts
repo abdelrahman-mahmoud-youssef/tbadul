@@ -1,5 +1,10 @@
 import { platformAccounts, type Database } from '@engagement-exchange/db';
-import type { AccountId, Handle, Platform } from '@engagement-exchange/verification';
+import {
+  accountId,
+  type AccountId,
+  type Handle,
+  type Platform,
+} from '@engagement-exchange/verification';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -29,13 +34,25 @@ export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export type Executor = Database | Transaction;
 
+export const numericIdOf = (account: AccountId) =>
+  account.numericId === undefined ? {} : { numericId: account.numericId };
+
+export const accountOf = (
+  platform: Platform,
+  row: { readonly externalId: string; readonly numericId: string | null },
+): AccountId => accountId(platform, row.externalId, row.numericId ?? undefined);
+
 export const accountWithHandle = async (
   db: Transaction,
   account: AccountId,
   handle: Handle,
   seenAt: number,
 ): Promise<string> => {
-  const seen = { handle: handle.value, handleSeenAt: new Date(seenAt) };
+  const seen = {
+    handle: handle.value,
+    handleSeenAt: new Date(seenAt),
+    ...numericIdOf(account),
+  };
   await db
     .update(platformAccounts)
     .set({ handle: null, handleSeenAt: null })
@@ -68,6 +85,7 @@ export const platformAccountOf = async (
     .values({
       platform: account.platform,
       externalId: account.value,
+      ...numericIdOf(account),
       ...(handle !== undefined && { handle: handle.value, handleSeenAt: new Date(seenAt) }),
     })
     .onConflictDoNothing({ target: [platformAccounts.platform, platformAccounts.externalId] });

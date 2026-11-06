@@ -97,7 +97,7 @@ describe('ensembledataSource', () => {
       await expect(source.answer(profileCheck, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: {
-          accountId: accountId('tiktok', tiktokSecUid),
+          accountId: accountId('tiktok', tiktokSecUid, '107955'),
           bio: 'Your next discovery is waiting on TikTok.',
           isPrivate: false,
           likesVisible: false,
@@ -116,14 +116,20 @@ describe('ensembledataSource', () => {
         raw(
           200,
           JSON.stringify({
-            data: { user: { secUid: tiktokSecUid, signature: '', privateAccount: true } },
+            data: {
+              user: { id: '107955', secUid: tiktokSecUid, signature: '', privateAccount: true },
+            },
           }),
           1,
         ),
       );
       await expect(source.answer(profileCheck, context())).resolves.toEqual({
         outcome: 'verified',
-        evidence: { accountId: accountId('tiktok', tiktokSecUid), bio: '', isPrivate: true },
+        evidence: {
+          accountId: accountId('tiktok', tiktokSecUid, '107955'),
+          bio: '',
+          isPrivate: true,
+        },
         cost: units(1),
       });
     });
