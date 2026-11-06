@@ -26,10 +26,14 @@ import { ordersFor, planOrders } from './orders.ts';
 
 const discard: MeasurementSink = { record: () => undefined };
 
+export const listChecks = ['follows', 'liked'] as const;
+
+export type ListCheck = (typeof listChecks)[number];
+
 export interface ComposedVerifier {
   readonly verifier: Verifier;
   readonly leftOut: readonly CliSourceName[];
-  readonly followsConfirmed: boolean;
+  readonly unconfirmed: readonly ListCheck[];
 }
 
 export type Sources = ReadonlyMap<CliSourceName, VerificationSource>;
@@ -85,13 +89,14 @@ export const composeVerifier = (
       ...(parts.profileCache !== undefined && { profileCache: parts.profileCache }),
     },
   );
-  const followsSources = planned.value.orders.follows.filter(
-    (name) => sources.get(name)?.supports.has('follows') === true,
-  );
+  const serving = (kind: ListCheck) =>
+    planned.value.orders[kind].filter((name) => sources.get(name)?.supports.has(kind) === true);
   return ok({
     verifier,
     leftOut: planned.value.leftOut,
-    followsConfirmed: !env.VERIFICATION_CONFIRM_NOT_FOLLOWING || followsSources.length > 1,
+    unconfirmed: env.VERIFICATION_CONFIRM_NOT_FOLLOWING
+      ? listChecks.filter((kind) => serving(kind).length < 2)
+      : [],
   });
 };
 

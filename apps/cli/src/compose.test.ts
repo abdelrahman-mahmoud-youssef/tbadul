@@ -12,14 +12,14 @@ describe('composeVerifier', () => {
   it('confirms follows with ensemble when its token is configured', () => {
     expect(composeVerifier(env({ ENSEMBLEDATA_TOKEN: 'configured' }))).toMatchObject({
       ok: true,
-      value: { leftOut: ['scraptik'], followsConfirmed: true },
+      value: { leftOut: ['scraptik'], unconfirmed: [] },
     });
   });
 
-  it('confirms follows with scraptik when its key is configured', () => {
+  it('confirms follows but not liked with scraptik alone, which answers follows only', () => {
     expect(composeVerifier(env({ SCRAPTIK_RAPIDAPI_KEY: 'configured' }))).toMatchObject({
       ok: true,
-      value: { leftOut: ['ensemble'], followsConfirmed: true },
+      value: { leftOut: ['ensemble'], unconfirmed: ['liked'] },
     });
   });
 
@@ -28,29 +28,29 @@ describe('composeVerifier', () => {
       composeVerifier(
         env({ ENSEMBLEDATA_TOKEN: 'configured', SCRAPTIK_RAPIDAPI_KEY: 'configured' }),
       ),
-    ).toMatchObject({ ok: true, value: { leftOut: [], followsConfirmed: true } });
+    ).toMatchObject({ ok: true, value: { leftOut: [], unconfirmed: [] } });
   });
 
   it('reports no confirmer when only the scraper can read a following list', () => {
     expect(composeVerifier(env({}))).toMatchObject({
       ok: true,
-      value: { leftOut: ['ensemble', 'scraptik'], followsConfirmed: false },
+      value: { leftOut: ['ensemble', 'scraptik'], unconfirmed: ['follows', 'liked'] },
     });
   });
 
   it('needs no confirmer when confirmation is switched off', () => {
     expect(composeVerifier(env({ VERIFICATION_CONFIRM_NOT_FOLLOWING: 'false' }))).toMatchObject({
       ok: true,
-      value: { followsConfirmed: true },
+      value: { unconfirmed: [] },
     });
   });
 
-  it('counts only sources that answer follows as confirmers', () => {
+  it('counts every configured source that answers the check kind as a confirmer', () => {
     expect(
       composeVerifier(
         env({ LAMATOK_ACCESS_KEY: 'configured', VERIFICATION_SOURCE_ORDER: 'scraper,lamatok' }),
       ),
-    ).toMatchObject({ ok: true, value: { leftOut: [], followsConfirmed: true } });
+    ).toMatchObject({ ok: true, value: { leftOut: [], unconfirmed: [] } });
   });
 
   it('leaves nothing out when one configured source is named', () => {

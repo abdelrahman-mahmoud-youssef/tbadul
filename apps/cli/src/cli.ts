@@ -15,8 +15,15 @@ import {
   type Verifier,
 } from '@engagement-exchange/verification';
 import { needsDatabase, parseCommand, type Command, type DatabaseCommand } from './command.ts';
-import { composeSocialAccounts, composeVerifier, type Sources } from './compose.ts';
-import { databaseUserId, readEnv, sourceChoice, sourceChoices, type Env } from './config.ts';
+import { composeSocialAccounts, composeVerifier, type ListCheck, type Sources } from './compose.ts';
+import {
+  databaseUserId,
+  readEnv,
+  sourceChoice,
+  sourceChoices,
+  type Env,
+  type SourceChoice,
+} from './config.ts';
 import type { Demo } from './demo.ts';
 import {
   attemptLines,
@@ -65,8 +72,13 @@ export const inMemory =
 export const missingSchema =
   'the database schema is missing or behind: run pnpm --filter @engagement-exchange/db migrate';
 
-export const noConfirmer =
-  'no confirmer for follows checks: a not_following cannot be confirmed by a second source; set ENSEMBLEDATA_TOKEN or SCRAPTIK_RAPIDAPI_KEY';
+const confirmerKeys: Readonly<Record<ListCheck, string>> = {
+  follows: 'ENSEMBLEDATA_TOKEN or SCRAPTIK_RAPIDAPI_KEY',
+  liked: 'ENSEMBLEDATA_TOKEN',
+};
+
+export const noConfirmer = (kind: ListCheck): string =>
+  `no confirmer for ${kind} checks: a not_following cannot be confirmed by a second source; set ${confirmerKeys[kind]}`;
 
 export const poolFlagWithDatabase =
   '--verification-account applies without DATABASE_URL; add accounts with pool add <handle>';
@@ -197,6 +209,19 @@ const databaseCommand = async (run: Run, db: Database, command: Command): Promis
   }
 };
 
+const listCheckOf = (command: Command, choice: SourceChoice): ListCheck | undefined => {
+  if (command.kind !== 'demo' || choice !== 'chain') return undefined;
+  switch (command.demo.command) {
+    case 'follows':
+    case 'watch':
+      return 'follows';
+    case 'liked':
+      return 'liked';
+    default:
+      return undefined;
+  }
+};
+
 const runCommand = async (
   deps: CliDeps,
   env: Env,
@@ -238,15 +263,12 @@ const runCommand = async (
     console.error(composed.error);
     return usageError;
   }
-  const { verifier, leftOut, followsConfirmed } = composed.value;
+  const { verifier, leftOut, unconfirmed } = composed.value;
   if (leftOut.length > 0) console.error(`sources left out, no credential: ${leftOut.join(', ')}`);
   const links = command.kind === 'link start' || command.kind === 'link verify';
-  const watchesFollows =
-    command.kind === 'demo' &&
-    (command.demo.command === 'follows' || command.demo.command === 'watch') &&
-    choice.data === 'chain';
-  if (!followsConfirmed && (links || watchesFollows)) {
-    console.error(noConfirmer);
+  const listCheck = links ? 'follows' : listCheckOf(command, choice.data);
+  if (listCheck !== undefined && unconfirmed.includes(listCheck)) {
+    console.error(noConfirmer(listCheck));
     if (links) return usageError;
   }
   const run: Run = { env, verifier, attempts, poolFlags: flags.poolFlags };

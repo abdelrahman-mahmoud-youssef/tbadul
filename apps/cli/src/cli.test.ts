@@ -135,7 +135,7 @@ describe('the CLI without a database', () => {
       source,
     );
 
-    expect(result).toMatchObject({ code: 64, err: [inMemory, noConfirmer] });
+    expect(result).toMatchObject({ code: 64, err: [inMemory, noConfirmer('follows')] });
     expect(source.calls).toEqual([]);
   });
 
