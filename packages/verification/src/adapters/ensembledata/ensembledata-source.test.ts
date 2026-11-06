@@ -361,6 +361,20 @@ describe('ensembledataSource', () => {
       });
     });
 
+    it('answers identity_conflict when the performer handle now names another account', async () => {
+      info(recorded('info-tiktok.json'));
+      await expect(
+        source.answer(
+          { ...byIds, performerId: accountId('tiktok', 'MS4wLjABAAAA-previous-holder') },
+          context(),
+        ),
+      ).resolves.toMatchObject({
+        outcome: 'source_error',
+        error: { kind: 'identity_conflict' },
+        cost: units(1),
+      });
+    });
+
     it('answers not_following for an entry with the target handle but another account', async () => {
       followings(
         tiktok,

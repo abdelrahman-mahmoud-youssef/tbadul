@@ -22,6 +22,11 @@ import {
   type LikedPosts,
 } from './ensembledata-schemas.ts';
 
+const renamedPerformer: SourceError = {
+  kind: 'identity_conflict',
+  message: "the performer's handle now names another account than its account id",
+};
+
 interface FollowingsCursor {
   readonly cursor: string;
   readonly pageToken: string;
@@ -160,22 +165,24 @@ export const ensembledataSource = (deps: EnsembledataDeps): VerificationSource =
           (performer) => readProfile(units, performer, context.signal),
           () => true,
           (performer: AccountId) =>
-            scanList(
-              context,
-              pageReader(units, context.signal, {
-                path: '/tt/user/followings',
-                query: (cursor: FollowingsCursor | undefined) => ({
-                  id: performer.numericId ?? '',
-                  secUid: performer.value,
-                  ...(cursor && { cursor: cursor.cursor, page_token: cursor.pageToken }),
-                }),
-                schema: followingsSchema,
-                read: followingsPage,
-              }),
-              (entry) =>
-                matchAccount(check.targetId, { value: entry.sec_uid, numericId: entry.uid }),
-              units.cost,
-            ),
+            performerId !== undefined && performer.value !== performerId.value
+              ? Promise.resolve(failed(renamedPerformer, units.cost()))
+              : scanList(
+                  context,
+                  pageReader(units, context.signal, {
+                    path: '/tt/user/followings',
+                    query: (cursor: FollowingsCursor | undefined) => ({
+                      id: performer.numericId ?? '',
+                      secUid: performer.value,
+                      ...(cursor && { cursor: cursor.cursor, page_token: cursor.pageToken }),
+                    }),
+                    schema: followingsSchema,
+                    read: followingsPage,
+                  }),
+                  (entry) =>
+                    matchAccount(check.targetId, { value: entry.sec_uid, numericId: entry.uid }),
+                  units.cost,
+                ),
         );
       },
       liked: (check, context) => {
