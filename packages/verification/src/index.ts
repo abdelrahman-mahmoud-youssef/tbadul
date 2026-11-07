@@ -4,6 +4,7 @@ export {
   type CheckSubjects,
 } from './adapters/drizzle/drizzle-check-log.ts';
 export { drizzleProfileCache } from './adapters/drizzle/drizzle-profile-cache.ts';
+export { drizzleSpendLedger } from './adapters/drizzle/drizzle-spend-ledger.ts';
 export type { EnsembledataDeps } from './adapters/ensembledata/ensembledata-client.ts';
 export { ensembledataSource } from './adapters/ensembledata/ensembledata-source.ts';
 export { createHttpClient, type HttpClient } from './adapters/http/http-client.ts';
@@ -64,6 +65,8 @@ export type { Clock } from './ports/clock.ts';
 export type { MeasurementSink } from './ports/measurement-sink.ts';
 export type { CachedProfile, ProfileCache, ProfileEntry } from './ports/profile-cache.ts';
 export type { RequestSigner, SignedRequest } from './ports/request-signer.ts';
+export type { SpendLedger } from './ports/spend-ledger.ts';
+export type { BudgetReached, DailyBudget } from './adapters/resilience/with-budget.ts';
 export type {
   CallContext,
   FollowsAsk,

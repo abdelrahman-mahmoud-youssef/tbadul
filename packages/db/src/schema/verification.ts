@@ -25,6 +25,7 @@ export const sourceErrorKinds = [
   'incomplete_list',
   'unsupported',
   'identity_conflict',
+  'budget',
   'unexpected',
 ] as const;
 

@@ -6,6 +6,7 @@ import {
   err,
   ok,
   type Attempt,
+  type CheckLog,
   type CheckSubjects,
   type MeasurementSink,
   type PlatformScoped,
@@ -67,6 +68,23 @@ export interface MeasurementLog extends MeasurementSink {
   flush(): Promise<number>;
 }
 
+const appending = (checkLog: CheckLog, subjects: CheckSubjects): MeasurementLog => {
+  const appends: Promise<boolean>[] = [];
+  return {
+    record: (attempt) => {
+      appends.push(
+        checkLog.append(attempt, subjects).then(
+          () => true,
+          () => false,
+        ),
+      );
+    },
+    flush: async () => (await Promise.all(appends)).filter((stored) => !stored).length,
+  };
+};
+
+export const spendLog = (db: Database): MeasurementLog => appending(drizzleCheckLog(db), {});
+
 export const measurementLog = (
   env: Env,
   demo: Demo,
@@ -74,21 +92,13 @@ export const measurementLog = (
 ): Result<MeasurementLog, string> => {
   const key = env.MEASUREMENT_HMAC_KEY;
   if (key === undefined) return err(missingKey);
-  const checkLog = db === undefined ? undefined : drizzleCheckLog(db, key);
-  const subjects = checkSubjectsOf(demo);
-  const appends: Promise<boolean>[] = [];
+  const stored =
+    db === undefined ? undefined : appending(drizzleCheckLog(db, key), checkSubjectsOf(demo));
   return ok({
     record: (attempt) => {
       appendFileSync(env.MEASUREMENT_LOG_FILE, `${line(key, demo, attempt)}\n`);
-      if (checkLog !== undefined) {
-        appends.push(
-          checkLog.append(attempt, subjects).then(
-            () => true,
-            () => false,
-          ),
-        );
-      }
+      stored?.record(attempt);
     },
-    flush: async () => (await Promise.all(appends)).filter((stored) => !stored).length,
+    flush: () => stored?.flush() ?? Promise.resolve(0),
   });
 };

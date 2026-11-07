@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { accountId } from '@engagement-exchange/verification';
+import { fakeSource, handle } from '@engagement-exchange/verification/testing';
+import { describe, expect, it, vi } from 'vitest';
 import { composeVerifier } from './compose.ts';
 import { readEnv, type Env } from './config.ts';
 
@@ -81,5 +83,34 @@ describe('composeVerifier', () => {
       ok: false,
       error: 'source scraptik has no credential configured',
     });
+  });
+
+  it('skips a source at its configured daily budget and names it once', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const evidence = { accountId: accountId('tiktok', 'sec'), bio: '', isPrivate: false };
+    const answer = { outcome: 'verified', evidence, cost: { unit: 'units', amount: 1 } } as const;
+    const sources = new Map([
+      ['ensemble', fakeSource('ensemble', { profile: answer })],
+      ['scraper', fakeSource('scraper', { profile: answer })],
+    ] as const);
+    const composed = composeVerifier(
+      env({ ENSEMBLEDATA_TOKEN: 'configured', ENSEMBLEDATA_DAILY_UNITS: '5' }),
+      undefined,
+      'chain',
+      { sources, spendLedger: { spentSince: () => Promise.resolve(5) } },
+    );
+    if (!composed.ok) throw new Error(composed.error);
+
+    const verdict = await composed.value.verifier.verify({
+      kind: 'profile',
+      subject: handle('creator'),
+    });
+
+    expect(verdict).toMatchObject({ outcome: 'verified', source: 'scraper' });
+    expect(verdict.attempts[0]).toMatchObject({ source: 'ensemble', error: { kind: 'budget' } });
+    expect(error).toHaveBeenCalledWith(
+      expect.stringMatching(/^source ensemble reached its daily budget/),
+    );
+    error.mockRestore();
   });
 });

@@ -16,8 +16,10 @@ import {
   err,
   ok,
   type MeasurementSink,
+  type DailyBudget,
   type ProfileCache,
   type Result,
+  type SpendLedger,
   type VerificationSource,
   type Verifier,
 } from '@engagement-exchange/verification';
@@ -42,7 +44,40 @@ export type Sources = ReadonlyMap<CliSourceName, VerificationSource>;
 export interface VerifierParts {
   readonly sources?: Sources;
   readonly profileCache?: ProfileCache;
+  readonly spendLedger?: SpendLedger;
 }
+
+export const budgetReached = (source: string, day: string): string =>
+  `source ${source} reached its daily budget for ${day}: skipped until the next UTC day`;
+
+const dailyBudgets = (env: Env, sources: Sources): Record<string, DailyBudget> => {
+  const configured: [CliSourceName, DailyBudget | undefined][] = [
+    [
+      'ensemble',
+      env.ENSEMBLEDATA_DAILY_UNITS === undefined
+        ? undefined
+        : { unit: 'units', daily: env.ENSEMBLEDATA_DAILY_UNITS },
+    ],
+    [
+      'scraptik',
+      env.SCRAPTIK_DAILY_REQUESTS === undefined
+        ? undefined
+        : { unit: 'request', daily: env.SCRAPTIK_DAILY_REQUESTS },
+    ],
+    [
+      'lamatok',
+      env.LAMATOK_DAILY_REQUESTS === undefined
+        ? undefined
+        : { unit: 'request', daily: env.LAMATOK_DAILY_REQUESTS },
+    ],
+  ];
+  return Object.fromEntries(
+    configured.filter(
+      (entry): entry is [CliSourceName, DailyBudget] =>
+        entry[1] !== undefined && sources.has(entry[0]),
+    ),
+  );
+};
 
 const availableSources = (env: Env): Sources => {
   const http = createHttpClient({ headers: () => ({}) });
@@ -83,10 +118,15 @@ export const composeVerifier = (
       timeoutMs: env.OUTBOUND_TIMEOUT_MS,
       pageCap: 3,
       confirmNotFollowing: env.VERIFICATION_CONFIRM_NOT_FOLLOWING,
+      budgets: dailyBudgets(env, sources),
     },
     {
       sources: [...sources.values()],
       measurements,
+      onBudgetReached: (source, day) => {
+        console.error(budgetReached(source, day));
+      },
+      ...(parts.spendLedger !== undefined && { spendLedger: parts.spendLedger }),
       ...(parts.profileCache !== undefined && { profileCache: parts.profileCache }),
     },
   );

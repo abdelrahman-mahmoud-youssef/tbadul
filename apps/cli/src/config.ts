@@ -38,6 +38,9 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  ENSEMBLEDATA_DAILY_UNITS: z.coerce.number().positive().optional(),
+  SCRAPTIK_DAILY_REQUESTS: z.coerce.number().positive().optional(),
+  LAMATOK_DAILY_REQUESTS: z.coerce.number().positive().optional(),
   OUTBOUND_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   CLI_USER_ID: z.string().min(1).default('local'),
   MEASUREMENT_LOG_FILE: z.string().min(1).default('measurements.jsonl'),

@@ -10,6 +10,7 @@ import {
 } from '@engagement-exchange/social-accounts';
 import {
   drizzleProfileCache,
+  drizzleSpendLedger,
   type Attempt,
   type ProfileCache,
   type Verifier,
@@ -36,7 +37,7 @@ import {
   usageError,
 } from './follows.ts';
 import { linkStart, linkVerify } from './link.ts';
-import { measurementLog, type MeasurementLog } from './measurement-log.ts';
+import { measurementLog, spendLog, type MeasurementLog } from './measurement-log.ts';
 import { emptyPool, poolAdd, poolList, resolvePool, verificationPool } from './pool.ts';
 import { invalidUser, unknownUser, userAdd, userExists } from './users.ts';
 import { watchFollows } from './watch.ts';
@@ -247,6 +248,8 @@ const runCommand = async (
       return usageError;
     }
     log = opened.value;
+  } else if (db !== undefined) {
+    log = spendLog(db);
   }
   const attempts: Attempt[] = [];
   const composed = composeVerifier(
@@ -260,7 +263,10 @@ const runCommand = async (
     choice.data,
     {
       ...(deps.sources !== undefined && { sources: deps.sources(env) }),
-      ...(db !== undefined && { profileCache: (deps.profileCache ?? drizzleProfileCache)(db) }),
+      ...(db !== undefined && {
+        profileCache: (deps.profileCache ?? drizzleProfileCache)(db),
+        spendLedger: drizzleSpendLedger(db),
+      }),
     },
   );
   if (!composed.ok) {

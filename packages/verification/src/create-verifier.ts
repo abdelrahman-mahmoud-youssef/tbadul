@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { withBudget, type BudgetReached } from './adapters/resilience/with-budget.ts';
 import { withTimeout } from './adapters/resilience/with-timeout.ts';
 import { cachedVerifyWith } from './application/cached-profile.ts';
 import { followingCache } from './application/following-cache.ts';
@@ -12,7 +13,9 @@ import {
 import { verifyOwnershipWith, type VerifyOwnership } from './application/ownership.ts';
 import type { Clock } from './ports/clock.ts';
 import type { MeasurementSink } from './ports/measurement-sink.ts';
+import { costUnits } from './domain/outcome.ts';
 import type { ProfileCache } from './ports/profile-cache.ts';
+import type { SpendLedger } from './ports/spend-ledger.ts';
 import type { VerificationSource } from './ports/verification-source.ts';
 
 const sourceOrder = z
@@ -26,6 +29,9 @@ export const verifierConfigSchema = z.object({
   pageCap: z.number().int().positive(),
   confirmNotFollowing: z.boolean().default(true),
   listCacheTtlMs: z.number().int().nonnegative().default(30_000),
+  budgets: z
+    .record(z.string().min(1), z.object({ unit: z.enum(costUnits), daily: z.number().positive() }))
+    .default({}),
   cache: z
     .object({
       handleTtlMs: z.number().int().positive().default(86_400_000),
@@ -41,6 +47,8 @@ export interface VerifierDeps {
   readonly clock?: Clock;
   readonly measurements?: MeasurementSink;
   readonly profileCache?: ProfileCache;
+  readonly spendLedger?: SpendLedger;
+  readonly onBudgetReached?: BudgetReached;
 }
 
 export interface Verifier {
@@ -54,10 +62,24 @@ const systemClock: Clock = { now: () => Date.now() };
 const discardingSink: MeasurementSink = { record: () => undefined };
 
 export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Verifier => {
-  const { order, timeoutMs, pageCap, confirmNotFollowing, listCacheTtlMs, cache } =
+  const { order, timeoutMs, pageCap, confirmNotFollowing, listCacheTtlMs, budgets, cache } =
     verifierConfigSchema.parse(config);
+  const clock = deps.clock ?? systemClock;
+  const unbudgeted = Object.keys(budgets).find(
+    (name) => !deps.sources.some((source) => source.name === name),
+  );
+  if (unbudgeted !== undefined) throw new Error(`budget for unknown source: ${unbudgeted}`);
+  const budgetDeps = {
+    ...(deps.spendLedger !== undefined && { ledger: deps.spendLedger }),
+    clock,
+    onReached: deps.onBudgetReached ?? (() => undefined),
+  };
   const byName = new Map(
-    deps.sources.map((source) => [source.name, withTimeout(source, timeoutMs)]),
+    deps.sources.map((source) => {
+      const timed = withTimeout(source, timeoutMs);
+      const budget = budgets[source.name];
+      return [source.name, budget === undefined ? timed : withBudget(timed, budget, budgetDeps)];
+    }),
   );
   const resolve = (names: readonly string[]) =>
     names.map((name) => {
@@ -70,7 +92,6 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
     follows: resolve(order.follows),
     liked: resolve(order.liked),
   };
-  const clock = deps.clock ?? systemClock;
   const measurements = deps.measurements ?? discardingSink;
   const chainDeps = {
     sources,

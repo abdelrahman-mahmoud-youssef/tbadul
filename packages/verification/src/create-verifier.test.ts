@@ -67,6 +67,37 @@ describe('createVerifier', () => {
     ).toThrow('unknown verification source: ensemble');
   });
 
+  it('rejects a budget for a source that was not provided', () => {
+    const sources = [fakeSource('lamatok', {}), fakeSource('scraper', {})];
+    expect(() =>
+      createVerifier(
+        { ...config, budgets: { ensemble: { unit: 'units', daily: 100 } } },
+        { sources },
+      ),
+    ).toThrow('budget for unknown source: ensemble');
+  });
+
+  it('skips a source at its daily budget and falls through to the next', async () => {
+    const reached: string[] = [];
+    const { verify } = createVerifier(
+      { ...config, budgets: { lamatok: { unit: 'request', daily: 1 } } },
+      {
+        sources: [
+          fakeSource('lamatok', { follows: verified }),
+          fakeSource('scraper', { follows: verified }),
+        ],
+        spendLedger: { spentSince: () => Promise.resolve(1) },
+        onBudgetReached: (source) => reached.push(source),
+      },
+    );
+
+    const verdict = await verify(followsCheck);
+
+    expect(verdict).toMatchObject({ outcome: 'verified', source: 'scraper' });
+    expect(verdict.attempts[0]).toMatchObject({ source: 'lamatok', error: { kind: 'budget' } });
+    expect(reached).toEqual(['lamatok']);
+  });
+
   it('rejects an order that names a source that was not provided', () => {
     expect(() =>
       createVerifier(config, { sources: [fakeSource('scraper', { follows: verified })] }),

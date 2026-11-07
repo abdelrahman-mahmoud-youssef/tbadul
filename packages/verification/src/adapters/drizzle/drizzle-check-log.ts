@@ -13,9 +13,11 @@ export interface CheckLog {
   append(attempt: Attempt, subjects: CheckSubjects): Promise<void>;
 }
 
-export const drizzleCheckLog = (db: Database, hmacKey: string): CheckLog => {
+export const drizzleCheckLog = (db: Database, hmacKey?: string): CheckLog => {
   const digest = (scoped: PlatformScoped | undefined) =>
-    scoped === undefined ? null : createHmac('sha256', hmacKey).update(scoped.value).digest('hex');
+    scoped === undefined || hmacKey === undefined
+      ? null
+      : createHmac('sha256', hmacKey).update(scoped.value).digest('hex');
   return {
     append: async (attempt, { subject, performer, target }) => {
       await db.insert(verificationChecks).values({
