@@ -1,8 +1,8 @@
 import { Compass } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Wordmark } from '@/components/brand/wordmark';
-import { Button } from '@/components/ui/button';
-import { Link } from '@/i18n/navigation';
+import { buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/i18n/locale-link';
 
 export default function NotFound() {
   const t = useTranslations('notFound');
@@ -17,9 +17,9 @@ export default function NotFound() {
         </div>
         <h1 className="text-2xl leading-snug font-bold md:text-3xl">{t('title')}</h1>
         <p className="text-muted-foreground">{t('body')}</p>
-        <Button asChild>
-          <Link href="/">{t('home')}</Link>
-        </Button>
+        <LocaleLink href="/" className={buttonVariants()}>
+          {t('home')}
+        </LocaleLink>
       </main>
     </div>
   );

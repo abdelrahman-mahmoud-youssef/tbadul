@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Sans_Arabic } from 'next/font/google';
-import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import { DirectionProvider } from '@/components/ui/direction';
 import { ThemeScript } from '@/components/theme/theme-script';
@@ -33,9 +32,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<'/[
         <ThemeScript />
       </head>
       <body>
-        <NextIntlClientProvider>
-          <DirectionProvider dir={dir}>{children}</DirectionProvider>
-        </NextIntlClientProvider>
+        <DirectionProvider dir={dir}>{children}</DirectionProvider>
       </body>
     </html>
   );

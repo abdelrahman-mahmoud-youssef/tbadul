@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import { Wordmark } from '@/components/brand/wordmark';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { Button } from '@/components/ui/button';
-import { Link } from '@/i18n/navigation';
+import { ThemeSwitch } from '@/components/theme/theme-switch';
+import { buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/i18n/locale-link';
 
 export default async function MarketingLayout({ children }: LayoutProps<'/[locale]'>) {
   const t = await getTranslations('auth');
@@ -11,10 +11,10 @@ export default async function MarketingLayout({ children }: LayoutProps<'/[local
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-8">
         <Wordmark />
         <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <Button asChild variant="ghost">
-            <Link href="/sign-in">{t('signIn')}</Link>
-          </Button>
+          <ThemeSwitch />
+          <LocaleLink href="/sign-in" className={buttonVariants({ variant: 'ghost' })}>
+            {t('signIn')}
+          </LocaleLink>
         </div>
       </header>
       {children}

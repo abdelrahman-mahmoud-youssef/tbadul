@@ -1,17 +1,15 @@
-'use client';
-
 import { TriangleAlert } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { ApiRequestError } from '@/lib/api-client';
+import { ApiRequestError } from '@/lib/api-error';
+import type { ErrorCopy } from './error-copy';
 
 interface ErrorStateProps {
   readonly error: Error;
   readonly retry: () => void;
+  readonly copy: ErrorCopy;
 }
 
-export function ErrorState({ error, retry }: ErrorStateProps) {
-  const t = useTranslations();
+export function ErrorState({ error, retry, copy }: ErrorStateProps) {
   return (
     <section
       role="alert"
@@ -21,15 +19,13 @@ export function ErrorState({ error, retry }: ErrorStateProps) {
         <TriangleAlert aria-hidden="true" />
       </div>
       <div className="flex max-w-prose flex-col gap-1">
-        <h2 className="text-lg font-bold">{t('states.errorTitle')}</h2>
+        <h2 className="text-lg font-bold">{copy.title}</h2>
         <p className="text-muted-foreground">
-          {error instanceof ApiRequestError
-            ? t(`errors.${error.error.code}`)
-            : t('states.errorBody')}
+          {error instanceof ApiRequestError ? copy.codes[error.error.code] : copy.body}
         </p>
       </div>
       <Button variant="outline" onClick={retry}>
-        {t('states.retry')}
+        {copy.retry}
       </Button>
     </section>
   );

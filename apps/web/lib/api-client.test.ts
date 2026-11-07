@@ -1,6 +1,7 @@
 import { meResponse } from '@engagement-exchange/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiRequestError, apiRequest } from './api-client';
+import { apiRequest } from './api-client';
+import { ApiRequestError } from './api-error';
 
 const reply = (status: number, body: unknown) => {
   const fetch = vi.fn<typeof globalThis.fetch>(() =>

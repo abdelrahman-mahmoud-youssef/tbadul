@@ -1,13 +1,16 @@
 'use client';
 
 import { LogOut } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { useRouter } from '@/i18n/navigation';
 
-export function SignOutButton() {
-  const t = useTranslations('auth');
+interface SignOutButtonProps {
+  readonly label: string;
+  readonly home: string;
+}
+
+export function SignOutButton({ label, home }: SignOutButtonProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (
@@ -18,13 +21,13 @@ export function SignOutButton() {
         startTransition(async () => {
           const { authClient } = await import('@/lib/auth-client');
           await authClient.signOut();
-          router.replace('/');
+          router.replace(home);
           router.refresh();
         });
       }}
     >
-      <LogOut aria-hidden="true" />
-      <span className="max-md:sr-only">{t('signOut')}</span>
+      <LogOut aria-hidden="true" className="rtl:-scale-x-100" />
+      <span className="max-md:sr-only">{label}</span>
     </Button>
   );
 }

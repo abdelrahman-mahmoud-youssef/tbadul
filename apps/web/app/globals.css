@@ -2,7 +2,16 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme]), :root:not([data-theme]) *) {
+      @slot;
+    }
+  }
+}
 
 :root {
   --sand-50: #fbf7ef;
@@ -49,28 +58,28 @@
   --ring: var(--teal-700);
   --radius: 0.875rem;
   color-scheme: light;
-}
 
-[data-theme='dark'] {
-  --background: var(--night-900);
-  --foreground: var(--night-sand);
-  --card: var(--night-850);
-  --card-foreground: var(--night-sand);
-  --popover: var(--night-850);
-  --popover-foreground: var(--night-sand);
-  --primary: var(--night-teal);
-  --primary-foreground: var(--night-teal-ink);
-  --secondary: var(--night-750);
-  --secondary-foreground: var(--night-teal-soft);
-  --muted: var(--night-800);
-  --muted-foreground: var(--night-sand-muted);
-  --accent: var(--night-750);
-  --accent-foreground: var(--night-teal-soft);
-  --destructive: var(--brick-300);
-  --border: var(--night-700);
-  --input: var(--night-600);
-  --ring: var(--night-teal);
-  color-scheme: dark;
+  @variant dark {
+    --background: var(--night-900);
+    --foreground: var(--night-sand);
+    --card: var(--night-850);
+    --card-foreground: var(--night-sand);
+    --popover: var(--night-850);
+    --popover-foreground: var(--night-sand);
+    --primary: var(--night-teal);
+    --primary-foreground: var(--night-teal-ink);
+    --secondary: var(--night-750);
+    --secondary-foreground: var(--night-teal-soft);
+    --muted: var(--night-800);
+    --muted-foreground: var(--night-sand-muted);
+    --accent: var(--night-750);
+    --accent-foreground: var(--night-teal-soft);
+    --destructive: var(--brick-300);
+    --border: var(--night-700);
+    --input: var(--night-600);
+    --ring: var(--night-teal);
+    color-scheme: dark;
+  }
 }
 
 @theme inline {

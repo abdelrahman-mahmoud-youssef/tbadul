@@ -1,51 +1,41 @@
 'use client';
 
 import { Moon, Sun } from 'lucide-react';
-import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { themeStorageKey } from './theme-script';
 
-const flip = () => {
-  const root = document.documentElement;
-  const next = root.dataset['theme'] === 'dark' ? 'light' : 'dark';
-  root.dataset['theme'] = next;
-  localStorage.setItem(themeStorageKey, next);
+interface ThemeToggleProps {
+  readonly toDark: string;
+  readonly toLight: string;
+}
+
+const turn = async (icon: HTMLElement): Promise<void> => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const { animate } = await import('motion/mini');
+  await animate(icon, { rotate: [-90, 0], opacity: [0, 1] }, { duration: 0.2 });
 };
 
-export function ThemeToggle() {
-  const t = useTranslations('theme');
-  const [flips, setFlips] = useState(0);
+export function ThemeToggle({ toDark, toLight }: ThemeToggleProps) {
+  const icon = useRef<HTMLSpanElement>(null);
   return (
     <Button
       variant="ghost"
       size="icon"
       onClick={() => {
-        flip();
-        setFlips((count) => count + 1);
+        const root = document.documentElement;
+        const next = root.dataset['theme'] === 'dark' ? 'light' : 'dark';
+        root.dataset['theme'] = next;
+        localStorage.setItem(themeStorageKey, next);
+        if (icon.current !== null) void turn(icon.current);
       }}
     >
-      <span className="sr-only dark:hidden">{t('toDark')}</span>
-      <span className="sr-only hidden dark:inline">{t('toLight')}</span>
-      <MotionConfig reducedMotion="user">
-        <LazyMotion features={domAnimation} strict>
-          <AnimatePresence initial={false} mode="wait">
-            <m.span
-              key={flips}
-              aria-hidden="true"
-              className="grid"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            >
-              <Moon className="col-start-1 row-start-1 dark:invisible" />
-              <Sun className="invisible col-start-1 row-start-1 dark:visible" />
-            </m.span>
-          </AnimatePresence>
-        </LazyMotion>
-      </MotionConfig>
+      <span className="sr-only dark:hidden">{toDark}</span>
+      <span className="sr-only hidden dark:inline">{toLight}</span>
+      <span ref={icon} aria-hidden="true" className="grid">
+        <Moon className="col-start-1 row-start-1 dark:invisible" />
+        <Sun className="invisible col-start-1 row-start-1 dark:visible" />
+      </span>
     </Button>
   );
 }

@@ -2,7 +2,8 @@ import { meResponse, type MeResponse } from '@engagement-exchange/contracts';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
 import { env } from '@/env';
-import { ApiRequestError, apiRequest } from './api-client';
+import { apiRequest } from './api-client';
+import { ApiRequestError } from './api-error';
 
 export const currentSession = cache(async (): Promise<MeResponse | null> => {
   const cookie = (await cookies()).toString();

@@ -1,8 +1,8 @@
 import { BadgeCheck, Link2, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { BrandMark } from '@/components/brand/brand-mark';
-import { Button } from '@/components/ui/button';
-import { Link } from '@/i18n/navigation';
+import { buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/i18n/locale-link';
 import { formatNumber } from '@/lib/format';
 
 const steps = [
@@ -24,12 +24,15 @@ export default function LandingPage() {
             {t('landing.lead')}
           </p>
           <div className="flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href="/sign-up">{t('auth.signUp')}</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/sign-in">{t('auth.signIn')}</Link>
-            </Button>
+            <LocaleLink href="/sign-up" className={buttonVariants({ size: 'lg' })}>
+              {t('auth.signUp')}
+            </LocaleLink>
+            <LocaleLink
+              href="/sign-in"
+              className={buttonVariants({ size: 'lg', variant: 'outline' })}
+            >
+              {t('auth.signIn')}
+            </LocaleLink>
           </div>
         </div>
         <div className="relative mx-auto hidden aspect-square w-full max-w-sm place-items-center md:grid">
