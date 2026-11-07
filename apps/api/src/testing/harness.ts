@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { auth_users } from '@engagement-exchange/db';
 import { providedDatabaseUrl } from '@engagement-exchange/db/testing';
 import {
   accountId,
@@ -14,6 +15,7 @@ import {
   type ManualClock,
 } from '@engagement-exchange/verification/testing';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { createApp, type LogDestination } from '../app.ts';
 import type { Api } from '../compose.ts';
@@ -204,6 +206,19 @@ export const signIn = async (app: NestFastifyApplication, email: string): Promis
   });
   if (response.statusCode !== 200) throw new Error(`sign-in answered ${response.statusCode}`);
   return sessionCookie(response.headers['set-cookie']);
+};
+
+const promoteToAdmin = async (api: Api, email: string): Promise<void> => {
+  await api.database.db
+    .update(auth_users)
+    .set({ role: 'admin' })
+    .where(eq(auth_users.email, email));
+};
+
+export const signUpAdmin = async (test: TestApi): Promise<User> => {
+  const admin = await signUp(test.app);
+  await promoteToAdmin(test.api, admin.email);
+  return admin;
 };
 
 export const seedPool = async (test: TestApi): Promise<string> => {

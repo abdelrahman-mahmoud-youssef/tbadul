@@ -72,6 +72,16 @@ export const principalOf = (request: FastifyRequest): Principal => {
   return request.principal;
 };
 
+@Injectable()
+export class AdminGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    if (principalOf(requestOf(context)).role !== 'admin') {
+      throw new ApiError({ code: 'forbidden' });
+    }
+    return true;
+  }
+}
+
 export const Caller = createParamDecorator((_data: unknown, context: ExecutionContext) =>
   principalOf(requestOf(context)),
 );

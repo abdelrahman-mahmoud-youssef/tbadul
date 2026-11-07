@@ -245,6 +245,10 @@ export default defineConfig(
               disallow: { to: { module: { internalPath: 'testing{,/**}' } } },
             },
             {
+              from: { element: { type: 'testing' } },
+              allow: { to: { module: { source: 'drizzle-orm' } } },
+            },
+            {
               from: { file: { categories: 'test' } },
               allow: [
                 { to: { element: { type: 'testing' } } },

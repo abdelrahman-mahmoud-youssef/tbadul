@@ -28,6 +28,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "drizzle-orm": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

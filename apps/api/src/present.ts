@@ -1,8 +1,13 @@
 import type {
   Claim,
   PlatformAccounts as PlatformAccountsBody,
+  PooledAccount as PooledAccountBody,
 } from '@engagement-exchange/contracts';
-import type { AccountClaim, PlatformAccounts } from '@engagement-exchange/social-accounts';
+import type {
+  AccountClaim,
+  PlatformAccounts,
+  PooledAccount,
+} from '@engagement-exchange/social-accounts';
 import { iso } from './errors.ts';
 
 export const presentClaim = (claim: AccountClaim): Claim => ({
@@ -31,4 +36,11 @@ export const presentPlatformAccounts = (accounts: PlatformAccounts): PlatformAcc
     claimId,
   })),
   openClaims: accounts.openClaims.map(presentClaim),
+});
+
+export const presentPooledAccount = (account: PooledAccount): PooledAccountBody => ({
+  accountId: account.accountId.value,
+  ...(account.handle !== undefined && { handle: account.handle.value }),
+  active: account.active,
+  assignedCount: account.assignedCount,
 });
