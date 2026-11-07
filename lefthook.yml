@@ -1,11 +1,11 @@
 pre-commit:
   jobs:
     - name: prettier
-      glob: '*.{ts,js,mjs,json,md,yml,yaml}'
+      glob: '*.{ts,tsx,js,mjs,css,json,md,yml,yaml}'
       run: pnpm exec prettier --write {staged_files}
       stage_fixed: true
     - name: eslint
-      glob: '{apps,packages}/**/*.ts'
+      glob: '{apps,packages}/**/*.{ts,tsx}'
       run: pnpm exec eslint {staged_files}
 
 commit-msg:

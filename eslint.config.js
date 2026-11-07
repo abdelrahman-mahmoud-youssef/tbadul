@@ -1,7 +1,10 @@
 import js from '@eslint/js';
+import nextPlugin from '@next/eslint-plugin-next';
 import boundaries from 'eslint-plugin-boundaries';
+import reactHooks from 'eslint-plugin-react-hooks';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
+import { logicalPropertiesRule } from './apps/web/lint/logical-properties.js';
 
 const layers = ['domain', 'ports', 'application', 'adapters', 'testing', 'root'];
 
@@ -13,9 +16,18 @@ const coreModules = {
 const noTestFiles = { disallow: { to: { file: { categories: 'test' } } } };
 
 export default defineConfig(
-  globalIgnores(['**/dist/', '**/.turbo/']),
+  globalIgnores([
+    '**/dist/',
+    '**/dist-e2e/',
+    '**/.turbo/',
+    '**/.next/',
+    '**/next-env.d.ts',
+    '**/test-results/',
+    '**/playwright-report/',
+    '**/.lighthouseci/',
+  ]),
   {
-    files: ['**/*.ts'],
+    files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
       tseslint.configs.strictTypeChecked,
@@ -262,5 +274,69 @@ export default defineConfig(
         },
       ],
     },
+  },
+  {
+    files: ['apps/web/**/*.{ts,tsx}'],
+    extends: [
+      nextPlugin.configs.recommended,
+      nextPlugin.configs['core-web-vitals'],
+      reactHooks.configs.flat.recommended,
+    ],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': [
+        { type: 'feature', pattern: 'features/*', capture: ['name'] },
+        { type: 'ui', pattern: 'components/ui' },
+        { type: 'brand', pattern: 'components/brand' },
+      ],
+      'import/resolver': {
+        typescript: { project: `${import.meta.dirname}/apps/web/tsconfig.json` },
+      },
+    },
+    rules: {
+      'no-restricted-syntax': logicalPropertiesRule,
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@engagement-exchange/*', '!@engagement-exchange/contracts'],
+              message: 'The web app imports only the contracts from the workspace.',
+            },
+          ],
+        },
+      ],
+      'boundaries/dependencies': [
+        2,
+        {
+          default: 'allow',
+          policies: [
+            {
+              from: { element: { type: 'feature' } },
+              disallow: { to: { element: { type: 'feature' } } },
+            },
+            {
+              from: { element: { type: 'feature' } },
+              allow: {
+                to: {
+                  element: {
+                    type: 'feature',
+                    captured: { name: '{{ from.element.captured.name }}' },
+                  },
+                },
+              },
+            },
+            {
+              from: { element: { type: ['ui', 'brand'] } },
+              disallow: { to: { element: { type: 'feature' } } },
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['apps/web/lint/**'],
+    rules: { 'no-restricted-syntax': 'off' },
   },
 );
