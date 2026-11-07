@@ -7,6 +7,8 @@ import {
   signIn,
   signUp,
   startApi,
+  startClaim,
+  uniqueHandle,
   webOrigin,
 } from './testing/harness.ts';
 
@@ -52,7 +54,14 @@ describe.skipIf(databaseUrl === null)('sessions', () => {
     const test = await startApi();
     try {
       const refused = await Promise.all(
-        [['GET', '/api/me']].map(([method, url]) => call(test.app, method as 'GET', url ?? '')),
+        [
+          ['GET', '/api/me'],
+          ['GET', '/api/linked-accounts'],
+          ['POST', '/api/claims'],
+          ['GET', '/api/claims/0196f1c4-7a1e-7000-8000-000000000000'],
+          ['DELETE', '/api/claims/0196f1c4-7a1e-7000-8000-000000000000'],
+          ['POST', '/api/claims/0196f1c4-7a1e-7000-8000-000000000000/verify'],
+        ].map(([method, url]) => call(test.app, method as 'GET', url ?? '')),
       );
       const health = await call(test.app, 'GET', '/api/health');
 
@@ -94,18 +103,21 @@ describe.skipIf(databaseUrl === null)('sessions', () => {
     }
   });
 
-  it('logs requests without cookies or credentials', async () => {
+  it('logs requests without cookies, credentials or handles', async () => {
     const lines: string[] = [];
     const test = await startApi({ LOG_LEVEL: 'info' }, { write: (line) => lines.push(line) });
     try {
       const user = await signUp(test.app);
+      const handle = uniqueHandle('secret');
       await call(test.app, 'GET', '/api/me', { cookie: user.cookie });
+      await startClaim(test, user, handle);
 
       const logged = lines.join('\n');
       expect(lines.length).toBeGreaterThan(0);
       expect(logged).not.toContain(user.cookie.split('=')[1]);
       expect(logged).not.toContain(user.email);
       expect(logged).not.toContain('correct horse');
+      expect(logged).not.toContain(handle);
     } finally {
       await test.close();
     }

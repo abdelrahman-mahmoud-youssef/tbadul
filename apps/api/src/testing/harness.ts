@@ -205,3 +205,22 @@ export const signIn = async (app: NestFastifyApplication, email: string): Promis
   if (response.statusCode !== 200) throw new Error(`sign-in answered ${response.statusCode}`);
   return sessionCookie(response.headers['set-cookie']);
 };
+
+export const seedPool = async (test: TestApi): Promise<string> => {
+  const handle = uniqueHandle('pool');
+  const added = await test.api.verificationAccounts.addVerificationAccount({
+    platform: 'tiktok',
+    account: handle,
+  });
+  if (!added.ok) throw new Error(added.error.kind);
+  return handle;
+};
+
+export const startClaim = (test: TestApi, user: User, account: string): Promise<Reply> =>
+  call(test.app, 'POST', '/api/claims', {
+    cookie: user.cookie,
+    body: { platform: 'tiktok', account },
+  });
+
+export const verifyClaim = (test: TestApi, user: User, id: string): Promise<Reply> =>
+  call(test.app, 'POST', `/api/claims/${id}/verify`, { cookie: user.cookie });

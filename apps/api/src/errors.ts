@@ -1,4 +1,5 @@
 import type { ApiError as ApiErrorBody, ErrorCode } from '@engagement-exchange/contracts';
+import type { ClaimError } from '@engagement-exchange/social-accounts';
 import {
   Catch,
   HttpException,
@@ -49,6 +50,38 @@ export class ApiError extends Error {
 }
 
 export const iso = (at: number): string => new Date(at).toISOString();
+
+export const claimFailure = (error: ClaimError): ApiError => {
+  switch (error.kind) {
+    case 'invalid_handle':
+      return new ApiError({ code: 'invalid_handle', details: { reason: error.reason } });
+    case 'claim_limit_reached':
+      return new ApiError({ code: 'limit_reached', details: { limit: error.limit } });
+    case 'account_already_claimed':
+      return new ApiError({ code: 'account_owned_elsewhere' });
+    case 'account_already_linked':
+      return new ApiError({ code: 'account_already_linked' });
+    case 'version_conflict':
+      return new ApiError({ code: 'conflict' });
+    case 'claim_not_found':
+      return new ApiError({ code: 'claim_not_found' });
+    case 'claim_not_verifiable':
+      return new ApiError({ code: 'claim_not_verifiable', details: { state: error.state } });
+    case 'claim_not_cancellable':
+      return new ApiError({ code: 'claim_not_cancellable', details: { state: error.state } });
+    case 'claim_expired':
+      return new ApiError({ code: 'claim_expired' });
+    case 'cooldown_active':
+      return new ApiError({
+        code: 'cooldown_active',
+        details: { retryAt: iso(error.retryAt), waitMs: error.waitMs },
+      });
+    case 'account_unavailable':
+      return new ApiError({ code: 'account_unavailable', details: { outcome: error.outcome } });
+    case 'source_unavailable':
+      return new ApiError({ code: 'source_unavailable' });
+  }
+};
 
 const segment = (part: PathSegment): string | number => {
   const key = typeof part === 'object' ? part.key : part;

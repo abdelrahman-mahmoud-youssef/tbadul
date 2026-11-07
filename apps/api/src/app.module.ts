@@ -1,5 +1,6 @@
 import { Module, type DynamicModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ClaimsController } from './claims.controller.ts';
 import type { Api } from './compose.ts';
 import { HealthController } from './health.controller.ts';
 import { MeController } from './me.controller.ts';
@@ -11,7 +12,7 @@ export class AppModule {
   static with(api: Api): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, MeController],
+      controllers: [HealthController, MeController, ClaimsController],
       providers: [
         { provide: API, useValue: api },
         { provide: APP_GUARD, useClass: SessionGuard },
