@@ -78,3 +78,5 @@ Rejected alternatives:
 ## Amendment, 2026-11-07: batched follows checks
 
 A source's follows handler takes a batch: one performer and several targets, each with its `AccountId`. It answers the whole batch from one following-list read, with one answer per target and the listed accounts it read. The public `Check` union is unchanged: a single follows check is a batch of one, so the chain and every adapter keep one follows code path. `Verifier.verifyFollowsBatch` returns one verdict per target; the confirmation, shorter-list and page-cap rules hold per target. One attempt is recorded per source call, carrying the least settled of the answers it gave.
+
+The chain keeps each performer's last list read in memory for a short window and answers a target from it only when the target is in it. A miss reads live, so the cache can save a read but can never answer `not_following`.

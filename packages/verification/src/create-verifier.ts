@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { withTimeout } from './adapters/resilience/with-timeout.ts';
 import { cachedVerifyWith } from './application/cached-profile.ts';
+import { followingCache } from './application/following-cache.ts';
 import {
   verifyFollowsBatchWith,
   verifyWith,
@@ -24,6 +25,7 @@ export const verifierConfigSchema = z.object({
   timeoutMs: z.number().int().positive(),
   pageCap: z.number().int().positive(),
   confirmNotFollowing: z.boolean().default(true),
+  listCacheTtlMs: z.number().int().nonnegative().default(30_000),
   cache: z
     .object({
       handleTtlMs: z.number().int().positive().default(86_400_000),
@@ -52,7 +54,7 @@ const systemClock: Clock = { now: () => Date.now() };
 const discardingSink: MeasurementSink = { record: () => undefined };
 
 export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Verifier => {
-  const { order, timeoutMs, pageCap, confirmNotFollowing, cache } =
+  const { order, timeoutMs, pageCap, confirmNotFollowing, listCacheTtlMs, cache } =
     verifierConfigSchema.parse(config);
   const byName = new Map(
     deps.sources.map((source) => [source.name, withTimeout(source, timeoutMs)]),
@@ -70,7 +72,14 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
   };
   const clock = deps.clock ?? systemClock;
   const measurements = deps.measurements ?? discardingSink;
-  const chainDeps = { sources, clock, measurements, pageCap, confirmNotFollowing };
+  const chainDeps = {
+    sources,
+    clock,
+    measurements,
+    pageCap,
+    confirmNotFollowing,
+    ...(listCacheTtlMs > 0 && { following: followingCache(listCacheTtlMs, clock) }),
+  };
   const chain = verifyWith(chainDeps);
   const verify =
     deps.profileCache === undefined

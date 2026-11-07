@@ -12,6 +12,7 @@ import { samePlatform, type Platform } from '../domain/platform.ts';
 import { rejectShortList } from '../domain/short-list.ts';
 import type { SourceName } from '../domain/source-name.ts';
 import type { Verdict } from '../domain/verdict.ts';
+import type { FollowingCache } from './following-cache.ts';
 import type { Clock } from '../ports/clock.ts';
 import type { MeasurementSink } from '../ports/measurement-sink.ts';
 import type {
@@ -29,6 +30,7 @@ export interface ChainDeps {
   readonly measurements: MeasurementSink;
   readonly pageCap: number;
   readonly confirmNotFollowing: boolean;
+  readonly following?: FollowingCache;
 }
 
 export interface VerifyOptions {
@@ -120,6 +122,45 @@ const leastSettled = (answers: readonly Answer<'follows'>[]): Answer<'follows'> 
       : least,
   );
 
+const cacheSource = 'cache';
+
+const fromCache = (
+  deps: ChainDeps,
+  batch: FollowsBatch,
+  attempts: Attempt[],
+): Map<number, (check: CheckOf<'follows'>) => Verdict<'follows'>> => {
+  const settled = new Map<number, (check: CheckOf<'follows'>) => Verdict<'follows'>>();
+  const { following } = deps;
+  const { performerId } = batch;
+  if (following === undefined || performerId === undefined) return settled;
+  batch.targets.forEach(({ targetId }, index) => {
+    const listed = following.follows(performerId, targetId);
+    if (listed === undefined) return;
+    const evidence = { pagesRead: 0, listExhausted: false, entriesRead: listed.length };
+    settled.set(index, (check) => ({
+      outcome: 'verified',
+      evidence,
+      source: cacheSource,
+      check,
+      attempts,
+    }));
+  });
+  if (settled.size > 0) {
+    const now = deps.clock.now();
+    const attempt: Attempt = {
+      source: cacheSource,
+      platform: batch.performer.platform,
+      check: 'follows',
+      outcome: 'verified',
+      startedAt: now,
+      latencyMs: 0,
+    };
+    attempts.push(attempt);
+    deps.measurements.record(attempt);
+  }
+  return settled;
+};
+
 const verifyFollows = async (
   deps: ChainDeps,
   batch: FollowsBatch,
@@ -130,7 +171,7 @@ const verifyFollows = async (
   const eligible = deps.sources.follows.filter((source) =>
     serves(source, batch.performer.platform, 'follows'),
   );
-  const settled = new Map<number, (check: CheckOf<'follows'>) => Verdict<'follows'>>();
+  const settled = fromCache(deps, batch, attempts);
   const awaiting = new Set<number>();
   for (const source of eligible) {
     const open = batch.targets.flatMap((target, index) =>
@@ -143,6 +184,9 @@ const verifyFollows = async (
       { ...batch, kind: 'follows', targets: open.map(({ target }) => target) },
       context,
     );
+    if ('listed' in reply && batch.performerId !== undefined) {
+      deps.following?.store(batch.performerId, reply.listed);
+    }
     const answered = open.map(({ index }, position) => ({
       index,
       answer: rejectShortList(batch, answerAt(reply, position)),
