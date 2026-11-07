@@ -12,8 +12,8 @@ import {
   type PlatformScoped,
   type Result,
 } from '@engagement-exchange/verification';
+import type { Demo } from '../commands/demo/demo.ts';
 import type { Env } from './config.ts';
-import type { Demo } from './demo.ts';
 
 export const missingKey =
   'config MEASUREMENT_HMAC_KEY: required by profile, owns, follows, liked and watch';

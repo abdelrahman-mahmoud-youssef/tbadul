@@ -11,7 +11,7 @@ import {
   type Result,
   type Verifier,
 } from '@engagement-exchange/verification';
-import { exitCodes, outcomeOf, usageError } from './follows.ts';
+import { exitCodes, outcomeOf, usageError } from '../demo/follows.ts';
 
 export const missingPool =
   'no verification account: pass --verification-account <handle> (repeatable) or set VERIFICATION_ACCOUNTS';

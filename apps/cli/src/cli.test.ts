@@ -25,8 +25,8 @@ import {
   type CliDeps,
 } from './cli.ts';
 import { invalidClaimId } from './command.ts';
-import { emptyPool } from './pool.ts';
-import { invalidUser, unknownEmail, unknownUser } from './users.ts';
+import { emptyPool } from './commands/pool/pool.ts';
+import { invalidUser, unknownEmail, unknownUser } from './commands/user/users.ts';
 
 const databaseUrl = providedDatabaseUrl();
 const key = 'cli-key-for-tests';

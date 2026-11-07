@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import type { Attempt } from '@engagement-exchange/verification';
 import { content, handle } from '@engagement-exchange/verification/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { Demo } from '../commands/demo/demo.ts';
 import { readEnv, type Env } from './config.ts';
-import type { Demo } from './demo.ts';
 import { measurementLog, missingKey } from './measurement-log.ts';
 
 const key = 'panel-key-for-tests';

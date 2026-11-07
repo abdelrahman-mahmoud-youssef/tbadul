@@ -1,5 +1,5 @@
 import type { Attempt, Clock, Handle, Verifier } from '@engagement-exchange/verification';
-import { exitCodes, followsLabel, outcomeOf, resolveFollows } from './follows.ts';
+import { exitCodes, followsLabel, outcomeOf, resolveFollows } from '../demo/follows.ts';
 
 export interface WatchPlan {
   readonly everySeconds: number;

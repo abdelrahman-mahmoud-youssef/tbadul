@@ -2,7 +2,7 @@ import { userRoles, type UserRole } from '@engagement-exchange/db';
 import { claimId, type ClaimId } from '@engagement-exchange/social-accounts';
 import { err, ok, parseHandle, type Handle, type Result } from '@engagement-exchange/verification';
 import { z } from 'zod';
-import { parseDemo, type Demo, type WatchFlags } from './demo.ts';
+import { parseDemo, type Demo, type WatchFlags } from './commands/demo/demo.ts';
 
 export type Command =
   | { readonly kind: 'demo'; readonly demo: Demo }

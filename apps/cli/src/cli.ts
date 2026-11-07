@@ -17,22 +17,7 @@ import {
   type Verifier,
 } from '@engagement-exchange/verification';
 import { needsDatabase, parseCommand, type Command, type DatabaseCommand } from './command.ts';
-import {
-  composeSocialAccounts,
-  composeVerificationAccounts,
-  composeVerifier,
-  type ListCheck,
-  type Sources,
-} from './compose.ts';
-import {
-  databaseUserId,
-  readEnv,
-  sourceChoice,
-  sourceChoices,
-  type Env,
-  type SourceChoice,
-} from './config.ts';
-import type { Demo } from './demo.ts';
+import type { Demo } from './commands/demo/demo.ts';
 import {
   attemptLines,
   cacheUse,
@@ -41,12 +26,33 @@ import {
   ownsCommand,
   profileCommand,
   usageError,
-} from './follows.ts';
-import { linkStart, linkVerify } from './link.ts';
-import { measurementLog, spendLog, type MeasurementLog } from './measurement-log.ts';
-import { emptyPool, poolAdd, poolList, resolvePool, verificationPool } from './pool.ts';
-import { invalidUser, unknownUser, userAdd, userExists, userRole } from './users.ts';
-import { watchFollows } from './watch.ts';
+} from './commands/demo/follows.ts';
+import { linkStart, linkVerify } from './commands/link/link.ts';
+import {
+  emptyPool,
+  poolAdd,
+  poolList,
+  resolvePool,
+  verificationPool,
+} from './commands/pool/pool.ts';
+import { invalidUser, unknownUser, userAdd, userExists, userRole } from './commands/user/users.ts';
+import { watchFollows } from './commands/watch/watch.ts';
+import {
+  composeSocialAccounts,
+  composeVerificationAccounts,
+  composeVerifier,
+  type ListCheck,
+  type Sources,
+} from './infrastructure/compose.ts';
+import {
+  databaseUserId,
+  readEnv,
+  sourceChoice,
+  sourceChoices,
+  type Env,
+  type SourceChoice,
+} from './infrastructure/config.ts';
+import { measurementLog, spendLog, type MeasurementLog } from './infrastructure/measurement-log.ts';
 
 export const usage = [
   'usage:',
