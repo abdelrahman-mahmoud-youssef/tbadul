@@ -26,7 +26,7 @@ import {
 } from './cli.ts';
 import { invalidClaimId } from './command.ts';
 import { emptyPool } from './pool.ts';
-import { invalidUser, unknownUser } from './users.ts';
+import { invalidUser, unknownEmail, unknownUser } from './users.ts';
 
 const databaseUrl = providedDatabaseUrl();
 const key = 'cli-key-for-tests';
@@ -183,6 +183,7 @@ describe('the CLI without a database', () => {
 
   it.each([
     ['user', 'add', 'someone@example.test'],
+    ['user', 'role', 'someone@example.test', 'admin'],
     ['pool', 'add', 'verify.one'],
     ['pool', 'list'],
   ])('refuses %s %s without DATABASE_URL', async (...argv) => {
@@ -190,6 +191,15 @@ describe('the CLI without a database', () => {
 
     expect(result.code).toBe(64);
     expect(result.err).toEqual([`${argv[0]} ${argv[1]} needs DATABASE_URL`]);
+  });
+
+  it.each([
+    [['user', 'role', 'not-an-email', 'admin'], 'invalid email'],
+    [['user', 'role', 'someone@example.test', 'owner'], 'invalid role: use user or admin'],
+  ])('refuses %j before anything runs', async (argv, message) => {
+    const result = await cli(argv, {});
+
+    expect(result).toEqual({ code: 64, out: [], err: [message] });
   });
 
   it('refuses a claim id that is not a uuid before anything runs', async () => {
@@ -266,6 +276,34 @@ describe.skipIf(databaseUrl === null)('the CLI on PostgreSQL', () => {
     const result = await cli(['user', 'add', email], onDatabase);
 
     expect(result).toMatchObject({ code: 1, err: ['a user with this email already exists'] });
+  });
+
+  it('sets the role of a user found by email in any case', async () => {
+    const email = `${unique('Admin')}@Example.test`;
+    await client.db.insert(auth_users).values({ email, name: 'admin' });
+
+    const promoted = await cli(['user', 'role', email, 'admin'], onDatabase);
+    const role = async () =>
+      (
+        await client.db.query.auth_users.findFirst({
+          columns: { role: true },
+          where: (users, { eq }) => eq(users.email, email),
+        })
+      )?.role;
+
+    expect(promoted).toMatchObject({ code: 0, out: [expect.stringMatching(/: role admin$/)] });
+    await expect(role()).resolves.toBe('admin');
+    await cli(['user', 'role', email, 'user'], onDatabase);
+    await expect(role()).resolves.toBe('user');
+  });
+
+  it('refuses a role for an email no user has', async () => {
+    const result = await cli(
+      ['user', 'role', `${unique('nobody')}@example.test`, 'admin'],
+      onDatabase,
+    );
+
+    expect(result).toMatchObject({ code: 1, err: [unknownEmail] });
   });
 
   it('adds a verification account through the profile check and lists it', async () => {

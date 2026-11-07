@@ -30,6 +30,8 @@ Better Auth owns its tables and generates them with its own CLI (`auth generate 
 
 Email is unique regardless of case through a unique index on `lower(email)` (`auth_users_email_lower_unique`), written in a custom migration (`0005`) beside Better Auth's own unique constraint on `email`. Better Auth 1.7.15 lowercases email on every write and lookup, so the index never refuses its writes and it keeps querying `email` by equality; the index refuses a case variant written by any other path. `citext` was rejected: the column type lives in the generated schema, so regenerating would revert it and `drizzle-kit` would emit a migration back to `text`. The index lives outside the generated file for the same reason.
 
+Added on 2026-11-07: the options carry Better Auth's `admin` plugin with `defaultRole: 'user'` and `adminRoles: ['admin']`. Regenerating added `role`, `banned`, `ban_reason` and `ban_expires` to `auth_users` and `impersonated_by` to `auth_sessions` (migration `0009`), all nullable as the plugin declares them. Better Auth writes the default role on the users it creates and reads a missing role as the default, so a user the CLI inserts directly is a `user`. The CLI's `user role <email> <user|admin>` sets the role, matching the email regardless of case, so an operator can make the first admin.
+
 ### Tables
 
 | Table                   | Purpose                                           | Key constraints                                                                                                                          |

@@ -1,4 +1,5 @@
-import { auth_users, type Database } from '@engagement-exchange/db';
+import { auth_users, type Database, type UserRole } from '@engagement-exchange/db';
+import { sql } from 'drizzle-orm';
 
 export const invalidUser =
   'config CLI_USER_ID: with DATABASE_URL set, use the id printed by user add';
@@ -17,6 +18,22 @@ export const userAdd = async (db: Database, email: string, name: string): Promis
     return 1;
   }
   console.log(`user ${created.id}: set CLI_USER_ID=${created.id} to link accounts as this user`);
+  return 0;
+};
+
+export const unknownEmail = 'no user has this email; create one with user add <email>';
+
+export const userRole = async (db: Database, email: string, role: UserRole): Promise<number> => {
+  const [updated] = await db
+    .update(auth_users)
+    .set({ role })
+    .where(sql`lower(${auth_users.email}) = ${email}`)
+    .returning({ id: auth_users.id });
+  if (updated === undefined) {
+    console.error(unknownEmail);
+    return 1;
+  }
+  console.log(`user ${updated.id}: role ${role}`);
   return 0;
 };
 

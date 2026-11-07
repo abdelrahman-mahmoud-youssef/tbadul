@@ -45,7 +45,7 @@ import {
 import { linkStart, linkVerify } from './link.ts';
 import { measurementLog, spendLog, type MeasurementLog } from './measurement-log.ts';
 import { emptyPool, poolAdd, poolList, resolvePool, verificationPool } from './pool.ts';
-import { invalidUser, unknownUser, userAdd, userExists } from './users.ts';
+import { invalidUser, unknownUser, userAdd, userExists, userRole } from './users.ts';
 import { watchFollows } from './watch.ts';
 
 export const usage = [
@@ -58,6 +58,7 @@ export const usage = [
   '  cli link start <handle-or-url> [--verification-account <handle>]...',
   '  cli link verify <claim-id>',
   '  cli user add <email> [--name <name>]',
+  '  cli user role <email> <user|admin>',
   '  cli pool add <handle> [--source <name>]',
   '  cli pool list',
   '',
@@ -205,6 +206,8 @@ const databaseCommand = async (run: Run, db: Database, command: Command): Promis
       return runDemo(run, command.demo);
     case 'user add':
       return userAdd(db, command.email, command.name);
+    case 'user role':
+      return userRole(db, command.email, command.role);
     case 'pool add':
       return poolAdd(composeVerificationAccounts(run.verifier, pool), command.account);
     case 'pool list':

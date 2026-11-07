@@ -207,6 +207,19 @@ describe.skipIf(databaseUrl === null)('database schema', () => {
     });
   });
 
+  it('gives a user Better Auth creates the default role, unbanned', async () => {
+    const { internalAdapter } = await betterAuth(authOptions(client.db)).$context;
+
+    const created = await internalAdapter.createUser(
+      { email: `${randomUUID()}@example.test`, name: 'someone' },
+      { method: 'admin' },
+    );
+
+    await expect(
+      db.query.auth_users.findFirst({ where: (users, { eq }) => eq(users.id, created.id) }),
+    ).resolves.toMatchObject({ role: 'user', banned: false, banReason: null, banExpires: null });
+  });
+
   it('refuses a platform outside the platform list', async () => {
     const error = await failure(account({ platform: 'myspace' as Platform }));
 
