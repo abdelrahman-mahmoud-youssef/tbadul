@@ -16,6 +16,12 @@ export { sidecarSigner } from './adapters/scraper/sidecar/sidecar-signer.ts';
 export type { ScraptikDeps } from './adapters/scraptik/scraptik-client.ts';
 export { scraptikSource } from './adapters/scraptik/scraptik-source.ts';
 export type { ProfileCacheTtl } from './application/cached-profile.ts';
+export {
+  allSinks,
+  fallbackCounter,
+  type FallbackCount,
+  type FallbackCounter,
+} from './application/fallback-counter.ts';
 export type { Verify, VerifyFollowsBatch, VerifyOptions } from './application/chain.ts';
 export type { VerifyOwnership } from './application/ownership.ts';
 export {
