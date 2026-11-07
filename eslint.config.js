@@ -173,4 +173,27 @@ export default defineConfig(
       ],
     },
   },
+  {
+    files: ['packages/contracts/src/**/*.ts'],
+    rules: {
+      'boundaries/dependencies': [
+        2,
+        {
+          default: 'disallow',
+          checkAllOrigins: true,
+          policies: [
+            {
+              from: { element: { type: 'root' } },
+              allow: [{ to: { element: { type: 'root' } } }, { to: { module: { source: 'zod' } } }],
+            },
+            {
+              from: { file: { categories: 'test' } },
+              allow: { to: { module: { source: 'vitest' } } },
+            },
+            noTestFiles,
+          ],
+        },
+      ],
+    },
+  },
 );
