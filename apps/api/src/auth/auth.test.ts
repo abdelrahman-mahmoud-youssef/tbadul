@@ -10,7 +10,7 @@ import {
   startClaim,
   uniqueHandle,
   webOrigin,
-} from './testing/harness.ts';
+} from '../testing/harness.ts';
 
 describe.skipIf(databaseUrl === null)('sessions', () => {
   it('signs up, signs in and answers me for each session', async () => {

@@ -11,9 +11,9 @@ import {
 import { Reflector } from '@nestjs/core';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { FastifyRequest } from 'fastify';
-import type { Api } from './compose.ts';
-import { ApiError } from './errors.ts';
-import { API } from './tokens.ts';
+import type { Api } from '../core/compose.ts';
+import { API } from '../core/tokens.ts';
+import { ApiError } from '../http/errors.ts';
 
 export interface Principal {
   readonly userId: UserId;

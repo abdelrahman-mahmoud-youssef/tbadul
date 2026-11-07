@@ -16,7 +16,7 @@ import type {
   preHandlerAsyncHookHandler,
 } from 'fastify';
 import { ApiError } from './errors.ts';
-import { principalOf } from './session.ts';
+import { principalOf } from '../auth/session.ts';
 
 export interface RateLimitSettings {
   readonly max: number;
@@ -39,7 +39,7 @@ export const registerRateLimit = (fastify: FastifyInstance, settings: RateLimitS
 const limitGroup = Symbol('rate-limit-group');
 
 @Injectable()
-export class RateLimitGuard implements CanActivate {
+class RateLimitGuard implements CanActivate {
   private readonly adapterHost: HttpAdapterHost;
   private readonly reflector: Reflector;
   private readonly limits = new Map<string, preHandlerAsyncHookHandler>();

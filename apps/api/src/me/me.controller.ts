@@ -1,6 +1,6 @@
 import { meResponse, type MeResponse } from '@engagement-exchange/contracts';
 import { Controller, Get, SerializeOptions } from '@nestjs/common';
-import { Caller, type Principal } from './session.ts';
+import { Caller, type Principal } from '../auth/session.ts';
 
 @Controller('me')
 export class MeController {

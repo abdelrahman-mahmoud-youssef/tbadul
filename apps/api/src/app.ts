@@ -8,11 +8,11 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { FastifyBaseLogger } from 'fastify';
 import { AppModule } from './app.module.ts';
-import { mountAuth } from './auth.ts';
-import { composeApi, type Api, type ApiParts } from './compose.ts';
-import type { Env } from './config.ts';
-import { ErrorEnvelopeFilter, validationFailed } from './errors.ts';
-import { registerRateLimit } from './rate-limit.ts';
+import { mountAuth } from './auth/auth.ts';
+import { composeApi, type Api, type ApiParts } from './core/compose.ts';
+import type { Env } from './core/config.ts';
+import { ErrorEnvelopeFilter, validationFailed } from './http/errors.ts';
+import { registerRateLimit } from './http/rate-limit.ts';
 
 export interface LogDestination {
   write(line: string): void;

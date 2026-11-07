@@ -10,11 +10,13 @@ import {
   type AddPoolAccountResponse,
   type FallbacksResponse,
   type PoolAccountResponse,
+  type PooledAccount as PooledAccountBody,
   type PoolResponse,
   type SetPoolAccountActiveRequest,
 } from '@engagement-exchange/contracts';
 import type {
   AddVerificationAccountError,
+  PooledAccount,
   VerificationAccounts,
 } from '@engagement-exchange/social-accounts';
 import { platforms, type FallbackCounter } from '@engagement-exchange/verification';
@@ -29,11 +31,17 @@ import {
   SerializeOptions,
   UseGuards,
 } from '@nestjs/common';
-import type { Api } from './compose.ts';
-import { ApiError } from './errors.ts';
-import { presentPooledAccount } from './present.ts';
-import { AdminGuard } from './session.ts';
-import { API } from './tokens.ts';
+import { AdminGuard } from '../auth/session.ts';
+import type { Api } from '../core/compose.ts';
+import { API } from '../core/tokens.ts';
+import { ApiError } from '../http/errors.ts';
+
+const presentPooledAccount = (account: PooledAccount): PooledAccountBody => ({
+  accountId: account.accountId.value,
+  ...(account.handle !== undefined && { handle: account.handle.value }),
+  active: account.active,
+  assignedCount: account.assignedCount,
+});
 
 const additionFailure = (error: AddVerificationAccountError): ApiError => {
   if (error.kind === 'invalid_handle') {

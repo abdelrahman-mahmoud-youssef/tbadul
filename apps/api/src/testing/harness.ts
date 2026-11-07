@@ -3,7 +3,7 @@ import { providedDatabaseUrl } from '@engagement-exchange/db/testing';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { z } from 'zod';
 import { createApp, type LogDestination } from '../app.ts';
-import type { Api } from '../compose.ts';
+import type { Api } from '../core/compose.ts';
 import {
   createWorld,
   promoteToAdmin,

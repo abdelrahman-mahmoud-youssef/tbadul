@@ -30,7 +30,7 @@ import {
   type Result,
   type SourceOrders,
 } from '@engagement-exchange/verification';
-import { createAuth, type Auth } from './auth.ts';
+import { createAuth, type Auth } from '../auth/auth.ts';
 import type { Env } from './config.ts';
 
 export type Warn = (fields: Record<string, unknown>, message: string) => void;

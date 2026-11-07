@@ -2,9 +2,9 @@ import { healthResponse, type HealthResponse } from '@engagement-exchange/contra
 import { migrationsApplied } from '@engagement-exchange/db';
 import { Controller, Get, Inject, Res, SerializeOptions } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import type { Api } from './compose.ts';
-import { Public } from './session.ts';
-import { API } from './tokens.ts';
+import { Public } from '../auth/session.ts';
+import type { Api } from '../core/compose.ts';
+import { API } from '../core/tokens.ts';
 
 @Controller('health')
 @Public()

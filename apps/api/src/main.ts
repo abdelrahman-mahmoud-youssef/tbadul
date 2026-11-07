@@ -1,6 +1,6 @@
 import { migrationsApplied } from '@engagement-exchange/db';
 import { createApp } from './app.ts';
-import { configErrors, readEnv } from './config.ts';
+import { configErrors, readEnv } from './core/config.ts';
 
 const env = readEnv(process.env);
 if (!env.success) {

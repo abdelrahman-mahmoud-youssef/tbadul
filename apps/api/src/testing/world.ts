@@ -14,8 +14,8 @@ import {
   type ManualClock,
 } from '@engagement-exchange/verification/testing';
 import { eq } from 'drizzle-orm';
-import type { Api } from '../compose.ts';
-import { envSchema, type Env } from '../config.ts';
+import type { Api } from '../core/compose.ts';
+import { envSchema, type Env } from '../core/config.ts';
 
 const dayMs = 86_400_000;
 

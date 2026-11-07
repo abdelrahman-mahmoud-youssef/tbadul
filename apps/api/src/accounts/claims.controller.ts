@@ -21,12 +21,12 @@ import {
   Post,
   SerializeOptions,
 } from '@nestjs/common';
-import type { Api } from './compose.ts';
-import { ApiError, claimFailure, iso } from './errors.ts';
+import { Caller, type Principal } from '../auth/session.ts';
+import type { Api } from '../core/compose.ts';
+import { API } from '../core/tokens.ts';
+import { ApiError, claimFailure, iso } from '../http/errors.ts';
+import { RateLimited } from '../http/rate-limit.ts';
 import { presentClaim, presentPlatformAccounts } from './present.ts';
-import { RateLimited } from './rate-limit.ts';
-import { Caller, type Principal } from './session.ts';
-import { API } from './tokens.ts';
 
 @Controller()
 export class ClaimsController {

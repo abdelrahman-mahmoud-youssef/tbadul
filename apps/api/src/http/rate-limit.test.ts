@@ -1,6 +1,6 @@
 import { errorEnvelope } from '@engagement-exchange/contracts';
 import { describe, expect, it } from 'vitest';
-import { call, databaseUrl, signUp, startApi, verifyClaim } from './testing/harness.ts';
+import { call, databaseUrl, signUp, startApi, verifyClaim } from '../testing/harness.ts';
 
 const unknownClaim = '0196f1c4-7a1e-7000-8000-000000000000';
 

@@ -21,7 +21,7 @@ import {
   verifyClaim,
   type TestApi,
   type User,
-} from './testing/harness.ts';
+} from '../testing/harness.ts';
 
 describe.skipIf(databaseUrl === null)('administration', () => {
   let test: TestApi;
