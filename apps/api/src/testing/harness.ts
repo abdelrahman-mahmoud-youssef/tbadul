@@ -1,128 +1,23 @@
 import { randomUUID } from 'node:crypto';
-import { auth_users } from '@engagement-exchange/db';
 import { providedDatabaseUrl } from '@engagement-exchange/db/testing';
-import {
-  accountId,
-  type AccountId,
-  type AssembledSources,
-  type KnownSourceName,
-} from '@engagement-exchange/verification';
-import {
-  fakeSource,
-  followingPages,
-  manualClock,
-  type FollowsHandler,
-  type ManualClock,
-} from '@engagement-exchange/verification/testing';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { createApp, type LogDestination } from '../app.ts';
 import type { Api } from '../compose.ts';
-import { envSchema } from '../config.ts';
+import {
+  createWorld,
+  promoteToAdmin,
+  sourcesOf,
+  uniqueHandle,
+  worldEnv,
+  type World,
+} from './world.ts';
+
+export { follow, idOf, uniqueHandle, type World } from './world.ts';
 
 export const databaseUrl = providedDatabaseUrl();
 
 export const webOrigin = 'http://localhost:3000';
-
-const dayMs = 86_400_000;
-
-interface Profile {
-  readonly isPrivate?: boolean;
-  readonly missing?: boolean;
-  readonly followerCount?: number;
-}
-
-export interface World {
-  readonly clock: ManualClock;
-  readonly profiles: Map<string, Profile>;
-  readonly following: Map<string, Set<string>>;
-  readonly followsEveryone: Set<string>;
-  readonly failing: Set<string>;
-  readonly entered: { count: number };
-  gate?: Promise<void>;
-}
-
-export const uniqueHandle = (prefix: string): string => `${prefix}_${randomUUID().slice(0, 8)}`;
-
-export const idOf = (handle: string): AccountId => accountId('tiktok', `id-${handle}`);
-
-const createWorld = (): World => ({
-  clock: manualClock(Date.UTC(2026, 10, 7)),
-  profiles: new Map(),
-  following: new Map(),
-  followsEveryone: new Set(),
-  failing: new Set(),
-  entered: { count: 0 },
-});
-
-export const follow = (world: World, performer: string, target: string): void => {
-  const followed = world.following.get(performer) ?? new Set<string>();
-  followed.add(target);
-  world.following.set(performer, followed);
-};
-
-const followsIn =
-  (world: World): FollowsHandler =>
-  async (check, context) => {
-    world.entered.count += 1;
-    await world.gate;
-    const performer = check.performer.value;
-    if (world.failing.has(performer)) {
-      return { outcome: 'source_error', error: { kind: 'network', message: 'unreachable' } };
-    }
-    const listed = world.followsEveryone.has(performer)
-      ? check.targets.map(({ targetId }) => targetId.value)
-      : [...(world.following.get(performer) ?? [])].map((handle) => idOf(handle).value);
-    return followingPages(listed.map((value) => ({ value })))(check, context);
-  };
-
-const sourcesOf = (world: World): AssembledSources => {
-  const follows = followsIn(world);
-  return new Map<KnownSourceName, ReturnType<typeof fakeSource>>([
-    [
-      'ensemble',
-      fakeSource('ensemble', {
-        profile: (check) => {
-          const handle = check.subject.value;
-          const profile = world.profiles.get(handle) ?? {};
-          if (profile.missing === true) {
-            return Promise.resolve({ outcome: 'not_found', cost: { unit: 'units', amount: 1 } });
-          }
-          return Promise.resolve({
-            outcome: 'verified',
-            evidence: {
-              accountId: idOf(handle),
-              bio: '',
-              isPrivate: profile.isPrivate ?? false,
-              followingVisible: true,
-              followerCount: profile.followerCount ?? 100,
-              videoCount: 10,
-              latestPostAt: world.clock.now() - dayMs,
-            },
-            cost: { unit: 'units', amount: 1 },
-          });
-        },
-        follows,
-      }),
-    ],
-    ['scraptik', fakeSource('scraptik', { follows })],
-  ]);
-};
-
-const testEnv = (overrides: Record<string, string> = {}) =>
-  envSchema.parse({
-    DATABASE_URL: databaseUrl ?? '',
-    BETTER_AUTH_SECRET: 'test-secret-that-is-long-enough-for-better-auth',
-    PUBLIC_WEB_ORIGIN: webOrigin,
-    CORS_ORIGINS: webOrigin,
-    LOG_LEVEL: 'silent',
-    VERIFICATION_SOURCE_ORDER_PROFILE: 'ensemble',
-    VERIFICATION_SOURCE_ORDER_FOLLOWS: 'ensemble,scraptik',
-    VERIFICATION_SOURCE_ORDER_LIKED: 'ensemble',
-    RATE_LIMIT_MAX: '1000',
-    ...overrides,
-  });
 
 export interface TestApi {
   readonly app: NestFastifyApplication;
@@ -136,10 +31,13 @@ export const startApi = async (
   logDestination?: LogDestination,
 ): Promise<TestApi> => {
   const world = createWorld();
-  const created = await createApp(testEnv(overrides), {
-    parts: { sources: sourcesOf(world), clock: world.clock },
-    ...(logDestination !== undefined && { logDestination }),
-  });
+  const created = await createApp(
+    worldEnv({ databaseUrl: databaseUrl ?? '', webOrigin }, overrides),
+    {
+      parts: { sources: sourcesOf(world), clock: world.clock },
+      ...(logDestination !== undefined && { logDestination }),
+    },
+  );
   if (!created.ok) throw new Error(created.error);
   const { app, api } = created.value;
   return { app, api, world, close: () => app.close() };
@@ -206,13 +104,6 @@ export const signIn = async (app: NestFastifyApplication, email: string): Promis
   });
   if (response.statusCode !== 200) throw new Error(`sign-in answered ${response.statusCode}`);
   return sessionCookie(response.headers['set-cookie']);
-};
-
-const promoteToAdmin = async (api: Api, email: string): Promise<void> => {
-  await api.database.db
-    .update(auth_users)
-    .set({ role: 'admin' })
-    .where(eq(auth_users.email, email));
 };
 
 export const signUpAdmin = async (test: TestApi): Promise<User> => {
