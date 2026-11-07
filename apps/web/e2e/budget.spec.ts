@@ -7,7 +7,7 @@ const budgetBytes = 150 * 1024;
 
 for (const screen of screens) {
   test(`${screen.name} loads at most 150 KB of gzipped JavaScript`, async ({ page }, testInfo) => {
-    if (screen.as !== undefined) await signInAs(page, screen.as);
+    if (screen.as !== undefined) await signInAs(page.request, screen.as);
     const sizes: Promise<number>[] = [];
     page.on('response', (response) => {
       if (response.request().resourceType() === 'script') {

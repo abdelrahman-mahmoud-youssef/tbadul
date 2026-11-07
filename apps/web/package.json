@@ -12,7 +12,8 @@
     "test": "vitest run",
     "lint:messages": "i18n-check --locales messages --source ar --format next-intl --unused app components features lib --ignore \"errors.*\" \"landing.steps.*\"",
     "test:e2e": "playwright test --project=e2e",
-    "test:budget": "playwright test --project=budget"
+    "test:budget": "playwright test --project=budget",
+    "test:lighthouse": "playwright test --project=lighthouse"
   },
   "dependencies": {
     "@engagement-exchange/contracts": "workspace:*",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "catalog:",
+    "@lhci/cli": "catalog:",
     "@lingual/i18n-check": "catalog:",
     "@playwright/test": "catalog:",
     "@tailwindcss/postcss": "catalog:",

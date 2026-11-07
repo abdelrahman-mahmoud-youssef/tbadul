@@ -9,7 +9,7 @@ test('sends a visitor without a session from the app to sign-in', async ({ page 
 });
 
 test('hides the administration from a user without the admin role', async ({ page }) => {
-  await signInAs(page, 'user');
+  await signInAs(page.request, 'user');
 
   await page.goto('/accounts');
   await expect(page.getByRole('link', { name: messages.nav.admin })).toHaveCount(0);
@@ -19,7 +19,7 @@ test('hides the administration from a user without the admin role', async ({ pag
 });
 
 test('shows the administration to an admin', async ({ page }) => {
-  await signInAs(page, 'admin');
+  await signInAs(page.request, 'admin');
 
   await page.goto('/accounts');
   await page.getByRole('link', { name: messages.nav.admin }).click();
@@ -50,7 +50,7 @@ test('keeps the chosen theme across visits', async ({ page }) => {
 });
 
 test('signs out back to the landing page', async ({ page }) => {
-  await signInAs(page, 'user');
+  await signInAs(page.request, 'user');
   await page.goto('/accounts');
 
   await page.getByRole('button', { name: messages.auth.signOut }).click();

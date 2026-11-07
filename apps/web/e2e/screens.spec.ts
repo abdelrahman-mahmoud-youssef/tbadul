@@ -19,7 +19,7 @@ for (const screen of screens) {
       test(`${screen.name} at ${viewport.width} px in ${theme}`, async ({ page }) => {
         await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
         await page.setViewportSize(viewport);
-        if (screen.as !== undefined) await signInAs(page, screen.as);
+        if (screen.as !== undefined) await signInAs(page.request, screen.as);
 
         await page.goto(screen.path);
         await expect(page.getByRole('heading', { level: 1, name: screen.heading })).toBeVisible();
