@@ -20,7 +20,7 @@ export const viewport: Viewport = { viewportFit: 'cover' };
 export async function generateMetadata({ params }: LayoutProps<'/[locale]'>): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: 'metadata' });
-  return { title: t('title'), description: t('description') };
+  return { title: t('title'), description: t('description'), icons: { icon: '/icon.svg' } };
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps<'/[locale]'>) {
