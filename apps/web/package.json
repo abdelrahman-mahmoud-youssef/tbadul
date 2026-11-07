@@ -10,7 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . && pnpm run lint:messages",
     "test": "vitest run",
-    "lint:messages": "i18n-check --locales messages --source ar --format next-intl --unused app components features lib --ignore \"errors.*\" \"landing.steps.*\""
+    "lint:messages": "i18n-check --locales messages --source ar --format next-intl --unused app components features lib --ignore \"errors.*\" \"landing.steps.*\"",
+    "test:e2e": "playwright test --project=e2e"
   },
   "dependencies": {
     "@engagement-exchange/contracts": "workspace:*",
@@ -30,7 +31,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@axe-core/playwright": "catalog:",
     "@lingual/i18n-check": "catalog:",
+    "@playwright/test": "catalog:",
     "@tailwindcss/postcss": "catalog:",
     "@testing-library/dom": "catalog:",
     "@testing-library/jest-dom": "catalog:",
