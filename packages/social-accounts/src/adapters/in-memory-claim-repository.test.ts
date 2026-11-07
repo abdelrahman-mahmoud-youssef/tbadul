@@ -105,6 +105,22 @@ describe('inMemoryClaimRepository', () => {
     });
   });
 
+  it('lists the active links of a user, oldest link first', async () => {
+    const repository = inMemoryClaimRepository();
+    const later = stored(await repository.create(pending('a', 'alice', 'one'), limit));
+    const earlier = stored(await repository.create(pending('b', 'alice', 'two'), limit));
+    await repository.create(pending('c', 'bob', 'three'), limit);
+    await repository.verify(markVerified(later), 20);
+    await repository.verify(markVerified(earlier), 10);
+
+    const listed = await repository.listLinked(alice, 'tiktok');
+
+    expect(listed.map((link) => [link.claimId, link.linkedAt])).toEqual([
+      ['b', 10],
+      ['a', 20],
+    ]);
+  });
+
   it('lets one claim own an account and refuses the next', async () => {
     const repository = inMemoryClaimRepository();
     const mine = stored(await repository.create(pending('a', 'alice', 'one'), limit));

@@ -48,10 +48,12 @@ export const inMemoryClaimRepository = (): AccountClaimRepository => {
       ),
     listLinked: (userId, platform) =>
       Promise.resolve(
-        links.filter(
-          (link) =>
-            claims.get(link.claimId)?.userId === userId && samePlatform(link.platform, platform),
-        ),
+        links
+          .filter(
+            (link) =>
+              claims.get(link.claimId)?.userId === userId && samePlatform(link.platform, platform),
+          )
+          .sort((a, b) => a.linkedAt - b.linkedAt),
       ),
     listOpen: (userId, platform, now) =>
       Promise.resolve(
