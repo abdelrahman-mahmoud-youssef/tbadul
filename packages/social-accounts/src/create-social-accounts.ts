@@ -1,5 +1,9 @@
 import type { Clock, Verifier } from '@engagement-exchange/verification';
 import { z } from 'zod';
+import {
+  cancelAccountClaimWith,
+  type CancelAccountClaim,
+} from './application/cancel-account-claim.ts';
 import { getAccountClaimWith, type GetAccountClaim } from './application/get-account-claim.ts';
 import {
   startAccountClaimWith,
@@ -45,6 +49,7 @@ export interface SocialAccounts {
   readonly startAccountClaim: StartAccountClaim;
   readonly verifyAccountClaim: VerifyAccountClaim;
   readonly getAccountClaim: GetAccountClaim;
+  readonly cancelAccountClaim: CancelAccountClaim;
 }
 
 const systemClock: Clock = { now: () => Date.now() };
@@ -66,5 +71,6 @@ export const createSocialAccounts = (
     startAccountClaim: startAccountClaimWith(useCaseDeps),
     verifyAccountClaim: verifyAccountClaimWith(useCaseDeps),
     getAccountClaim: getAccountClaimWith(useCaseDeps),
+    cancelAccountClaim: cancelAccountClaimWith(useCaseDeps),
   };
 };

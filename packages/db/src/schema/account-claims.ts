@@ -20,6 +20,7 @@ export const claimStates = [
   'verified',
   'expired',
   'rejected',
+  'cancelled',
 ] as const;
 
 export const rejectionReasons = ['pool_exhausted', 'account_already_claimed'] as const;

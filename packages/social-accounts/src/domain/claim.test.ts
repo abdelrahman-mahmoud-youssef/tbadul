@@ -6,6 +6,7 @@ import {
   eligibilityFailed,
   holdsAccount,
   isExpired,
+  markCancelled,
   markExpired,
   markVerified,
   recordFailedAttempt,
@@ -94,6 +95,7 @@ describe('claim transitions', () => {
   it.each([
     ['eligibility_failed', eligibilityFailed(draft)],
     ['rejected', rejected(draft, 'pool_exhausted')],
+    ['cancelled', markCancelled(awaitingFollow(draft, handle('verify.one'), verificationId))],
   ])('%s does not hold the account', (_state, claim) => {
     expect(holdsAccount(claim, startedAt)).toBe(false);
   });

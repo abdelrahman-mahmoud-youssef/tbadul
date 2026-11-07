@@ -7,6 +7,7 @@ export {
 } from './adapters/drizzle/drizzle-verification-account-pool.ts';
 export { inMemoryClaimRepository } from './adapters/in-memory-claim-repository.ts';
 export { uuidIds } from './adapters/uuid-ids.ts';
+export type { CancelAccountClaim } from './application/cancel-account-claim.ts';
 export type { GetAccountClaim } from './application/get-account-claim.ts';
 export type { ClaimRef } from './application/owned-claim.ts';
 export type { StartAccountClaim, StartClaimInput } from './application/start-account-claim.ts';

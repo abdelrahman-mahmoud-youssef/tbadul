@@ -1,0 +1,2 @@
+ALTER TABLE "account_claims" DROP CONSTRAINT "account_claims_state_check";--> statement-breakpoint
+ALTER TABLE "account_claims" ADD CONSTRAINT "account_claims_state_check" CHECK ("account_claims"."state" in ('eligibility_failed', 'awaiting_follow', 'verified', 'expired', 'rejected', 'cancelled'));

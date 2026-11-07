@@ -8,6 +8,7 @@ export type ClaimError =
   | { readonly kind: 'version_conflict' }
   | { readonly kind: 'claim_not_found' }
   | { readonly kind: 'claim_not_verifiable'; readonly state: ClaimState }
+  | { readonly kind: 'claim_not_cancellable'; readonly state: ClaimState }
   | { readonly kind: 'claim_expired' }
   | { readonly kind: 'cooldown_active'; readonly retryAt: number; readonly waitMs: number }
   | { readonly kind: 'account_unavailable'; readonly outcome: 'private' | 'not_found' }

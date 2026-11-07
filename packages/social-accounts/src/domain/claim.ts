@@ -9,6 +9,7 @@ export const claimStates = [
   'verified',
   'expired',
   'rejected',
+  'cancelled',
 ] as const;
 
 export type ClaimState = (typeof claimStates)[number];
@@ -116,6 +117,11 @@ export const markVerified = (claim: AccountClaim): AccountClaim => ({
 });
 
 export const markExpired = (claim: AccountClaim): AccountClaim => ({ ...claim, state: 'expired' });
+
+export const markCancelled = (claim: AccountClaim): AccountClaim => ({
+  ...claim,
+  state: 'cancelled',
+});
 
 export const markRejected = (claim: AccountClaim, rejection: RejectionReason): AccountClaim => ({
   ...claim,

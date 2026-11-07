@@ -74,6 +74,30 @@ describe.skipIf(databaseUrl === null)('social accounts on PostgreSQL', () => {
     await expect(repository.findOwner(started.value.accountId)).resolves.toBe(user);
   });
 
+  it('cancels an open claim, frees its slot and lets the user claim the account again', async () => {
+    const user = await insertUser(db);
+    const account = uniqueHandle('cancelled');
+    const accounts = social({ follows: () => 'not_following' });
+    const start = () =>
+      accounts.startAccountClaim({ userId: user, platform: 'tiktok', account: account.value });
+    const started = await start();
+    if (!started.ok) throw new Error(started.error.kind);
+
+    const cancelled = await accounts.cancelAccountClaim({
+      userId: user,
+      claimId: started.value.id,
+    });
+    const again = await start();
+
+    expect(cancelled).toMatchObject({ ok: true, value: { state: 'cancelled', version: 1 } });
+    await expect(repository.findById(started.value.id)).resolves.toMatchObject({
+      state: 'cancelled',
+    });
+    expect(again).toMatchObject({ ok: true, value: { state: 'awaiting_follow' } });
+    expect(again.ok && again.value.id).not.toBe(started.value.id);
+    await expect(repository.countHeld(user, 'tiktok', now)).resolves.toBe(1);
+  });
+
   it('checks the follow against the pooled account by its secUid and numeric id', async () => {
     const pooled = {
       handle: uniqueHandle('numeric'),

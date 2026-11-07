@@ -57,6 +57,13 @@
       "when": 1794070813765,
       "tag": "0007_source_budget",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794072207974,
+      "tag": "0008_claim_cancelled",
+      "breakpoints": true
     }
   ]
 }
