@@ -3,6 +3,10 @@
     "context7": {
       "type": "http",
       "url": "https://mcp.context7.com/mcp"
+    },
+    "shadcn": {
+      "command": "cmd",
+      "args": ["/c", "pnpm", "--dir", "apps/web", "exec", "shadcn", "mcp"]
     }
   }
 }
