@@ -13,6 +13,7 @@ export const authOptions = (db: Database) =>
   ({
     database: drizzleAdapter(db, { provider: 'pg' }),
     telemetry: { enabled: false },
+    emailAndPassword: { enabled: true },
     advanced: { database: { generateId: 'uuid' } },
     user: { modelName: 'auth_users' },
     session: { modelName: 'auth_sessions' },

@@ -196,4 +196,66 @@ export default defineConfig(
       ],
     },
   },
+  {
+    files: ['apps/api/src/**/*.ts'],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/elements': [
+        { type: 'testing', pattern: 'src/testing' },
+        { type: 'root', pattern: 'src' },
+      ],
+      'boundaries/files': [{ pattern: '**/*.test.ts', category: 'test' }],
+    },
+    rules: {
+      ...boundaries.configs.strict.rules,
+      '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
+      'boundaries/dependencies': [
+        2,
+        {
+          default: 'disallow',
+          checkAllOrigins: true,
+          policies: [
+            coreModules,
+            {
+              from: { element: { type: ['root', 'testing'] } },
+              allow: [
+                { to: { element: { type: 'root' } } },
+                {
+                  to: {
+                    module: {
+                      source: [
+                        '@engagement-exchange/contracts',
+                        '@engagement-exchange/db',
+                        '@engagement-exchange/social-accounts',
+                        '@engagement-exchange/verification',
+                        '@nestjs/common',
+                        '@nestjs/core',
+                        '@nestjs/platform-fastify',
+                        'better-auth',
+                        'fastify',
+                        'zod',
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              from: { element: { type: 'root' } },
+              disallow: { to: { module: { internalPath: 'testing{,/**}' } } },
+            },
+            {
+              from: { file: { categories: 'test' } },
+              allow: [
+                { to: { element: { type: 'testing' } } },
+                { to: { module: { source: '@engagement-exchange/db', internalPath: 'testing' } } },
+                { to: { module: { source: 'vitest' } } },
+              ],
+            },
+            noTestFiles,
+          ],
+        },
+      ],
+    },
+  },
 );
