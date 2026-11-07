@@ -64,7 +64,7 @@ Rejected alternatives:
 ### Dependencies added by this decision
 
 - `zod` for parsing at the boundaries. Used in `domain` for value objects and in the composition root for config. Allowing one validation library in the domain is a pragmatic choice recorded here; it is the only external import the domain may have.
-- `cockatiel` for the timeout policy. Only `adapters` may import it.
+- `cockatiel` for the timeout policy and, since 2026-11-07, the per-source bulkhead. Only `adapters` may import it.
 - `fast-check` for property tests over sequences of source answers. The invariant "the chain never produces `not_following` unless a source produced it" is about arbitrary orderings and lengths, which example tables cover poorly.
 - `eslint-plugin-boundaries` as above.
 

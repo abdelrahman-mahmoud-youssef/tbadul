@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { withBudget, type BudgetReached } from './adapters/resilience/with-budget.ts';
+import { withBulkhead } from './adapters/resilience/with-bulkhead.ts';
 import { withTimeout } from './adapters/resilience/with-timeout.ts';
 import { cachedVerifyWith } from './application/cached-profile.ts';
 import { followingCache } from './application/following-cache.ts';
@@ -32,6 +33,15 @@ export const verifierConfigSchema = z.object({
   budgets: z
     .record(z.string().min(1), z.object({ unit: z.enum(costUnits), daily: z.number().positive() }))
     .default({}),
+  concurrency: z
+    .record(
+      z.string().min(1),
+      z.object({
+        limit: z.number().int().positive(),
+        queue: z.number().int().nonnegative().default(0),
+      }),
+    )
+    .default({}),
   cache: z
     .object({
       handleTtlMs: z.number().int().positive().default(86_400_000),
@@ -62,13 +72,23 @@ const systemClock: Clock = { now: () => Date.now() };
 const discardingSink: MeasurementSink = { record: () => undefined };
 
 export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Verifier => {
-  const { order, timeoutMs, pageCap, confirmNotFollowing, listCacheTtlMs, budgets, cache } =
-    verifierConfigSchema.parse(config);
+  const {
+    order,
+    timeoutMs,
+    pageCap,
+    confirmNotFollowing,
+    listCacheTtlMs,
+    budgets,
+    concurrency,
+    cache,
+  } = verifierConfigSchema.parse(config);
   const clock = deps.clock ?? systemClock;
-  const unbudgeted = Object.keys(budgets).find(
-    (name) => !deps.sources.some((source) => source.name === name),
-  );
+  const unknown = (names: readonly string[]) =>
+    names.find((name) => !deps.sources.some((source) => source.name === name));
+  const unbudgeted = unknown(Object.keys(budgets));
   if (unbudgeted !== undefined) throw new Error(`budget for unknown source: ${unbudgeted}`);
+  const unlimited = unknown(Object.keys(concurrency));
+  if (unlimited !== undefined) throw new Error(`concurrency for unknown source: ${unlimited}`);
   const budgetDeps = {
     ...(deps.spendLedger !== undefined && { ledger: deps.spendLedger }),
     clock,
@@ -77,8 +97,13 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
   const byName = new Map(
     deps.sources.map((source) => {
       const timed = withTimeout(source, timeoutMs);
+      const limit = concurrency[source.name];
+      const limited = limit === undefined ? timed : withBulkhead(timed, limit);
       const budget = budgets[source.name];
-      return [source.name, budget === undefined ? timed : withBudget(timed, budget, budgetDeps)];
+      return [
+        source.name,
+        budget === undefined ? limited : withBudget(limited, budget, budgetDeps),
+      ];
     }),
   );
   const resolve = (names: readonly string[]) =>

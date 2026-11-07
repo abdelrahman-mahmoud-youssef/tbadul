@@ -77,6 +77,13 @@ describe('createVerifier', () => {
     ).toThrow('budget for unknown source: ensemble');
   });
 
+  it('rejects a concurrency limit for a source that was not provided', () => {
+    const sources = [fakeSource('lamatok', {}), fakeSource('scraper', {})];
+    expect(() =>
+      createVerifier({ ...config, concurrency: { scraptik: { limit: 2 } } }, { sources }),
+    ).toThrow('concurrency for unknown source: scraptik');
+  });
+
   it('skips a source at its daily budget and falls through to the next', async () => {
     const reached: string[] = [];
     const { verify } = createVerifier(

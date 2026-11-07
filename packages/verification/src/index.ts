@@ -73,6 +73,7 @@ export type { CachedProfile, ProfileCache, ProfileEntry } from './ports/profile-
 export type { RequestSigner, SignedRequest } from './ports/request-signer.ts';
 export type { SpendLedger } from './ports/spend-ledger.ts';
 export type { BudgetReached, DailyBudget } from './adapters/resilience/with-budget.ts';
+export type { ConcurrencyLimit } from './adapters/resilience/with-bulkhead.ts';
 export type {
   CallContext,
   FollowsAsk,
