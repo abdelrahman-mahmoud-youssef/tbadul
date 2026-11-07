@@ -12,5 +12,8 @@ export default defineConfig({
     locale: 'ar',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'e2e', testMatch: /screens\.spec\.ts|flows\.spec\.ts/ }],
+  projects: [
+    { name: 'e2e', testMatch: /screens\.spec\.ts|flows\.spec\.ts/ },
+    { name: 'budget', testMatch: /budget\.spec\.ts/ },
+  ],
 });

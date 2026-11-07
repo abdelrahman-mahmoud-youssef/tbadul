@@ -11,7 +11,8 @@
     "lint": "eslint . && pnpm run lint:messages",
     "test": "vitest run",
     "lint:messages": "i18n-check --locales messages --source ar --format next-intl --unused app components features lib --ignore \"errors.*\" \"landing.steps.*\"",
-    "test:e2e": "playwright test --project=e2e"
+    "test:e2e": "playwright test --project=e2e",
+    "test:budget": "playwright test --project=budget"
   },
   "dependencies": {
     "@engagement-exchange/contracts": "workspace:*",

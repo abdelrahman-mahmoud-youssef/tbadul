@@ -20,7 +20,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip",
-    "test:e2e": "pnpm --filter @engagement-exchange/web test:e2e"
+    "test:e2e": "pnpm --filter @engagement-exchange/web test:e2e",
+    "test:budget": "pnpm --filter @engagement-exchange/web test:budget"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",
