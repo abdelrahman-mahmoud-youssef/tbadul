@@ -171,9 +171,23 @@ const inMemoryCommand = async (
           inMemoryClaimRepository(),
           configVerificationAccountPool([]),
         ),
+        run.env.CLI_USER_ID,
         command.claim,
       );
   }
+};
+
+const databaseUser = async (run: Run, db: Database): Promise<string | undefined> => {
+  const user = databaseUserId.safeParse(run.env.CLI_USER_ID);
+  if (!user.success) {
+    console.error(invalidUser);
+    return undefined;
+  }
+  if (!(await userExists(db, user.data))) {
+    console.error(unknownUser);
+    return undefined;
+  }
+  return user.data;
 };
 
 const databaseCommand = async (run: Run, db: Database, command: Command): Promise<number> => {
@@ -189,27 +203,23 @@ const databaseCommand = async (run: Run, db: Database, command: Command): Promis
       return poolAdd(run.verifier, pool, command.account);
     case 'pool list':
       return poolList(pool);
-    case 'link verify':
-      return linkVerify(social(), command.claim);
+    case 'link verify': {
+      const user = await databaseUser(run, db);
+      if (user === undefined) return usageError;
+      return linkVerify(social(), user, command.claim);
+    }
     case 'link start': {
       if (run.poolFlags.length > 0) {
         console.error(poolFlagWithDatabase);
         return usageError;
       }
-      const user = databaseUserId.safeParse(run.env.CLI_USER_ID);
-      if (!user.success) {
-        console.error(invalidUser);
-        return usageError;
-      }
-      if (!(await userExists(db, user.data))) {
-        console.error(unknownUser);
-        return usageError;
-      }
+      const user = await databaseUser(run, db);
+      if (user === undefined) return usageError;
       if ((await pool.candidates('tiktok')).length === 0) {
         console.error(emptyPool);
         return usageError;
       }
-      return linkStart(social(), user.data, command.account);
+      return linkStart(social(), user, command.account);
     }
   }
 };

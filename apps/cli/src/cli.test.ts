@@ -332,9 +332,20 @@ describe.skipIf(databaseUrl === null)('the CLI on PostgreSQL', () => {
   });
 
   it('refuses a link verify on an unknown uuid as not found', async () => {
-    const result = await cli(['link', 'verify', randomUUID()], onDatabase);
+    const user = await addUser();
+
+    const result = await cli(['link', 'verify', randomUUID()], {
+      ...onDatabase,
+      CLI_USER_ID: user,
+    });
 
     expect(result).toMatchObject({ code: 1, err: ['claim not found'] });
+  });
+
+  it('refuses link verify for a user id that is not a uuid', async () => {
+    const result = await cli(['link', 'verify', randomUUID()], onDatabase);
+
+    expect(result).toMatchObject({ code: 64, err: [invalidUser] });
   });
 
   it('answers a repeated profile from the cache and logs both attempts by hash', async () => {
@@ -397,10 +408,19 @@ describe.skipIf(databaseUrl === null)('profile requests across a link flow on Po
     await cli(start, onUser, source, deps);
     const claimId =
       started.out.map((line) => /then run link verify (\S+)$/.exec(line)?.[1]).find(Boolean) ?? '';
-    const verified = await cli(['link', 'verify', claimId], env, source, deps);
-    const again = await cli(['link', 'verify', claimId], env, source, deps);
+    const other = await cli(['user', 'add', `${unique('other')}@example.test`], env, source, deps);
+    const otherId = /^user (\S+):/.exec(other.out[0] ?? '')?.[1] ?? '';
+    const stranger = await cli(
+      ['link', 'verify', claimId],
+      { ...env, CLI_USER_ID: otherId },
+      source,
+      deps,
+    );
+    const verified = await cli(['link', 'verify', claimId], onUser, source, deps);
+    const again = await cli(['link', 'verify', claimId], onUser, source, deps);
 
     expect(started.code).toBe(0);
+    expect(stranger).toMatchObject({ code: 1, err: ['claim not found'] });
     expect(verified.out).toContain('verify: not_following');
     expect(again.err[0]).toMatch(/^too early/);
     return profileRequests(source);

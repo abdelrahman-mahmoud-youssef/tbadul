@@ -10,8 +10,8 @@ import {
   type VerifyAttempt,
 } from '../domain/claim.ts';
 import type { ClaimError } from '../domain/claim-error.ts';
-import type { ClaimId } from '../domain/ids.ts';
 import type { UseCaseDeps } from './deps.ts';
+import { findOwnedClaim, type ClaimRef } from './owned-claim.ts';
 
 export type VerifyOutcome = 'verified' | 'not_following' | 'private' | 'not_found' | 'source_error';
 
@@ -20,13 +20,14 @@ export interface VerifyResult {
   readonly outcome: VerifyOutcome;
 }
 
-export type VerifyAccountClaim = (id: ClaimId) => Promise<Result<VerifyResult, ClaimError>>;
+export type VerifyAccountClaim = (ref: ClaimRef) => Promise<Result<VerifyResult, ClaimError>>;
 
 export const verifyAccountClaimWith =
   (deps: UseCaseDeps): VerifyAccountClaim =>
-  async (id) => {
-    const claim = await deps.repository.findById(id);
-    if (claim === undefined) return err({ kind: 'claim_not_found' });
+  async (ref) => {
+    const owned = await findOwnedClaim(deps.repository, ref);
+    if (!owned.ok) return owned;
+    const claim = owned.value;
     const { verificationAccount, verificationAccountId } = claim;
     if (
       claim.state !== 'awaiting_follow' ||

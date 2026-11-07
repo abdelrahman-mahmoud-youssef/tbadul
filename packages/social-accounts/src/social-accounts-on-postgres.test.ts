@@ -60,9 +60,10 @@ describe.skipIf(databaseUrl === null)('social accounts on PostgreSQL', () => {
       account: account.value,
     });
     if (!started.ok) throw new Error(started.error.kind);
-    const verified = await social({ follows: () => 'verified' }).verifyAccountClaim(
-      started.value.id,
-    );
+    const verified = await social({ follows: () => 'verified' }).verifyAccountClaim({
+      userId: user,
+      claimId: started.value.id,
+    });
 
     expect(started.value).toMatchObject({ state: 'awaiting_follow', version: 0 });
     expect(started.value.verificationAccount).toBeDefined();
@@ -95,7 +96,7 @@ describe.skipIf(databaseUrl === null)('social accounts on PostgreSQL', () => {
         ids: uuidIds,
         clock: { now: () => now },
       },
-    ).verifyAccountClaim(claim.id);
+    ).verifyAccountClaim({ userId: claim.userId, claimId: claim.id });
 
     expect(candidate.accountId).toEqual(pooled.accountId);
     expect(verifier.calls).toMatchObject([{ kind: 'follows', targetId: pooled.accountId }]);
@@ -110,8 +111,8 @@ describe.skipIf(databaseUrl === null)('social accounts on PostgreSQL', () => {
     const { verifyAccountClaim } = social({ follows: () => 'verified' });
 
     const results = await Promise.all([
-      verifyAccountClaim(first.id),
-      verifyAccountClaim(second.id),
+      verifyAccountClaim({ userId: first.userId, claimId: first.id }),
+      verifyAccountClaim({ userId: second.userId, claimId: second.id }),
     ]);
     const claims = await Promise.all([first, second].map((claim) => repository.findById(claim.id)));
     const links = await db.query.linkedAccounts.findMany({

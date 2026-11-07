@@ -79,8 +79,12 @@ export const linkStart = async (
   return result.ok && refused.has(result.value.state) ? 1 : code;
 };
 
-export const linkVerify = async (social: SocialAccounts, id: string): Promise<number> => {
-  const result = await social.verifyAccountClaim(claimId(id));
+export const linkVerify = async (
+  social: SocialAccounts,
+  user: string,
+  id: string,
+): Promise<number> => {
+  const result = await social.verifyAccountClaim({ userId: userId(user), claimId: claimId(id) });
   const code = report(result, ({ claim, outcome }: VerifyResult) => [
     `verify: ${outcome}`,
     ...describeClaim(claim),

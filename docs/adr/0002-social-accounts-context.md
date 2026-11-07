@@ -36,13 +36,17 @@ ADR 0004 supersedes the original rule here. Ownership is exclusive at verify, no
 
 `AccountClaimRepository`, `VerificationAccountPool`, `IdGenerator`, and the `Clock` type from the Verification surface. The `Verifier` is a dependency of the composition root, not a port of this context: it is the other context's public use case, typed by that package.
 
+### Claim operations are scoped to their user
+
+Added on 2026-11-07. Every operation on an existing claim takes the user with the claim id: `verifyAccountClaim` and `getAccountClaim` take `{ userId, claimId }`. A claim that belongs to another user answers `claim_not_found`, the same answer as an unknown id, so a caller cannot learn that the claim exists. The check runs before anything else, so a foreign claim is never expired, saved or checked against a source.
+
 ### Not in this context
 
 Scheduling, notifications, the user identity itself (a `UserId` is an opaque string here), and any persistence beyond the in-memory and file adapters needed by tests and the CLI.
 
 ## Consequences
 
-- A scheduler calls `verifyAccountClaim(claimId)` with no domain change.
+- A scheduler calls `verifyAccountClaim({ userId, claimId })` with the claim's own user, with no domain change.
 - Thresholds, schedule, TTL and limits are config; changing a number changes no code.
 - Two rules can report `inconclusive` until the data gap is closed; the report says so.
 - The Verification context's `ProfileEvidence` grows optional fields (`followerCount`, `videoCount`, `avatarUrl`, `createdAt`, `latestPostAt`) so that the scraper can carry what the page offers. Sources that lack a field leave it undefined. Added on 2026-11-06: a profile check may ask for `latestPost`; link start asks for it, and EnsembleData answers it with one extra posts read (1 unit), so the activity rule is enforced at link start and never costs anything on verify. Changed on 2026-11-06: the account-age and default-avatar rules leave the enforced set. No profile source in the default order carries a real creation time (EnsembleData answers 0, ScrapTik's user object has none) and no provider exposes a default-avatar flag, so both would only ever be inconclusive. The eligibility report records the account's creation time, when a source gives it, and its avatar URL as `signals`, kept with the claim for later fraud scoring and never judged.
