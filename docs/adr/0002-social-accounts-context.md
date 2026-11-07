@@ -44,6 +44,10 @@ Added on 2026-11-07. Every operation on an existing claim takes the user with th
 
 Added on 2026-11-07. A user may cancel their own `awaiting_follow` claim, expired or not, through `cancelAccountClaim({ userId, claimId })`; it moves to a sixth state, `cancelled`, saved by compare-and-set. A claim in any other state answers `claim_not_cancellable` with its state. A cancelled claim holds nothing: it stops counting toward the platform limit and leaves the partial unique index on open claims, so the user may claim the same account again at once. A `verified` claim is a linked account, not a pending attempt, and is never cancelled; removing a linked account is unlinking, which is out of scope here and will revoke the link rather than change the claim.
 
+### Listing a user's accounts
+
+Added on 2026-11-07. `listLinkedAccounts({ userId })` answers one entry per platform in the Verification context's `platforms` list: the limit, the slots used, the active linked accounts (handle as claimed, account id, link time, claim id) and the `awaiting_follow` claims that have not expired, so a client can resume a link flow. The slots used come from the repository's `countHeld`, the count claim creation checks against the limit, so the number shown is the number enforced. The link time is the use case's clock at verify, passed to the repository's verify operation, as claim times already are.
+
 ### Not in this context
 
 Scheduling, notifications, the user identity itself (a `UserId` is an opaque string here), and any persistence beyond the in-memory and file adapters needed by tests and the CLI.

@@ -8,7 +8,7 @@ import {
   type Database,
 } from '@engagement-exchange/db';
 import { err, ok, type Platform, type Result } from '@engagement-exchange/verification';
-import { and, asc, eq, gt, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, lte, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { AccountClaim } from '../../domain/claim.ts';
 import type { EligibilityReport } from '../../domain/eligibility.ts';
@@ -30,8 +30,13 @@ import {
 
 const verification = alias(platformAccounts, 'verification_account');
 
-const selectClaims = (db: Executor, where: SQL | undefined) =>
-  db
+const findClaims = async (
+  db: Executor,
+  where: SQL | undefined,
+  order: readonly SQL[] = [],
+  limit?: number,
+): Promise<AccountClaim[]> => {
+  const query = db
     .select({
       claim: accountClaims,
       externalId: platformAccounts.externalId,
@@ -43,50 +48,57 @@ const selectClaims = (db: Executor, where: SQL | undefined) =>
     .innerJoin(platformAccounts, eq(platformAccounts.id, accountClaims.platformAccountId))
     .leftJoin(verification, eq(verification.id, accountClaims.verificationPlatformAccountId))
     .where(where)
-    .limit(1);
-
-const findClaim = async (
-  db: Executor,
-  where: SQL | undefined,
-): Promise<AccountClaim | undefined> => {
-  const [row] = await selectClaims(db, where);
-  if (row === undefined) return undefined;
-  const { claim } = row;
+    .orderBy(...order);
+  const rows = await (limit === undefined ? query : query.limit(limit));
+  if (rows.length === 0) return [];
   const attempts = await db
     .select()
     .from(claimAttempts)
-    .where(eq(claimAttempts.claimId, claim.id))
+    .where(
+      inArray(
+        claimAttempts.claimId,
+        rows.map(({ claim }) => claim.id),
+      ),
+    )
     .orderBy(asc(claimAttempts.at), asc(claimAttempts.id));
-  return {
-    id: claimId(claim.id),
-    userId: userId(claim.userId),
-    platform: claim.platform,
-    handle: handleOf(claim.platform, claim.handle),
-    accountId: accountOf(claim.platform, row),
-    ...(claim.verificationHandle !== null && {
-      verificationAccount: handleOf(claim.platform, claim.verificationHandle),
-    }),
-    ...(row.verificationExternalId !== null && {
-      verificationAccountId: accountOf(claim.platform, {
-        externalId: row.verificationExternalId,
-        numericId: row.verificationNumericId,
+  return rows.map((row) => {
+    const { claim } = row;
+    return {
+      id: claimId(claim.id),
+      userId: userId(claim.userId),
+      platform: claim.platform,
+      handle: handleOf(claim.platform, claim.handle),
+      accountId: accountOf(claim.platform, row),
+      ...(claim.verificationHandle !== null && {
+        verificationAccount: handleOf(claim.platform, claim.verificationHandle),
       }),
-    }),
-    eligibility: claim.eligibility as EligibilityReport,
-    state: claim.state,
-    ...(claim.rejection !== null && { rejection: claim.rejection }),
-    attempts: attempts.map((attempt) => ({
-      at: attempt.at.getTime(),
-      outcome: attempt.outcome,
-      ...(attempt.source !== null && { source: attempt.source }),
-      ...(attempt.latencyMs !== null && { latencyMs: attempt.latencyMs }),
-    })),
-    nextVerifyAt: claim.nextVerifyAt.getTime(),
-    startedAt: claim.startedAt.getTime(),
-    expiresAt: claim.expiresAt.getTime(),
-    version: claim.version,
-  };
+      ...(row.verificationExternalId !== null && {
+        verificationAccountId: accountOf(claim.platform, {
+          externalId: row.verificationExternalId,
+          numericId: row.verificationNumericId,
+        }),
+      }),
+      eligibility: claim.eligibility as EligibilityReport,
+      state: claim.state,
+      ...(claim.rejection !== null && { rejection: claim.rejection }),
+      attempts: attempts
+        .filter((attempt) => attempt.claimId === claim.id)
+        .map((attempt) => ({
+          at: attempt.at.getTime(),
+          outcome: attempt.outcome,
+          ...(attempt.source !== null && { source: attempt.source }),
+          ...(attempt.latencyMs !== null && { latencyMs: attempt.latencyMs }),
+        })),
+      nextVerifyAt: claim.nextVerifyAt.getTime(),
+      startedAt: claim.startedAt.getTime(),
+      expiresAt: claim.expiresAt.getTime(),
+      version: claim.version,
+    };
+  });
 };
+
+const findClaim = async (db: Executor, where: SQL | undefined): Promise<AccountClaim | undefined> =>
+  (await findClaims(db, where, [], 1))[0];
 
 const countHeld = async (
   db: Executor,
@@ -172,6 +184,45 @@ export const drizzleClaimRepository = (db: Database): AccountClaimRepository => 
     return link === undefined ? undefined : userId(link.userId);
   },
   countHeld: (user, platform, now) => countHeld(db, user, platform, now),
+  listLinked: async (user, platform) => {
+    const rows = await db
+      .select({
+        handle: accountClaims.handle,
+        externalId: platformAccounts.externalId,
+        numericId: platformAccounts.numericId,
+        linkedAt: linkedAccounts.linkedAt,
+        claimId: linkedAccounts.claimId,
+      })
+      .from(linkedAccounts)
+      .innerJoin(platformAccounts, eq(platformAccounts.id, linkedAccounts.platformAccountId))
+      .innerJoin(accountClaims, eq(accountClaims.id, linkedAccounts.claimId))
+      .where(
+        and(
+          eq(linkedAccounts.userId, user),
+          eq(linkedAccounts.platform, platform),
+          eq(linkedAccounts.status, 'active'),
+        ),
+      )
+      .orderBy(asc(linkedAccounts.linkedAt), asc(linkedAccounts.id));
+    return rows.map((row) => ({
+      platform,
+      handle: handleOf(platform, row.handle),
+      accountId: accountOf(platform, row),
+      linkedAt: row.linkedAt.getTime(),
+      claimId: claimId(row.claimId),
+    }));
+  },
+  listOpen: (user, platform, now) =>
+    findClaims(
+      db,
+      and(
+        eq(accountClaims.userId, user),
+        eq(accountClaims.platform, platform),
+        eq(accountClaims.state, 'awaiting_follow'),
+        gt(accountClaims.expiresAt, new Date(now)),
+      ),
+      [asc(accountClaims.startedAt), asc(accountClaims.id)],
+    ),
   create: async (claim, { maxHeld, now }) => {
     try {
       return await db.transaction(async (tx): Promise<Result<AccountClaim, CreateClaimError>> => {
@@ -238,7 +289,7 @@ export const drizzleClaimRepository = (db: Database): AccountClaimRepository => 
     db.transaction(async (tx) =>
       (await update(tx, claim)) === undefined ? err('version_conflict') : ok(stored(claim)),
     ),
-  verify: async (claim) => {
+  verify: async (claim, linkedAt) => {
     try {
       return await db.transaction(async (tx): Promise<Result<AccountClaim, VerifyClaimError>> => {
         const platformAccountId = await update(tx, claim);
@@ -248,7 +299,7 @@ export const drizzleClaimRepository = (db: Database): AccountClaimRepository => 
           platform: claim.platform,
           platformAccountId,
           status: 'active',
-          linkedAt: sql`now()`,
+          linkedAt: new Date(linkedAt),
           claimId: claim.id,
         });
         return ok(stored(claim));

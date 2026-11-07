@@ -9,6 +9,7 @@ export { inMemoryClaimRepository } from './adapters/in-memory-claim-repository.t
 export { uuidIds } from './adapters/uuid-ids.ts';
 export type { CancelAccountClaim } from './application/cancel-account-claim.ts';
 export type { GetAccountClaim } from './application/get-account-claim.ts';
+export type { ListLinkedAccounts, PlatformAccounts } from './application/list-linked-accounts.ts';
 export type { ClaimRef } from './application/owned-claim.ts';
 export type { StartAccountClaim, StartClaimInput } from './application/start-account-claim.ts';
 export type {
@@ -45,6 +46,7 @@ export {
   type RuleResult,
 } from './domain/eligibility.ts';
 export { claimId, userId, type ClaimId, type UserId } from './domain/ids.ts';
+export type { LinkedAccount } from './domain/linked-account.ts';
 export type { ProfileFacts } from './domain/profile-facts.ts';
 export type {
   AccountClaimRepository,

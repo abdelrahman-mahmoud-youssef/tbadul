@@ -74,4 +74,4 @@ export const own = async (
   repository: AccountClaimRepository,
   claim: AccountClaim,
 ): Promise<AccountClaim> =>
-  value(await repository.verify(markVerified(await seed(repository, claim))));
+  value(await repository.verify(markVerified(await seed(repository, claim)), claim.startedAt));

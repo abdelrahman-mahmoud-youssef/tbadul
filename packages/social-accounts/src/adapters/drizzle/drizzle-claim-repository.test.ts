@@ -11,7 +11,12 @@ import { providedDatabaseUrl } from '@engagement-exchange/db/testing';
 import { accountId } from '@engagement-exchange/verification';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eligibilityFailed, markVerified, recordFailedAttempt } from '../../domain/claim.ts';
+import {
+  eligibilityFailed,
+  markCancelled,
+  markVerified,
+  recordFailedAttempt,
+} from '../../domain/claim.ts';
 import { claimId } from '../../domain/ids.ts';
 import type { AccountClaimRepository } from '../../ports/account-claim-repository.ts';
 import type { VerificationCandidate } from '../../ports/verification-account-pool.ts';
@@ -232,6 +237,43 @@ describe.skipIf(databaseUrl === null)('drizzleClaimRepository', () => {
     });
   });
 
+  it('lists the active links of a user on a platform with their link time, oldest first', async () => {
+    const user = await insertUser(db);
+    const later = await own(repository, {
+      ...openClaim(user, verifyWith, now + 1000),
+      accountId: accountId('tiktok', randomUUID(), '7012345678901234567'),
+    });
+    const earlier = await own(repository, openClaim(user, verifyWith, now));
+    await seed(repository, openClaim(user, verifyWith, now));
+    await own(repository, await claimOf());
+
+    await expect(repository.listLinked(user, 'tiktok')).resolves.toEqual(
+      [earlier, later].map((claim) => ({
+        platform: 'tiktok',
+        handle: claim.handle,
+        accountId: claim.accountId,
+        linkedAt: claim.startedAt,
+        claimId: claim.id,
+      })),
+    );
+  });
+
+  it('lists the unexpired open claims of a user with their attempts, oldest first', async () => {
+    const user = await insertUser(db);
+    const second = await seed(repository, openClaim(user, verifyWith, now - 1000));
+    const saved = await repository.save(recordFailedAttempt(second, attempt(now), schedule));
+    if (!saved.ok) throw new Error(saved.error);
+    const first = await seed(repository, openClaim(user, verifyWith, now - 2000));
+    await seed(repository, openClaim(user, verifyWith, now - day));
+    const cancelled = await seed(repository, openClaim(user, verifyWith, now));
+    await repository.save(markCancelled(cancelled));
+    await own(repository, openClaim(user, verifyWith, now));
+    await seed(repository, await claimOf());
+
+    await expect(repository.listOpen(user, 'tiktok', now)).resolves.toEqual([first, saved.value]);
+    await expect(repository.countHeld(user, 'tiktok', now)).resolves.toBe(3);
+  });
+
   it('links an account to one owner and counts the link once', async () => {
     const mine = await own(repository, await claimOf());
     const theirs = await seed(repository, {
@@ -241,7 +283,7 @@ describe.skipIf(databaseUrl === null)('drizzleClaimRepository', () => {
 
     await expect(repository.findOwner(mine.accountId)).resolves.toBe(mine.userId);
     await expect(repository.findOwner(accountId('tiktok', randomUUID()))).resolves.toBeUndefined();
-    await expect(repository.verify(markVerified(theirs))).resolves.toEqual({
+    await expect(repository.verify(markVerified(theirs), now)).resolves.toEqual({
       ok: false,
       error: 'account_already_claimed',
     });

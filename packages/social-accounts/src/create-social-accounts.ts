@@ -6,6 +6,10 @@ import {
 } from './application/cancel-account-claim.ts';
 import { getAccountClaimWith, type GetAccountClaim } from './application/get-account-claim.ts';
 import {
+  listLinkedAccountsWith,
+  type ListLinkedAccounts,
+} from './application/list-linked-accounts.ts';
+import {
   startAccountClaimWith,
   type StartAccountClaim,
 } from './application/start-account-claim.ts';
@@ -50,6 +54,7 @@ export interface SocialAccounts {
   readonly verifyAccountClaim: VerifyAccountClaim;
   readonly getAccountClaim: GetAccountClaim;
   readonly cancelAccountClaim: CancelAccountClaim;
+  readonly listLinkedAccounts: ListLinkedAccounts;
 }
 
 const systemClock: Clock = { now: () => Date.now() };
@@ -72,5 +77,6 @@ export const createSocialAccounts = (
     verifyAccountClaim: verifyAccountClaimWith(useCaseDeps),
     getAccountClaim: getAccountClaimWith(useCaseDeps),
     cancelAccountClaim: cancelAccountClaimWith(useCaseDeps),
+    listLinkedAccounts: listLinkedAccountsWith(useCaseDeps),
   };
 };

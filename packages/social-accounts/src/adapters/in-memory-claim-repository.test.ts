@@ -42,7 +42,7 @@ describe('inMemoryClaimRepository', () => {
     const repository = inMemoryClaimRepository();
     await repository.create(pending('a', 'alice', 'one'), limit);
     const linked = stored(await repository.create(pending('b', 'alice', 'two'), limit));
-    await repository.verify(markVerified(linked));
+    await repository.verify(markVerified(linked), 0);
     await repository.create(eligibilityFailed(draft('c', 'alice', 'three')), limit);
     await repository.create(pending('d', 'bob', 'four'), limit);
     await expect(repository.countHeld(alice, 'tiktok', ttlMs - 1)).resolves.toBe(2);
@@ -109,17 +109,17 @@ describe('inMemoryClaimRepository', () => {
     const repository = inMemoryClaimRepository();
     const mine = stored(await repository.create(pending('a', 'alice', 'one'), limit));
     const theirs = stored(await repository.create(pending('b', 'bob', 'one'), limit));
-    await expect(repository.verify(markVerified(mine))).resolves.toMatchObject({
+    await expect(repository.verify(markVerified(mine), 0)).resolves.toMatchObject({
       ok: true,
       value: { state: 'verified', version: 1 },
     });
-    await expect(repository.verify(markVerified(theirs))).resolves.toEqual({
+    await expect(repository.verify(markVerified(theirs), 0)).resolves.toEqual({
       ok: false,
       error: 'account_already_claimed',
     });
     await expect(repository.findOwner(accountId('tiktok', 'one'))).resolves.toBe(alice);
     await expect(repository.findOwner(accountId('tiktok', 'two'))).resolves.toBeUndefined();
-    await expect(repository.verify(markVerified(mine))).resolves.toEqual({
+    await expect(repository.verify(markVerified(mine), 0)).resolves.toEqual({
       ok: false,
       error: 'version_conflict',
     });

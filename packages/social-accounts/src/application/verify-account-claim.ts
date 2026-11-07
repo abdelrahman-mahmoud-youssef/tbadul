@@ -53,7 +53,7 @@ export const verifyAccountClaimWith =
     });
     switch (verdict.outcome) {
       case 'verified': {
-        const verified = await deps.repository.verify(markVerified(claim));
+        const verified = await deps.repository.verify(markVerified(claim), now);
         if (verified.ok) return ok({ claim: verified.value, outcome: 'verified' });
         if (verified.error === 'version_conflict') return err({ kind: 'version_conflict' });
         const refused = await deps.repository.save(markRejected(claim, 'account_already_claimed'));
