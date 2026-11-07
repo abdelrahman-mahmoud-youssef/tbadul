@@ -71,7 +71,7 @@ describe('startAccountClaim', () => {
         eligibility: { eligible: true },
       },
     });
-    expect(verifier.calls.map((c) => c.kind)).toEqual(['profile', 'follows']);
+    expect(verifier.calls.map((c) => c.kind)).toEqual(['profile', 'follows', 'follows']);
     expect(verifier.calls[0]).toMatchObject({ kind: 'profile', latestPost: true });
     await expect(deps.repository.findById(claimId('claim-1'))).resolves.toMatchObject({
       state: 'awaiting_follow',

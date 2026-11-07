@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { MockAgent, setGlobalDispatcher, type Interceptable } from 'undici';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { accountId, type AccountId } from '../../domain/account-id.ts';
+import { askFollows } from '../../testing/fake-source.ts';
 import { context, handle } from '../../testing/fixtures.ts';
 import { createHttpClient } from '../http/http-client.ts';
 import { scraptikSource } from './scraptik-source.ts';
@@ -105,7 +106,7 @@ describe('scraptikSource', () => {
 
   it('answers verified when the target ids are on the recorded first page', async () => {
     listFollowing(tiktok, recorded('list-following-tiktok.json'));
-    await expect(source.answer(byIds, context())).resolves.toEqual({
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
       outcome: 'verified',
       evidence: { pagesRead: 1, listExhausted: false, entriesRead: 11 },
       cost: request(1),
@@ -117,7 +118,7 @@ describe('scraptikSource', () => {
       tiktok,
       withTargetEntry({ sec_uid: 'MS4wLjABAAAA-another', uid: '7000000000000099999' }),
     );
-    await expect(source.answer(byIds, context())).resolves.toEqual({
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
       outcome: 'not_following',
       evidence: { pagesRead: 1, listExhausted: true, entriesRead: 11 },
       cost: request(1),
@@ -126,14 +127,14 @@ describe('scraptikSource', () => {
 
   it('answers verified for an entry with a new handle but the target ids', async () => {
     listFollowing(tiktok, withTargetEntry({ unique_id: 'renamed.creators' }));
-    await expect(source.answer(byIds, context())).resolves.toMatchObject({
+    await expect(askFollows(source, byIds, context())).resolves.toMatchObject({
       outcome: 'verified',
     });
   });
 
   it('answers identity_conflict when the entry secUid agrees but its uid differs', async () => {
     listFollowing(tiktok, withTargetEntry({ uid: '7000000000000099999' }));
-    await expect(source.answer(byIds, context())).resolves.toMatchObject({
+    await expect(askFollows(source, byIds, context())).resolves.toMatchObject({
       outcome: 'source_error',
       error: { kind: 'identity_conflict' },
     });
@@ -144,7 +145,7 @@ describe('scraptikSource', () => {
     ['without sec_uid', { uid: '6551237489917432832', unique_id: 'tiktokcreators' }],
   ])('answers parse, never a handle match, for an entry %s', async (_label, entry) => {
     listFollowing(tiktok, tiktokPageWith({ followings: [entry] }));
-    await expect(source.answer(byIds, context())).resolves.toMatchObject({
+    await expect(askFollows(source, byIds, context())).resolves.toMatchObject({
       outcome: 'source_error',
       error: { kind: 'parse', httpStatus: 200 },
       cost: request(1),
@@ -154,7 +155,7 @@ describe('scraptikSource', () => {
   it('follows min_time as max_time to the recorded second page', async () => {
     listFollowing(creators, recorded('list-following-creators-page-1.json'));
     listFollowing(creators, recorded('list-following-creators-page-2.json'), creatorsSecondPage);
-    await expect(source.answer(ofCreators, context())).resolves.toEqual({
+    await expect(askFollows(source, ofCreators, context())).resolves.toEqual({
       outcome: 'verified',
       evidence: { pagesRead: 2, listExhausted: false, entriesRead: 200 },
       cost: request(2),
@@ -163,7 +164,7 @@ describe('scraptikSource', () => {
 
   it('stops at the page cap with listExhausted false', async () => {
     listFollowing(creators, recorded('list-following-creators-page-1.json'));
-    await expect(source.answer(ofCreators, context({ pageCap: 1 }))).resolves.toEqual({
+    await expect(askFollows(source, ofCreators, context({ pageCap: 1 }))).resolves.toEqual({
       outcome: 'not_following',
       evidence: { pagesRead: 1, listExhausted: false, entriesRead: 100 },
       cost: request(1),
@@ -173,7 +174,7 @@ describe('scraptikSource', () => {
   it('answers source_error, not not_following, when a later page fails', async () => {
     listFollowing(creators, recorded('list-following-creators-page-1.json'));
     listFollowing(creators, raw(500, { message: 'Internal error' }), creatorsSecondPage);
-    await expect(source.answer(ofCreators, context())).resolves.toEqual({
+    await expect(askFollows(source, ofCreators, context())).resolves.toEqual({
       outcome: 'source_error',
       error: { kind: 'http', message: 'http 500', httpStatus: 500 },
       cost: request(2),
@@ -182,7 +183,7 @@ describe('scraptikSource', () => {
 
   it('answers private for the recorded hidden following list', async () => {
     listFollowing(tiktok, recorded('list-following-hidden.json'));
-    await expect(source.answer(byIds, context())).resolves.toEqual({
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
       outcome: 'private',
       cost: request(1),
     });
@@ -190,7 +191,7 @@ describe('scraptikSource', () => {
 
   it('answers not_found for the recorded missing user', async () => {
     listFollowing(tiktok, recorded('list-following-missing.json'));
-    await expect(source.answer(byIds, context())).resolves.toEqual({
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
       outcome: 'not_found',
       cost: request(1),
     });
@@ -198,7 +199,7 @@ describe('scraptikSource', () => {
 
   it('answers unknown_status for an unmapped status_code', async () => {
     listFollowing(tiktok, raw(200, { status_code: 10101, status_msg: 'something else' }));
-    await expect(source.answer(byIds, context())).resolves.toEqual({
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
       outcome: 'source_error',
       error: {
         kind: 'unknown_status',
@@ -215,7 +216,7 @@ describe('scraptikSource', () => {
     ['no has_more', { has_more: undefined }, 'has_more'],
   ])('answers parse, not not_following, for a page with %s', async (_label, fields, field) => {
     listFollowing(tiktok, tiktokPageWith(fields));
-    await expect(source.answer(byIds, context())).resolves.toEqual({
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
       outcome: 'source_error',
       error: { kind: 'parse', message: `scraptik ${field} missing` },
       cost: request(1),
@@ -224,7 +225,7 @@ describe('scraptikSource', () => {
 
   it('answers parse for a body that is not JSON', async () => {
     pool.intercept({ path: pathWith({}), method: 'GET' }).reply(200, '<html>', { headers: json });
-    await expect(source.answer(byIds, context())).resolves.toEqual({
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
       outcome: 'source_error',
       error: { kind: 'parse', message: 'body is not JSON', httpStatus: 200 },
       cost: request(1),
@@ -239,7 +240,7 @@ describe('scraptikSource', () => {
     [404, 'http'],
   ])('maps http %i to %s', async (status, kind) => {
     listFollowing(tiktok, raw(status, { message: 'x' }));
-    await expect(source.answer(byIds, context())).resolves.toEqual({
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
       outcome: 'source_error',
       error: { kind, message: `http ${status}`, httpStatus: status },
       cost: request(1),
@@ -250,7 +251,7 @@ describe('scraptikSource', () => {
     pool
       .intercept({ path: pathWith({}), method: 'GET' })
       .replyWithError(new Error('socket hang up'));
-    await expect(source.answer(byIds, context())).resolves.toMatchObject({
+    await expect(askFollows(source, byIds, context())).resolves.toMatchObject({
       outcome: 'source_error',
       error: { kind: 'network' },
       cost: request(1),
@@ -263,7 +264,7 @@ describe('scraptikSource', () => {
       seen = { headers: options.headers, path: options.path };
       return JSON.stringify(recorded('list-following-tiktok.json').body);
     });
-    await source.answer(byIds, context());
+    await askFollows(source, byIds, context());
     expect(seen?.headers).toMatchObject({
       'x-rapidapi-key': rapidApiKey,
       'x-rapidapi-host': 'scraptik.p.rapidapi.com',
@@ -289,7 +290,7 @@ describe('scraptikSource', () => {
       { ...byIds, performerId: accountId('tiktok', tiktok.value) },
     ],
   ])('answers unsupported without a call or cost for %s', async (_label, check) => {
-    await expect(source.answer(check, context())).resolves.toEqual({
+    await expect(askFollows(source, check, context())).resolves.toEqual({
       outcome: 'source_error',
       error: {
         kind: 'unsupported',
@@ -305,7 +306,7 @@ describe('scraptikSource', () => {
   it('forwards the caller signal and propagates an abort', async () => {
     listFollowing(creators, recorded('list-following-creators-page-1.json')).delay(1000);
     const controller = new AbortController();
-    const pending = source.answer(ofCreators, context({ signal: controller.signal }));
+    const pending = askFollows(source, ofCreators, context({ signal: controller.signal }));
     setTimeout(() => {
       controller.abort();
     }, 10);

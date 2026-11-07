@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { withTimeout } from './adapters/resilience/with-timeout.ts';
 import { cachedVerifyWith } from './application/cached-profile.ts';
-import { verifyWith, type SourcesByKind, type Verify } from './application/chain.ts';
+import {
+  verifyFollowsBatchWith,
+  verifyWith,
+  type SourcesByKind,
+  type Verify,
+  type VerifyFollowsBatch,
+} from './application/chain.ts';
 import { verifyOwnershipWith, type VerifyOwnership } from './application/ownership.ts';
 import type { Clock } from './ports/clock.ts';
 import type { MeasurementSink } from './ports/measurement-sink.ts';
@@ -37,6 +43,7 @@ export interface VerifierDeps {
 
 export interface Verifier {
   readonly verify: Verify;
+  readonly verifyFollowsBatch: VerifyFollowsBatch;
   readonly verifyOwnership: VerifyOwnership;
 }
 
@@ -63,7 +70,8 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
   };
   const clock = deps.clock ?? systemClock;
   const measurements = deps.measurements ?? discardingSink;
-  const chain = verifyWith({ sources, clock, measurements, pageCap, confirmNotFollowing });
+  const chainDeps = { sources, clock, measurements, pageCap, confirmNotFollowing };
+  const chain = verifyWith(chainDeps);
   const verify =
     deps.profileCache === undefined
       ? chain
@@ -74,5 +82,9 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
           clock,
           measurements,
         });
-  return { verify, verifyOwnership: verifyOwnershipWith(chain) };
+  return {
+    verify,
+    verifyFollowsBatch: verifyFollowsBatchWith(chainDeps),
+    verifyOwnership: verifyOwnershipWith(chain),
+  };
 };

@@ -1,6 +1,6 @@
 import { accountId } from '../domain/account-id.ts';
 import { parseBioToken, type BioToken } from '../domain/bio-token.ts';
-import type { Check } from '../domain/check.ts';
+import type { CheckOf } from '../domain/check.ts';
 import { parseContentId, type ContentId } from '../domain/content-id.ts';
 import type { ListEvidence, ProfileEvidence } from '../domain/evidence.ts';
 import { parseHandle, type Handle } from '../domain/handle.ts';
@@ -24,9 +24,9 @@ export const video = content('7000000000000000000');
 
 export const targetId = accountId('tiktok', 'MS4wLjABAAAA-target');
 
-export const followsCheck: Check = { kind: 'follows', performer, target, targetId };
-export const likedCheck: Check = { kind: 'liked', performer, content: video };
-export const profileCheck: Check = { kind: 'profile', subject: performer };
+export const followsCheck: CheckOf<'follows'> = { kind: 'follows', performer, target, targetId };
+export const likedCheck: CheckOf<'liked'> = { kind: 'liked', performer, content: video };
+export const profileCheck: CheckOf<'profile'> = { kind: 'profile', subject: performer };
 
 export const listEvidence: ListEvidence = { pagesRead: 1, listExhausted: true, entriesRead: 1 };
 

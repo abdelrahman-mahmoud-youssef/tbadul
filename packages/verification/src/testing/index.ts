@@ -1,9 +1,12 @@
 export {
+  askFollows,
   fakeSource,
+  followingPages,
   hangingUntilAborted,
   neverSettling,
   type FakeAnswers,
   type FakeSource,
+  type FollowsHandler,
 } from './fake-source.ts';
 export { content, handle, listEvidence, profileEvidence, token } from './fixtures.ts';
 export { inMemoryProfileCache } from './in-memory-profile-cache.ts';

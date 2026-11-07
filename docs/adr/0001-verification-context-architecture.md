@@ -74,3 +74,7 @@ Rejected alternatives:
 - Adding a check kind means one `Check` variant, one evidence type, and handlers in the sources that support it. The type checker reports every switch that misses the new kind.
 - Adding a platform means one union member, one rules file and adapters. Nothing in `application` or `ports` changes.
 - The layer rule cannot be broken without a lint error, so a leak is caught in the editor before it reaches a commit.
+
+## Amendment, 2026-11-07: batched follows checks
+
+A source's follows handler takes a batch: one performer and several targets, each with its `AccountId`. It answers the whole batch from one following-list read, with one answer per target and the listed accounts it read. The public `Check` union is unchanged: a single follows check is a batch of one, so the chain and every adapter keep one follows code path. `Verifier.verifyFollowsBatch` returns one verdict per target; the confirmation, shorter-list and page-cap rules hold per target. One attempt is recorded per source call, carrying the least settled of the answers it gave.

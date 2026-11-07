@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { accountId, matchAccount } from '../../domain/account-id.ts';
+import { accountId } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
 import type { Handle } from '../../domain/handle.ts';
 import type { SourceError } from '../../domain/outcome.ts';
@@ -9,8 +9,8 @@ import { defineSource } from '../define-source.ts';
 import {
   perRequest,
   requests,
-  sameValue,
-  scanList,
+  scanFollowing,
+  scanLiked,
   withPerformer,
   type PageRead,
 } from '../list-scan.ts';
@@ -124,7 +124,7 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
     {
       profile: (check, context) => readProfile(client, check.subject, context),
       follows: (check, context) =>
-        scanList(
+        scanFollowing(
           context,
           pageReader(client, context.signal, {
             ...(check.performerId === undefined
@@ -140,7 +140,8 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
             schema: followingPageSchema,
             read: followingPage,
           }),
-          (entry) => matchAccount(check.targetId, { value: entry.user.secUid }),
+          check.targets,
+          (entry) => ({ value: entry.user.secUid }),
           perRequest(0),
         ),
       liked: (check, context) =>
@@ -149,7 +150,7 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
           (performer) => readProfile(client, performer, context),
           (evidence) => evidence.likesVisible !== false,
           (account, costBefore) =>
-            scanList(
+            scanLiked(
               context,
               pageReader(client, context.signal, {
                 path: '/v2/user/likes/by/secUid',
@@ -158,7 +159,8 @@ export const lamatokSource = (deps: LamatokDeps): VerificationSource => {
                 schema: likesPageSchema,
                 read: likesPage,
               }),
-              (item) => sameValue(item.id, check.content.value),
+              check.content,
+              (item) => item.id,
               perRequest(costBefore),
             ),
         ),

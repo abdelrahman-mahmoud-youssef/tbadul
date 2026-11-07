@@ -1,7 +1,12 @@
 import { timeout, TimeoutStrategy } from 'cockatiel';
-import { failed, type Answer } from '../../domain/answer.ts';
-import type { CheckKind, CheckOf } from '../../domain/check.ts';
-import type { CallContext, VerificationSource } from '../../ports/verification-source.ts';
+import { failed } from '../../domain/answer.ts';
+import type { CheckKind } from '../../domain/check.ts';
+import type {
+  CallContext,
+  SourceAnswer,
+  SourceCheckOf,
+  VerificationSource,
+} from '../../ports/verification-source.ts';
 
 export const withTimeout = (source: VerificationSource, timeoutMs: number): VerificationSource => {
   const policy = timeout(timeoutMs, TimeoutStrategy.Aggressive);
@@ -10,9 +15,9 @@ export const withTimeout = (source: VerificationSource, timeoutMs: number): Veri
     platform: source.platform,
     supports: source.supports,
     answer: async <K extends CheckKind>(
-      check: CheckOf<K>,
+      check: SourceCheckOf<K>,
       context: CallContext,
-    ): Promise<Answer<K>> => {
+    ): Promise<SourceAnswer<K>> => {
       let inner: AbortSignal | undefined;
       try {
         return await policy.execute(({ signal }) => {

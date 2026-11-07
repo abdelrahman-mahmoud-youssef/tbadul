@@ -4,6 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { accountId } from '../../domain/account-id.ts';
 import { err, ok } from '../../domain/result.ts';
 import type { RequestSigner } from '../../ports/request-signer.ts';
+import { askFollows } from '../../testing/fake-source.ts';
 import { content, context, handle } from '../../testing/fixtures.ts';
 import { createHttpClient } from '../http/http-client.ts';
 import { scraperSource } from './scraper-source.ts';
@@ -168,7 +169,7 @@ describe('scraperSource', () => {
     it('answers verified when the target is on the first page', async () => {
       profile(fixture('profile-public.html'));
       following(fixture('following-page-exhausted.json'));
-      await expect(source.answer(check, context())).resolves.toEqual({
+      await expect(askFollows(source, check, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 2 },
@@ -188,7 +189,7 @@ describe('scraperSource', () => {
         signer: countingSigner,
       });
       following(fixture('following-page-exhausted.json'), { secUid: profileSecUid });
-      await expect(direct.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(direct, byId, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 1 },
@@ -198,7 +199,7 @@ describe('scraperSource', () => {
 
     it('answers private from the list status when the performer id is known', async () => {
       following(fixture('following-hidden.json'));
-      await expect(source.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(source, byId, context())).resolves.toEqual({
         outcome: 'private',
         cost: { unit: 'request', amount: 1 },
       });
@@ -209,7 +210,7 @@ describe('scraperSource', () => {
       following(
         listPage({ userList: [{ user: { uniqueId: 'other', secUid: 's' } }], hasMore: false }),
       );
-      await expect(source.answer(check, context())).resolves.toEqual({
+      await expect(askFollows(source, check, context())).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 1, listExhausted: true, entriesRead: 1 },
         cost: { unit: 'request', amount: 2 },
@@ -218,7 +219,7 @@ describe('scraperSource', () => {
 
     it('answers not_following for an entry with the target handle but another account id', async () => {
       following(recordedListWith({ secUid: 'MS4wLjABAAAA-another-account' }));
-      await expect(source.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(source, byId, context())).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 1, listExhausted: true, entriesRead: 1 },
         cost: { unit: 'request', amount: 1 },
@@ -227,7 +228,7 @@ describe('scraperSource', () => {
 
     it('answers parse, never a handle match, for entries without an account id', async () => {
       following(recordedListWith({ secUid: undefined }));
-      await expect(source.answer(byId, context())).resolves.toMatchObject({
+      await expect(askFollows(source, byId, context())).resolves.toMatchObject({
         outcome: 'source_error',
         error: { kind: 'parse' },
         cost: { unit: 'request', amount: 1 },
@@ -237,7 +238,8 @@ describe('scraperSource', () => {
     it('matches by uid as well when the target carries its numeric id', async () => {
       following(recordedListWith({ uniqueId: 'renamed.creators' }));
       await expect(
-        source.answer(
+        askFollows(
+          source,
           { ...byId, targetId: accountId('tiktok', targetSecUid, '6551237489917432832') },
           context(),
         ),
@@ -247,7 +249,8 @@ describe('scraperSource', () => {
     it('answers identity_conflict when the entry secUid agrees but its uid differs', async () => {
       following(recordedListWith({}));
       await expect(
-        source.answer(
+        askFollows(
+          source,
           { ...byId, targetId: accountId('tiktok', targetSecUid, '7000000000000000001') },
           context(),
         ),
@@ -256,7 +259,7 @@ describe('scraperSource', () => {
 
     it('answers verified for an entry with a new handle but the target account id', async () => {
       following(recordedListWith({ uniqueId: 'renamed.creators' }));
-      await expect(source.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(source, byId, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 1 },
@@ -265,7 +268,7 @@ describe('scraperSource', () => {
 
     it('answers private from the profile when the following list is hidden', async () => {
       profile(fixture('profile-following-hidden.html'));
-      await expect(source.answer(check, context())).resolves.toEqual({
+      await expect(askFollows(source, check, context())).resolves.toEqual({
         outcome: 'private',
         cost: { unit: 'request', amount: 1 },
       });
@@ -274,7 +277,7 @@ describe('scraperSource', () => {
     it('answers private when the list endpoint says the list is hidden', async () => {
       profile(fixture('profile-public.html'));
       following(fixture('following-hidden.json'));
-      await expect(source.answer(check, context())).resolves.toEqual({
+      await expect(askFollows(source, check, context())).resolves.toEqual({
         outcome: 'private',
         cost: { unit: 'request', amount: 2 },
       });
@@ -286,7 +289,7 @@ describe('scraperSource', () => {
         minCursor: '0',
       });
       following(fixture('following-page-exhausted.json'), { minCursor: '1447292191' });
-      await expect(source.answer(check, context({ pageCap: 3 }))).resolves.toEqual({
+      await expect(askFollows(source, check, context({ pageCap: 3 }))).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 2, listExhausted: false, entriesRead: 1 },
         cost: { unit: 'request', amount: 3 },
@@ -296,7 +299,7 @@ describe('scraperSource', () => {
     it('stops at the page cap with listExhausted false', async () => {
       profile(fixture('profile-public.html'));
       following(listPage({ userList: [], hasMore: true, minCursor: 5 }));
-      await expect(source.answer(check, context({ pageCap: 1 }))).resolves.toEqual({
+      await expect(askFollows(source, check, context({ pageCap: 1 }))).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 0 },
         cost: { unit: 'request', amount: 2 },
@@ -310,7 +313,7 @@ describe('scraperSource', () => {
     ])('answers source_error for %s', async (_label, body, kind) => {
       profile(fixture('profile-public.html'));
       following(body);
-      await expect(source.answer(check, context())).resolves.toMatchObject({
+      await expect(askFollows(source, check, context())).resolves.toMatchObject({
         outcome: 'source_error',
         error: { kind },
         cost: { unit: 'request', amount: 2 },
@@ -325,7 +328,7 @@ describe('scraperSource', () => {
         http: createHttpClient({ headers: () => ({}) }),
         signer: failingSigner,
       });
-      await expect(broken.answer(check, context())).resolves.toEqual({
+      await expect(askFollows(broken, check, context())).resolves.toEqual({
         outcome: 'source_error',
         error: { kind: 'network', message: 'signer down' },
         cost: { unit: 'request', amount: 1 },
@@ -336,7 +339,7 @@ describe('scraperSource', () => {
       profile(fixture('profile-public.html'));
       following(listPage({ userList: [] })).delay(1000);
       const controller = new AbortController();
-      const pending = source.answer(check, context({ signal: controller.signal }));
+      const pending = askFollows(source, check, context({ signal: controller.signal }));
       setTimeout(() => {
         controller.abort();
       }, 10);

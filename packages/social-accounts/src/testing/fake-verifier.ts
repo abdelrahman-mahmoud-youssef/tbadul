@@ -87,10 +87,15 @@ export const fakeVerifier = (script: FakeVerifierScript): FakeVerifier => {
         return Promise.resolve(verdict(check, 'source_error'));
     }
   };
+  const verifyFollowsBatch: Verifier['verifyFollowsBatch'] = ({ targets, ...performer }, given) =>
+    Promise.all(
+      targets.map((target) => verify({ ...performer, ...target, kind: 'follows' }, given)),
+    );
   return {
     calls,
     options,
     verify: verify as Verifier['verify'],
+    verifyFollowsBatch,
     verifyOwnership: () => Promise.reject(new Error('not scripted')),
   };
 };

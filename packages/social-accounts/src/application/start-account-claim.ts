@@ -39,18 +39,17 @@ const pickVerificationAccount = async (
   draft: ClaimDraft,
   candidates: readonly VerificationCandidate[],
 ): Promise<Baseline> => {
-  for (const candidate of candidates) {
-    const verdict = await deps.verifier.verify({
-      kind: 'follows',
-      performer: draft.handle,
-      performerId: draft.accountId,
-      target: candidate.handle,
-      targetId: candidate.accountId,
-    });
+  const verdicts = await deps.verifier.verifyFollowsBatch({
+    performer: draft.handle,
+    performerId: draft.accountId,
+    targets: candidates.map(({ handle, accountId }) => ({ target: handle, targetId: accountId })),
+  });
+  for (const { outcome, check } of verdicts) {
+    if (outcome === 'not_following') {
+      return { kind: 'assigned', account: { handle: check.target, accountId: check.targetId } };
+    }
 
-    if (verdict.outcome === 'not_following') return { kind: 'assigned', account: candidate };
-
-    if (verdict.outcome !== 'verified') return { kind: 'unavailable' };
+    if (outcome !== 'verified') return { kind: 'unavailable' };
   }
   return { kind: 'exhausted' };
 };

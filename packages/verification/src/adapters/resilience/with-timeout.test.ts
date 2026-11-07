@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Answer } from '../../domain/answer.ts';
 import type { CallContext } from '../../ports/verification-source.ts';
-import { fakeSource, hangingUntilAborted, neverSettling } from '../../testing/fake-source.ts';
+import {
+  askFollows,
+  fakeSource,
+  hangingUntilAborted,
+  neverSettling,
+} from '../../testing/fake-source.ts';
 import { context, followsCheck, listEvidence } from '../../testing/fixtures.ts';
 import { withTimeout } from './with-timeout.ts';
 
@@ -30,12 +35,12 @@ describe('withTimeout', () => {
 
   it('passes a prompt answer through unchanged', async () => {
     const wrapped = withTimeout(fakeSource('fake', { follows: verified }), 1000);
-    await expect(wrapped.answer(followsCheck, context())).resolves.toEqual(verified);
+    await expect(askFollows(wrapped, followsCheck, context())).resolves.toEqual(verified);
   });
 
   it('answers source_error with kind timeout when the source never settles', async () => {
     const wrapped = withTimeout(fakeSource('fake', { follows: neverSettling }), 1000);
-    const pending = wrapped.answer(followsCheck, context());
+    const pending = askFollows(wrapped, followsCheck, context());
     await vi.advanceTimersByTimeAsync(1000);
     await expect(pending).resolves.toEqual({
       outcome: 'source_error',
@@ -54,7 +59,7 @@ describe('withTimeout', () => {
       }),
       500,
     );
-    const pending = wrapped.answer(followsCheck, context({ pageCap: 7 }));
+    const pending = askFollows(wrapped, followsCheck, context({ pageCap: 7 }));
     expect(received?.signal.aborted).toBe(false);
     expect(received?.pageCap).toBe(7);
     await vi.advanceTimersByTimeAsync(500);
@@ -65,7 +70,7 @@ describe('withTimeout', () => {
   it('does not report a timeout before the duration has passed', async () => {
     const wrapped = withTimeout(fakeSource('fake', { follows: neverSettling }), 1000);
     let settled = false;
-    const pending = wrapped.answer(followsCheck, context()).finally(() => {
+    const pending = askFollows(wrapped, followsCheck, context()).finally(() => {
       settled = true;
     });
     await vi.advanceTimersByTimeAsync(999);
@@ -78,7 +83,7 @@ describe('withTimeout', () => {
   it('propagates a cancellation requested by the caller instead of reporting a timeout', async () => {
     const wrapped = withTimeout(fakeSource('fake', { follows: hangingUntilAborted }), 1000);
     const controller = new AbortController();
-    const pending = wrapped.answer(followsCheck, context({ signal: controller.signal }));
+    const pending = askFollows(wrapped, followsCheck, context({ signal: controller.signal }));
     controller.abort();
     await expect(pending).rejects.toThrow();
   });

@@ -1,13 +1,18 @@
-import { failed, type Answer } from '../domain/answer.ts';
-import { checkKinds, type CheckKind, type CheckOf } from '../domain/check.ts';
+import { failed } from '../domain/answer.ts';
+import { checkKinds, type CheckKind } from '../domain/check.ts';
 import type { Platform } from '../domain/platform.ts';
 import type { SourceName } from '../domain/source-name.ts';
-import type { CallContext, VerificationSource } from '../ports/verification-source.ts';
+import type {
+  CallContext,
+  SourceAnswer,
+  SourceCheckOf,
+  VerificationSource,
+} from '../ports/verification-source.ts';
 
 export type CheckHandler<K extends CheckKind> = (
-  check: CheckOf<K>,
+  check: SourceCheckOf<K>,
   context: CallContext,
-) => Promise<Answer<K>>;
+) => Promise<SourceAnswer<K>>;
 
 export type CheckHandlers = { readonly [K in CheckKind]?: CheckHandler<K> };
 
@@ -23,7 +28,10 @@ export const defineSource = (
   name: identity.name,
   platform: identity.platform,
   supports: new Set(checkKinds.filter((kind) => handlers[kind] !== undefined)),
-  answer: <K extends CheckKind>(check: CheckOf<K>, context: CallContext): Promise<Answer<K>> => {
+  answer: <K extends CheckKind>(
+    check: SourceCheckOf<K>,
+    context: CallContext,
+  ): Promise<SourceAnswer<K>> => {
     const handler = handlers[check.kind];
     return handler === undefined
       ? Promise.resolve(

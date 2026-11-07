@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { accountId } from '../../domain/account-id.ts';
+import { askFollows } from '../../testing/fake-source.ts';
 import { handle } from '../../testing/fixtures.ts';
 import { createHttpClient } from '../http/http-client.ts';
 import { scraptikSource } from './scraptik-source.ts';
@@ -13,7 +14,8 @@ console.log(`${keyName} ${configured ? 'found' : 'not found'}`);
 describe.skipIf(!configured)('scraptik live', () => {
   it('confirms that @tiktok follows @tiktokcreators by ids in one call', async () => {
     const source = scraptikSource({ http: createHttpClient({ headers: () => ({}) }), rapidApiKey });
-    const answer = await source.answer(
+    const answer = await askFollows(
+      source,
       {
         kind: 'follows',
         performer: handle('tiktok'),

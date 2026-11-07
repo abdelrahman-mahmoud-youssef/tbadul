@@ -1,13 +1,25 @@
 import { failed, type Answer } from '../domain/answer.ts';
 import type { Attempt } from '../domain/attempt.ts';
-import { checkPlatform, type CheckKind, type CheckOf } from '../domain/check.ts';
+import { checkPlatform, type Check, type CheckKind, type CheckOf } from '../domain/check.ts';
+import {
+  answerAt,
+  followsBatchOf,
+  followsChecksOf,
+  type FollowsBatch,
+} from '../domain/follows-batch.ts';
+import type { Outcome } from '../domain/outcome.ts';
 import { samePlatform, type Platform } from '../domain/platform.ts';
 import { rejectShortList } from '../domain/short-list.ts';
 import type { SourceName } from '../domain/source-name.ts';
 import type { Verdict } from '../domain/verdict.ts';
 import type { Clock } from '../ports/clock.ts';
 import type { MeasurementSink } from '../ports/measurement-sink.ts';
-import type { CallContext, VerificationSource } from '../ports/verification-source.ts';
+import type {
+  CallContext,
+  SourceAnswer,
+  SourceCheckOf,
+  VerificationSource,
+} from '../ports/verification-source.ts';
 
 export type SourcesByKind = Readonly<Record<CheckKind, readonly VerificationSource[]>>;
 
@@ -29,14 +41,34 @@ export type Verify = <K extends CheckKind>(
   options?: VerifyOptions,
 ) => Promise<Verdict<K>>;
 
+export type VerifyFollowsBatch = (
+  batch: FollowsBatch,
+  options?: VerifyOptions,
+) => Promise<readonly Verdict<'follows'>[]>;
+
+type FollowsVerdictAt = (check: CheckOf<'follows'>, index: number) => Verdict<'follows'>;
+
+const leastSettledFirst: readonly Outcome[] = [
+  'source_error',
+  'not_found',
+  'private',
+  'not_following',
+  'verified',
+];
+
 const serves = (source: VerificationSource, platform: Platform, kind: CheckKind): boolean =>
   samePlatform(source.platform, platform) && source.supports.has(kind);
 
+const callContext = (deps: ChainDeps, options: VerifyOptions): CallContext => ({
+  signal: options.signal ?? new AbortController().signal,
+  pageCap: deps.pageCap,
+});
+
 const askSource = async <K extends CheckKind>(
   source: VerificationSource,
-  check: CheckOf<K>,
+  check: SourceCheckOf<K>,
   context: CallContext,
-): Promise<Answer<K>> => {
+): Promise<SourceAnswer<K>> => {
   try {
     return await source.answer(check, context);
   } catch (error) {
@@ -75,34 +107,107 @@ const settle = <K extends CheckKind>(
     ? { outcome: answer.outcome, evidence: answer.evidence, source, check, attempts }
     : { outcome: answer.outcome, source, check, attempts };
 
-export const verifyWith =
-  (deps: ChainDeps): Verify =>
-  async (check, options = {}) => {
-    const platform = checkPlatform(check);
-    const context: CallContext = {
-      signal: options.signal ?? new AbortController().signal,
-      pageCap: deps.pageCap,
-    };
-    const attempts: Attempt[] = [];
-    const eligible = deps.sources[check.kind].filter((source) =>
-      serves(source, platform, check.kind),
+const awaitsConfirmation = (
+  deps: ChainDeps,
+  answer: Answer<CheckKind>,
+  eligible: readonly VerificationSource[],
+): boolean => answer.outcome === 'not_following' && deps.confirmNotFollowing && eligible.length > 1;
+
+const leastSettled = (answers: readonly Answer<'follows'>[]): Answer<'follows'> =>
+  answers.reduce((least, answer) =>
+    leastSettledFirst.indexOf(answer.outcome) < leastSettledFirst.indexOf(least.outcome)
+      ? answer
+      : least,
+  );
+
+const verifyFollows = async (
+  deps: ChainDeps,
+  batch: FollowsBatch,
+  options: VerifyOptions,
+): Promise<FollowsVerdictAt> => {
+  const context = callContext(deps, options);
+  const attempts: Attempt[] = [];
+  const eligible = deps.sources.follows.filter((source) =>
+    serves(source, batch.performer.platform, 'follows'),
+  );
+  const settled = new Map<number, (check: CheckOf<'follows'>) => Verdict<'follows'>>();
+  const awaiting = new Set<number>();
+  for (const source of eligible) {
+    const open = batch.targets.flatMap((target, index) =>
+      settled.has(index) ? [] : [{ target, index }],
     );
-    let awaitingConfirmation = false;
-    for (const source of eligible) {
-      const startedAt = deps.clock.now();
-      const answer = rejectShortList(check, await askSource(source, check, context));
-      const attempt = toAttempt(source, check.kind, answer, startedAt, deps.clock.now());
-      attempts.push(attempt);
-      deps.measurements.record(attempt);
+    if (open.length === 0) break;
+    const startedAt = deps.clock.now();
+    const reply = await askSource(
+      source,
+      { ...batch, kind: 'follows', targets: open.map(({ target }) => target) },
+      context,
+    );
+    const answered = open.map(({ index }, position) => ({
+      index,
+      answer: rejectShortList(batch, answerAt(reply, position)),
+    }));
+    const attempt = toAttempt(
+      source,
+      'follows',
+      leastSettled(answered.map(({ answer }) => answer)),
+      startedAt,
+      deps.clock.now(),
+    );
+    attempts.push(attempt);
+    deps.measurements.record(attempt);
+    for (const { index, answer } of answered) {
       if (answer.outcome === 'source_error') continue;
-      const confirm =
-        answer.outcome === 'not_following' &&
-        check.kind !== 'profile' &&
-        deps.confirmNotFollowing &&
-        !awaitingConfirmation &&
-        eligible.length > 1;
-      if (!confirm) return settle(check, answer, source.name, attempts);
-      awaitingConfirmation = true;
+      if (awaitsConfirmation(deps, answer, eligible) && !awaiting.has(index)) {
+        awaiting.add(index);
+        continue;
+      }
+      settled.set(index, (check) => settle(check, answer, source.name, attempts));
     }
-    return { outcome: 'source_error', check, attempts };
+  }
+  return (check, index) =>
+    settled.get(index)?.(check) ?? { outcome: 'source_error', check, attempts };
+};
+
+export const verifyFollowsBatchWith =
+  (deps: ChainDeps): VerifyFollowsBatch =>
+  async (batch, options = {}) => {
+    const verdictAt = await verifyFollows(deps, batch, options);
+    return followsChecksOf(batch).map(verdictAt);
   };
+
+const verifyOne = async (
+  deps: ChainDeps,
+  check: CheckOf<'profile' | 'liked'>,
+  options: VerifyOptions,
+): Promise<Verdict<'profile' | 'liked'>> => {
+  const context = callContext(deps, options);
+  const attempts: Attempt[] = [];
+  const eligible = deps.sources[check.kind].filter((source) =>
+    serves(source, checkPlatform(check), check.kind),
+  );
+  let awaitingConfirmation = false;
+  for (const source of eligible) {
+    const startedAt = deps.clock.now();
+    const answer = await askSource(source, check, context);
+    const attempt = toAttempt(source, check.kind, answer, startedAt, deps.clock.now());
+    attempts.push(attempt);
+    deps.measurements.record(attempt);
+    if (answer.outcome === 'source_error') continue;
+    const confirm =
+      check.kind !== 'profile' &&
+      awaitsConfirmation(deps, answer, eligible) &&
+      !awaitingConfirmation;
+    if (!confirm) return settle(check, answer, source.name, attempts);
+    awaitingConfirmation = true;
+  }
+  return { outcome: 'source_error', check, attempts };
+};
+
+export const verifyWith = (deps: ChainDeps): Verify => {
+  const verify = async (check: Check, options: VerifyOptions = {}) =>
+    check.kind === 'follows'
+      ? (await verifyFollows(deps, followsBatchOf(check), options))(check, 0)
+      : verifyOne(deps, check, options);
+  return verify as Verify;
+};

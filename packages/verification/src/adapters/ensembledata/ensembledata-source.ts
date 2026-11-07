@@ -1,12 +1,13 @@
 import type { z } from 'zod';
-import { accountId, matchAccount, type AccountId } from '../../domain/account-id.ts';
+import { accountId, type AccountId } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
+import type { FollowsAnswer } from '../../domain/follows-batch.ts';
 import type { Handle } from '../../domain/handle.ts';
 import type { Cost, SourceError } from '../../domain/outcome.ts';
 import { err, ok, type Result } from '../../domain/result.ts';
 import type { VerificationSource } from '../../ports/verification-source.ts';
 import { defineSource } from '../define-source.ts';
-import { sameValue, scanList, withPerformer, type PageRead } from '../list-scan.ts';
+import { scanFollowing, scanLiked, withPerformer, type PageRead } from '../list-scan.ts';
 import {
   ensembledataClient,
   type EnsembledataClient,
@@ -164,10 +165,10 @@ export const ensembledataSource = (deps: EnsembledataDeps): VerificationSource =
           performerId?.numericId === undefined ? rest : check,
           (performer) => readProfile(units, performer, context.signal),
           () => true,
-          (performer: AccountId) =>
+          (performer: AccountId): Promise<FollowsAnswer> =>
             performerId !== undefined && performer.value !== performerId.value
               ? Promise.resolve(failed(renamedPerformer, units.cost()))
-              : scanList(
+              : scanFollowing(
                   context,
                   pageReader(units, context.signal, {
                     path: '/tt/user/followings',
@@ -179,8 +180,8 @@ export const ensembledataSource = (deps: EnsembledataDeps): VerificationSource =
                     schema: followingsSchema,
                     read: followingsPage,
                   }),
-                  (entry) =>
-                    matchAccount(check.targetId, { value: entry.sec_uid, numericId: entry.uid }),
+                  check.targets,
+                  (entry) => ({ value: entry.sec_uid, numericId: entry.uid }),
                   units.cost,
                 ),
         );
@@ -192,7 +193,7 @@ export const ensembledataSource = (deps: EnsembledataDeps): VerificationSource =
           (performer) => readProfile(units, performer, context.signal),
           (evidence) => evidence.likesVisible !== false,
           (performer) =>
-            scanList(
+            scanLiked(
               context,
               pageReader(units, context.signal, {
                 path: '/tt/user/liked-posts',
@@ -203,7 +204,8 @@ export const ensembledataSource = (deps: EnsembledataDeps): VerificationSource =
                 schema: likedPostsSchema,
                 read: likedPostsPage,
               }),
-              (post) => sameValue(post.aweme_id, check.content.value),
+              check.content,
+              (post) => post.aweme_id,
               units.cost,
             ),
         );

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { MockAgent, setGlobalDispatcher, type Interceptable } from 'undici';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { accountId } from '../../domain/account-id.ts';
+import { askFollows } from '../../testing/fake-source.ts';
 import { content, context, handle } from '../../testing/fixtures.ts';
 import { createHttpClient } from '../http/http-client.ts';
 import { lamatokSource } from './lamatok-source.ts';
@@ -285,7 +286,7 @@ describe('lamatokSource', () => {
 
     it('answers not_following for an entry with the target handle but another account id', async () => {
       followingById(targetEntryWith({ secUid: 'MS4wLjABAAAA-another-account' }));
-      await expect(source.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(source, byId, context())).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 1, listExhausted: true, entriesRead: 2 },
         cost: request(1),
@@ -294,7 +295,7 @@ describe('lamatokSource', () => {
 
     it('answers verified for an entry with a new handle but the target account id', async () => {
       followingById(targetEntryWith({ uniqueId: 'renamed.creators' }));
-      await expect(source.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(source, byId, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(1),
@@ -303,7 +304,7 @@ describe('lamatokSource', () => {
 
     it('answers parse, never a handle match, for entries without an account id', async () => {
       followingById(targetEntryWith({ secUid: undefined }));
-      await expect(source.answer(byId, context())).resolves.toMatchObject({
+      await expect(askFollows(source, byId, context())).resolves.toMatchObject({
         outcome: 'source_error',
         error: { kind: 'parse' },
         cost: request(1),
@@ -312,7 +313,7 @@ describe('lamatokSource', () => {
 
     it('reads the list by secUid when the check carries the performer id', async () => {
       followingById(synthetic('following-target-present.json'), { page_id: null });
-      await expect(source.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(source, byId, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(1),
@@ -321,7 +322,7 @@ describe('lamatokSource', () => {
 
     it('reads the list by username when the check has no performer id', async () => {
       followingByName(synthetic('following-target-present.json'), { page_id: null });
-      await expect(source.answer(check, context())).resolves.toEqual({
+      await expect(askFollows(source, check, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(1),
@@ -331,7 +332,7 @@ describe('lamatokSource', () => {
     it('follows next_page_id to a later page', async () => {
       followingById(synthetic('following-absent-more.json'), { page_id: null });
       followingById(synthetic('following-target-present.json'), { page_id: '1617300091' });
-      await expect(source.answer(byId, context({ pageCap: 3 }))).resolves.toEqual({
+      await expect(askFollows(source, byId, context({ pageCap: 3 }))).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 2, listExhausted: false, entriesRead: 4 },
         cost: request(2),
@@ -341,7 +342,7 @@ describe('lamatokSource', () => {
     it('answers not_following when the last page ends without the target', async () => {
       followingByName(synthetic('following-absent-more.json'), { page_id: null });
       followingByName(synthetic('following-last-page.json'), { page_id: '1617300091' });
-      await expect(source.answer(check, context({ pageCap: 3 }))).resolves.toEqual({
+      await expect(askFollows(source, check, context({ pageCap: 3 }))).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 2, listExhausted: true, entriesRead: 3 },
         cost: request(2),
@@ -350,7 +351,7 @@ describe('lamatokSource', () => {
 
     it('stops at the page cap with listExhausted false', async () => {
       followingById(synthetic('following-absent-more.json'));
-      await expect(source.answer(byId, context({ pageCap: 1 }))).resolves.toEqual({
+      await expect(askFollows(source, byId, context({ pageCap: 1 }))).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 2 },
         cost: request(1),
@@ -359,7 +360,7 @@ describe('lamatokSource', () => {
 
     it('answers private for a hidden following list', async () => {
       followingById(synthetic('following-hidden.json'));
-      await expect(source.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(source, byId, context())).resolves.toEqual({
         outcome: 'private',
         cost: request(1),
       });
@@ -367,7 +368,7 @@ describe('lamatokSource', () => {
 
     it('answers not_found for a 404 on the list', async () => {
       followingById('{"detail":"Not found"}', {}, 404);
-      await expect(source.answer(byId, context())).resolves.toEqual({
+      await expect(askFollows(source, byId, context())).resolves.toEqual({
         outcome: 'not_found',
         cost: request(1),
       });
@@ -389,7 +390,7 @@ describe('lamatokSource', () => {
       ['a body that is not JSON', '<html>', { kind: 'parse' }],
     ])('answers source_error for %s', async (_label, body, error) => {
       followingById(body);
-      await expect(source.answer(byId, context())).resolves.toMatchObject({
+      await expect(askFollows(source, byId, context())).resolves.toMatchObject({
         outcome: 'source_error',
         error,
         cost: request(1),
@@ -399,7 +400,7 @@ describe('lamatokSource', () => {
     it('answers source_error, not not_following, when a later page fails', async () => {
       followingById(synthetic('following-absent-more.json'), { page_id: null });
       followingById('', { page_id: '1617300091' }, 500);
-      await expect(source.answer(byId, context({ pageCap: 3 }))).resolves.toEqual({
+      await expect(askFollows(source, byId, context({ pageCap: 3 }))).resolves.toEqual({
         outcome: 'source_error',
         error: { kind: 'http', message: 'http 500', httpStatus: 500 },
         cost: request(2),
@@ -408,7 +409,7 @@ describe('lamatokSource', () => {
 
     it('maps the recorded 402 on a list to an http error', async () => {
       replayRecorded('/v1/user/following/by/secUid', 'insufficient-funds.json');
-      await expect(source.answer(byId, context())).resolves.toMatchObject({
+      await expect(askFollows(source, byId, context())).resolves.toMatchObject({
         outcome: 'source_error',
         error: { kind: 'http', httpStatus: 402 },
         cost: request(1),
@@ -418,7 +419,7 @@ describe('lamatokSource', () => {
     it('forwards the caller signal and propagates an abort', async () => {
       followingById(synthetic('following-target-present.json')).delay(1000);
       const controller = new AbortController();
-      const pending = source.answer(byId, context({ signal: controller.signal }));
+      const pending = askFollows(source, byId, context({ signal: controller.signal }));
       setTimeout(() => {
         controller.abort();
       }, 10);

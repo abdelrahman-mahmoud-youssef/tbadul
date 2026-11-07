@@ -17,6 +17,11 @@ export type Answer<K extends CheckKind> =
   | { readonly outcome: 'private' | 'not_found'; readonly cost: Cost }
   | SourceFailure;
 
+export type ListUnread = Exclude<
+  Answer<CheckKind>,
+  { readonly outcome: 'verified' | 'not_following' }
+>;
+
 export const failed = (error: SourceError, cost?: Cost): SourceFailure =>
   cost === undefined
     ? { outcome: 'source_error', error }

@@ -1,10 +1,9 @@
-import { matchAccount } from '../../domain/account-id.ts';
 import { failed } from '../../domain/answer.ts';
 import type { SourceError } from '../../domain/outcome.ts';
 import { err, ok } from '../../domain/result.ts';
 import type { VerificationSource } from '../../ports/verification-source.ts';
 import { defineSource } from '../define-source.ts';
-import { perRequest, scanList, type PageRead } from '../list-scan.ts';
+import { perRequest, scanFollowing, type PageRead } from '../list-scan.ts';
 import { scraptikClient, type ScraptikDeps } from './scraptik-client.ts';
 import type { FollowingEntry, FollowingPage } from './scraptik-schemas.ts';
 
@@ -55,7 +54,7 @@ export const scraptikSource = (deps: ScraptikDeps): VerificationSource => {
         const performer = check.performerId;
         if (performer?.numericId === undefined) return failed(readsByIdsOnly);
         const { value: secUid, numericId: uid } = performer;
-        return scanList(
+        return scanFollowing(
           context,
           async (cursor: string | undefined) => {
             const page = await client.listFollowing(
@@ -69,7 +68,8 @@ export const scraptikSource = (deps: ScraptikDeps): VerificationSource => {
             );
             return page.ok ? followingPage(page.value) : page;
           },
-          (entry) => matchAccount(check.targetId, { value: entry.sec_uid, numericId: entry.uid }),
+          check.targets,
+          (entry) => ({ value: entry.sec_uid, numericId: entry.uid }),
           perRequest(0),
         );
       },

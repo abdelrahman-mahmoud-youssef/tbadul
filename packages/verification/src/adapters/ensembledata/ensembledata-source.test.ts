@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { MockAgent, setGlobalDispatcher, type Interceptable } from 'undici';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { accountId } from '../../domain/account-id.ts';
+import { askFollows } from '../../testing/fake-source.ts';
 import { content, context, handle } from '../../testing/fixtures.ts';
 import { createHttpClient } from '../http/http-client.ts';
 import { ensembledataSource } from './ensembledata-source.ts';
@@ -342,7 +343,7 @@ describe('ensembledataSource', () => {
 
     it('reads the list by the performer secUid and numeric id without a profile call', async () => {
       followings(tiktok, recorded('followings-tiktok.json'));
-      await expect(source.answer(byIds, context())).resolves.toEqual({
+      await expect(askFollows(source, byIds, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 10 },
         cost: units(2),
@@ -353,7 +354,7 @@ describe('ensembledataSource', () => {
       info(recorded('info-tiktok.json'));
       followings(tiktok, recorded('followings-tiktok.json'));
       await expect(
-        source.answer({ ...byIds, performerId: accountId('tiktok', tiktokSecUid) }, context()),
+        askFollows(source, { ...byIds, performerId: accountId('tiktok', tiktokSecUid) }, context()),
       ).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 10 },
@@ -364,7 +365,8 @@ describe('ensembledataSource', () => {
     it('answers identity_conflict when the performer handle now names another account', async () => {
       info(recorded('info-tiktok.json'));
       await expect(
-        source.answer(
+        askFollows(
+          source,
           { ...byIds, performerId: accountId('tiktok', 'MS4wLjABAAAA-previous-holder') },
           context(),
         ),
@@ -380,7 +382,7 @@ describe('ensembledataSource', () => {
         tiktok,
         withTargetEntry({ sec_uid: 'MS4wLjABAAAA-another', uid: '7000000000000099999' }),
       );
-      await expect(source.answer(byIds, context())).resolves.toEqual({
+      await expect(askFollows(source, byIds, context())).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 1, listExhausted: true, entriesRead: 10 },
         cost: units(2),
@@ -389,14 +391,14 @@ describe('ensembledataSource', () => {
 
     it('answers verified for an entry with a new handle but the target ids', async () => {
       followings(tiktok, withTargetEntry({ unique_id: 'renamed.creators' }));
-      await expect(source.answer(byIds, context())).resolves.toMatchObject({
+      await expect(askFollows(source, byIds, context())).resolves.toMatchObject({
         outcome: 'verified',
       });
     });
 
     it('answers identity_conflict when the entry secUid agrees but its uid differs', async () => {
       followings(tiktok, withTargetEntry({ uid: '7000000000000099999' }));
-      await expect(source.answer(byIds, context())).resolves.toMatchObject({
+      await expect(askFollows(source, byIds, context())).resolves.toMatchObject({
         outcome: 'source_error',
         error: { kind: 'identity_conflict' },
       });
@@ -407,7 +409,7 @@ describe('ensembledataSource', () => {
         tiktok,
         raw(200, JSON.stringify({ data: { followings: [{ unique_id: 'tiktokcreators' }] } }), 2),
       );
-      await expect(source.answer(byIds, context())).resolves.toMatchObject({
+      await expect(askFollows(source, byIds, context())).resolves.toMatchObject({
         outcome: 'source_error',
         error: { kind: 'parse' },
       });
@@ -416,16 +418,44 @@ describe('ensembledataSource', () => {
     it('follows nextCursor and nextPageToken to the recorded second page', async () => {
       followings(creators, recorded('followings-tiktokcreators-page-1.json'));
       followings(creators, recorded('followings-tiktokcreators-page-2.json'), secondPage);
-      await expect(source.answer(ofCreators, context())).resolves.toEqual({
+      await expect(askFollows(source, ofCreators, context())).resolves.toEqual({
         outcome: 'verified',
         evidence: { pagesRead: 2, listExhausted: false, entriesRead: 200 },
         cost: units(4),
       });
     });
 
+    it('answers targets on both recorded pages and an absent one from one read', async () => {
+      followings(creators, recorded('followings-tiktokcreators-page-1.json'));
+      followings(creators, recorded('followings-tiktokcreators-page-2.json'), secondPage);
+      const listed = (index: string) => ({
+        target: handle(`account_${index}`),
+        targetId: accountId(
+          'tiktok',
+          `MS4wLjABAAAA-placeholder-${index}`,
+          `7000000000000000${index}`,
+        ),
+      });
+      const answer = await source.answer(
+        {
+          kind: 'follows',
+          performer: ofCreators.performer,
+          performerId: creators,
+          targets: [listed('015'), listed('111'), listed('999')],
+        },
+        context({ pageCap: 2 }),
+      );
+      expect('answers' in answer && answer.answers.map(({ outcome }) => outcome)).toEqual([
+        'verified',
+        'verified',
+        'not_following',
+      ]);
+      expect('answers' in answer && answer.listed).toHaveLength(200);
+    });
+
     it('stops at the page cap with listExhausted false', async () => {
       followings(creators, recorded('followings-tiktokcreators-page-1.json'));
-      await expect(source.answer(ofCreators, context({ pageCap: 1 }))).resolves.toEqual({
+      await expect(askFollows(source, ofCreators, context({ pageCap: 1 }))).resolves.toEqual({
         outcome: 'not_following',
         evidence: { pagesRead: 1, listExhausted: false, entriesRead: 100 },
         cost: units(2),
@@ -434,7 +464,7 @@ describe('ensembledataSource', () => {
 
     it('answers private for the recorded null data of a hidden list', async () => {
       followings(tiktok, recorded('followings-hidden.json'));
-      await expect(source.answer(byIds, context())).resolves.toEqual({
+      await expect(askFollows(source, byIds, context())).resolves.toEqual({
         outcome: 'private',
         cost: units(2),
       });
@@ -443,13 +473,13 @@ describe('ensembledataSource', () => {
     it('answers not_found when the performer does not exist', async () => {
       info(recorded('info-missing.json'));
       await expect(
-        source.answer({ ...byIds, performerId: accountId('tiktok', tiktokSecUid) }, context()),
+        askFollows(source, { ...byIds, performerId: accountId('tiktok', tiktokSecUid) }, context()),
       ).resolves.toEqual({ outcome: 'not_found', cost: units(1) });
     });
 
     it('maps the recorded 422 to an http error', async () => {
       followings(tiktok, recorded('followings-without-id.json'));
-      await expect(source.answer(byIds, context())).resolves.toEqual({
+      await expect(askFollows(source, byIds, context())).resolves.toEqual({
         outcome: 'source_error',
         error: { kind: 'http', message: 'http 422', httpStatus: 422 },
         cost: units(0),
@@ -464,7 +494,7 @@ describe('ensembledataSource', () => {
         creators,
         raw(200, JSON.stringify({ data: { followings: [], total: 570, ...next } }), 2),
       );
-      await expect(source.answer(ofCreators, context())).resolves.toEqual({
+      await expect(askFollows(source, ofCreators, context())).resolves.toEqual({
         outcome: 'source_error',
         error: {
           kind: 'parse',
@@ -477,7 +507,7 @@ describe('ensembledataSource', () => {
     it('answers source_error, not not_following, when a later page fails', async () => {
       followings(creators, recorded('followings-tiktokcreators-page-1.json'));
       followings(creators, raw(500, '{"detail":"Internal error."}'), secondPage);
-      await expect(source.answer(ofCreators, context())).resolves.toEqual({
+      await expect(askFollows(source, ofCreators, context())).resolves.toEqual({
         outcome: 'source_error',
         error: { kind: 'http', message: 'http 500', httpStatus: 500 },
         cost: units(2),
@@ -487,7 +517,7 @@ describe('ensembledataSource', () => {
     it('forwards the caller signal and propagates an abort', async () => {
       followings(creators, recorded('followings-tiktokcreators-page-1.json')).delay(1000);
       const controller = new AbortController();
-      const pending = source.answer(ofCreators, context({ signal: controller.signal }));
+      const pending = askFollows(source, ofCreators, context({ signal: controller.signal }));
       setTimeout(() => {
         controller.abort();
       }, 10);

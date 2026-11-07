@@ -1,4 +1,4 @@
-import { accountId, matchAccount } from '../../domain/account-id.ts';
+import { accountId } from '../../domain/account-id.ts';
 import { failed, type Answer } from '../../domain/answer.ts';
 import type { Handle } from '../../domain/handle.ts';
 import type { SourceError } from '../../domain/outcome.ts';
@@ -15,8 +15,8 @@ import {
 import {
   perRequest,
   requests,
-  sameValue,
-  scanList,
+  scanFollowing,
+  scanLiked,
   withPerformer,
   type PageRead,
 } from '../list-scan.ts';
@@ -177,7 +177,7 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
           (performer) => readProfile(deps, performer, context),
           (evidence) => evidence.followingVisible !== false,
           (account, costBefore) =>
-            scanList(
+            scanFollowing(
               context,
               signedPage(
                 deps,
@@ -185,11 +185,11 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
                 (cursor) => followingUrl(account.value, cursor),
                 readFollowing,
               ),
-              (entry) =>
-                matchAccount(check.targetId, {
-                  value: entry.user.secUid,
-                  ...(entry.user.id !== undefined && { numericId: entry.user.id }),
-                }),
+              check.targets,
+              (entry) => ({
+                value: entry.user.secUid,
+                ...(entry.user.id !== undefined && { numericId: entry.user.id }),
+              }),
               perRequest(costBefore),
             ),
         ),
@@ -199,10 +199,11 @@ export const scraperSource = (deps: ScraperDeps): VerificationSource =>
           (performer) => readProfile(deps, performer, context),
           (evidence) => evidence.likesVisible !== false,
           (account, costBefore) =>
-            scanList(
+            scanLiked(
               context,
               signedPage(deps, context, (cursor) => likedUrl(account.value, cursor), readLiked),
-              (item) => sameValue(item.id, check.content.value),
+              check.content,
+              (item) => item.id,
               perRequest(costBefore),
             ),
         ),
