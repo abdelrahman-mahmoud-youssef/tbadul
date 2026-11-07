@@ -12,6 +12,10 @@
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"
     },
+    "./testing/database": {
+      "types": "./dist/testing/test-database.d.ts",
+      "default": "./dist/testing/test-database.js"
+    },
     "./testing/global-setup": {
       "types": "./dist/testing/global-setup.d.ts",
       "default": "./dist/testing/global-setup.js"

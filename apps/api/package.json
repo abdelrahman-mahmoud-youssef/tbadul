@@ -11,7 +11,9 @@
     "start": "node --env-file-if-exists=../../.env dist/main.js",
     "dev": "tsc -p tsconfig.build.json && pnpm run \"/^dev:/\"",
     "dev:compile": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "dev:serve": "node --env-file-if-exists=../../.env --watch dist/main.js"
+    "dev:serve": "node --env-file-if-exists=../../.env --watch dist/main.js",
+    "build:e2e": "tsc -p tsconfig.e2e.json",
+    "e2e:serve": "node dist-e2e/testing/e2e-server.js"
   },
   "dependencies": {
     "@engagement-exchange/contracts": "workspace:*",
