@@ -12,6 +12,7 @@ import {
   drizzleProfileCache,
   drizzleSpendLedger,
   type Attempt,
+  type KnownSourceName,
   type ProfileCache,
   type Verifier,
 } from '@engagement-exchange/verification';
@@ -28,7 +29,6 @@ import {
   readEnv,
   sourceChoice,
   sourceChoices,
-  type CliSourceName,
   type Env,
   type SourceChoice,
 } from './config.ts';
@@ -89,7 +89,7 @@ const confirmerKeys: Readonly<Record<ListCheck, string>> = {
 export const noConfirmer = (kind: ListCheck): string =>
   `no confirmer for ${kind} checks: a not_following cannot be confirmed by a second source; set ${confirmerKeys[kind]}`;
 
-export const unusedSources = (names: readonly CliSourceName[]): string =>
+export const unusedSources = (names: readonly KnownSourceName[]): string =>
   `configured but in no order: ${names.join(', ')}; lamatok stays out of the defaults until it is funded, name a source in VERIFICATION_SOURCE_ORDER_<KIND> to use it`;
 
 export const poolFlagWithDatabase =

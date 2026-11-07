@@ -67,6 +67,18 @@ export { identityKey, sameIdentity, type PlatformScoped } from './domain/platfor
 export { err, ok, type Result } from './domain/result.ts';
 export type { SourceName } from './domain/source-name.ts';
 export type { Verdict } from './domain/verdict.ts';
+export {
+  assembleSources,
+  defaultSourceOrders,
+  knownSourceNames,
+  planSourceOrders,
+  type AssembledSources,
+  type KnownSourceName,
+  type NoSourceLeft,
+  type PlannedSourceOrders,
+  type SourceCredentials,
+  type SourceOrders,
+} from './source-assembly.ts';
 export type { Clock } from './ports/clock.ts';
 export type { MeasurementSink } from './ports/measurement-sink.ts';
 export type { CachedProfile, ProfileCache, ProfileEntry } from './ports/profile-cache.ts';

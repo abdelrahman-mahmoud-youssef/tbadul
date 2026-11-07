@@ -1,4 +1,4 @@
-import { err, ok, type Result } from '@engagement-exchange/verification';
+import { err, knownSourceNames, ok, type Result } from '@engagement-exchange/verification';
 import { z } from 'zod';
 
 const split = (value: string): string[] =>
@@ -7,11 +7,7 @@ const split = (value: string): string[] =>
     .map((item) => item.trim())
     .filter((item) => item !== '');
 
-export const sourceNames = ['scraper', 'lamatok', 'ensemble', 'scraptik'] as const;
-
-export type CliSourceName = (typeof sourceNames)[number];
-
-export const sourceChoices = [...sourceNames, 'chain'] as const;
+export const sourceChoices = [...knownSourceNames, 'chain'] as const;
 
 export const sourceChoice = z.enum(sourceChoices).default('chain');
 
@@ -20,7 +16,7 @@ export type SourceChoice = z.infer<typeof sourceChoice>;
 const order = z
   .string()
   .transform(split)
-  .pipe(z.array(z.enum(sourceNames)).min(1))
+  .pipe(z.array(z.enum(knownSourceNames)).min(1))
   .optional();
 
 export const envSchema = z.object({

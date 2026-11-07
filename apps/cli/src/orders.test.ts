@@ -1,6 +1,7 @@
+import { defaultSourceOrders } from '@engagement-exchange/verification';
 import { describe, expect, it } from 'vitest';
 import { readEnv, type Env } from './config.ts';
-import { configuredOrders, defaultOrders, ordersFor, planOrders } from './orders.ts';
+import { configuredOrders, ordersFor } from './orders.ts';
 
 const env = (source: Record<string, string>): Env => {
   const loaded = readEnv(source);
@@ -10,7 +11,7 @@ const env = (source: Record<string, string>): Env => {
 
 describe('configuredOrders', () => {
   it('uses the defaults when nothing is set', () => {
-    expect(configuredOrders(env({}))).toEqual(defaultOrders);
+    expect(configuredOrders(env({}))).toEqual(defaultSourceOrders);
   });
 
   it('falls back to the general order for every kind', () => {
@@ -44,29 +45,6 @@ describe('ordersFor', () => {
       profile: ['ensemble'],
       follows: ['ensemble'],
       liked: ['ensemble'],
-    });
-  });
-});
-
-describe('planOrders', () => {
-  it('leaves out sources that are not available and names them once', () => {
-    expect(planOrders(defaultOrders, new Set(['scraper', 'ensemble']))).toEqual({
-      ok: true,
-      value: {
-        orders: {
-          profile: ['ensemble', 'scraper'],
-          follows: ['scraper', 'ensemble'],
-          liked: ['scraper', 'ensemble'],
-        },
-        leftOut: ['scraptik'],
-      },
-    });
-  });
-
-  it('refuses when a kind has no source left', () => {
-    expect(planOrders({ ...defaultOrders, profile: ['lamatok'] }, new Set(['scraper']))).toEqual({
-      ok: false,
-      error: 'no configured source left for profile checks',
     });
   });
 });

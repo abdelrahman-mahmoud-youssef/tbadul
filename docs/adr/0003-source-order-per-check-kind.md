@@ -29,6 +29,8 @@ Callers that read a list resolve the performer through a profile check first and
 
 The CLI reads the orders from `VERIFICATION_SOURCE_ORDER_PROFILE`, `VERIFICATION_SOURCE_ORDER_FOLLOWS` and `VERIFICATION_SOURCE_ORDER_LIKED`, each falling back to `VERIFICATION_SOURCE_ORDER` and then to the defaults above. A source whose credential is not configured is left out of every order, and the CLI says so once at startup.
 
+Changed on 2026-11-07: the defaults above, the closed list of source names, the planning that leaves out a source without a credential, and the construction of the named sources from their credentials live in `packages/verification` as `defaultSourceOrders`, `knownSourceNames`, `planSourceOrders` and `assembleSources`, so every app builds the same chain the same way. Each app keeps its own environment parsing with Zod: it reads the overrides and credentials, passes them in, and words the refusals for its own output.
+
 ## Consequences
 
 - Moving a source up or down for one kind is a configuration change.

@@ -1,45 +1,22 @@
-import { err, ok, type CheckKind, type Result } from '@engagement-exchange/verification';
-import type { CliSourceName, Env, SourceChoice } from './config.ts';
+import { defaultSourceOrders, type SourceOrders } from '@engagement-exchange/verification';
+import type { Env, SourceChoice } from './config.ts';
 
-export type Orders = Readonly<Record<CheckKind, readonly CliSourceName[]>>;
-
-export const defaultOrders: Orders = {
-  profile: ['ensemble', 'scraper'],
-  follows: ['scraper', 'ensemble', 'scraptik'],
-  liked: ['scraper', 'ensemble'],
-};
-
-export const configuredOrders = (env: Env): Orders => ({
+export const configuredOrders = (env: Env): SourceOrders => ({
   profile:
-    env.VERIFICATION_SOURCE_ORDER_PROFILE ?? env.VERIFICATION_SOURCE_ORDER ?? defaultOrders.profile,
+    env.VERIFICATION_SOURCE_ORDER_PROFILE ??
+    env.VERIFICATION_SOURCE_ORDER ??
+    defaultSourceOrders.profile,
   follows:
-    env.VERIFICATION_SOURCE_ORDER_FOLLOWS ?? env.VERIFICATION_SOURCE_ORDER ?? defaultOrders.follows,
+    env.VERIFICATION_SOURCE_ORDER_FOLLOWS ??
+    env.VERIFICATION_SOURCE_ORDER ??
+    defaultSourceOrders.follows,
   liked:
-    env.VERIFICATION_SOURCE_ORDER_LIKED ?? env.VERIFICATION_SOURCE_ORDER ?? defaultOrders.liked,
+    env.VERIFICATION_SOURCE_ORDER_LIKED ??
+    env.VERIFICATION_SOURCE_ORDER ??
+    defaultSourceOrders.liked,
 });
 
-export const ordersFor = (env: Env, choice: SourceChoice): Orders =>
+export const ordersFor = (env: Env, choice: SourceChoice): SourceOrders =>
   choice === 'chain'
     ? configuredOrders(env)
     : { profile: [choice], follows: [choice], liked: [choice] };
-
-export interface PlannedOrders {
-  readonly orders: Orders;
-  readonly leftOut: readonly CliSourceName[];
-}
-
-export const planOrders = (
-  orders: Orders,
-  available: ReadonlySet<CliSourceName>,
-): Result<PlannedOrders, string> => {
-  const keep = (names: readonly CliSourceName[]) => names.filter((name) => available.has(name));
-  const planned: Orders = {
-    profile: keep(orders.profile),
-    follows: keep(orders.follows),
-    liked: keep(orders.liked),
-  };
-  const empty = (Object.keys(planned) as CheckKind[]).find((kind) => planned[kind].length === 0);
-  if (empty !== undefined) return err(`no configured source left for ${empty} checks`);
-  const named = new Set([...orders.profile, ...orders.follows, ...orders.liked]);
-  return ok({ orders: planned, leftOut: [...named].filter((name) => !available.has(name)) });
-};

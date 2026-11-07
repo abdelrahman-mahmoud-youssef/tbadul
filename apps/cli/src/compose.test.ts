@@ -78,6 +78,13 @@ describe('composeVerifier', () => {
     ).toMatchObject({ ok: true, value: { leftOut: [] } });
   });
 
+  it('names the check kind no configured source is left for', () => {
+    expect(composeVerifier(env({ VERIFICATION_SOURCE_ORDER_PROFILE: 'lamatok' }))).toEqual({
+      ok: false,
+      error: 'no configured source left for profile checks',
+    });
+  });
+
   it('names a chosen source whose credential is missing', () => {
     expect(composeVerifier(env({}), undefined, 'scraptik')).toEqual({
       ok: false,

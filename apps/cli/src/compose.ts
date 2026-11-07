@@ -9,25 +9,23 @@ import {
   type VerificationAccounts,
 } from '@engagement-exchange/social-accounts';
 import {
+  assembleSources,
   createHttpClient,
   createVerifier,
-  ensembledataSource,
-  lamatokSource,
-  scraperSource,
-  scraptikSource,
-  sidecarSigner,
   err,
   ok,
+  planSourceOrders,
+  type AssembledSources,
+  type KnownSourceName,
   type MeasurementSink,
   type DailyBudget,
   type ProfileCache,
   type Result,
   type SpendLedger,
-  type VerificationSource,
   type Verifier,
 } from '@engagement-exchange/verification';
-import type { CliSourceName, Env, SourceChoice } from './config.ts';
-import { ordersFor, planOrders } from './orders.ts';
+import type { Env, SourceChoice } from './config.ts';
+import { ordersFor } from './orders.ts';
 
 const discard: MeasurementSink = { record: () => undefined };
 
@@ -37,12 +35,12 @@ export type ListCheck = (typeof listChecks)[number];
 
 export interface ComposedVerifier {
   readonly verifier: Verifier;
-  readonly leftOut: readonly CliSourceName[];
+  readonly leftOut: readonly KnownSourceName[];
   readonly unconfirmed: readonly ListCheck[];
-  readonly unused: readonly CliSourceName[];
+  readonly unused: readonly KnownSourceName[];
 }
 
-export type Sources = ReadonlyMap<CliSourceName, VerificationSource>;
+export type Sources = AssembledSources;
 
 export interface VerifierParts {
   readonly sources?: Sources;
@@ -54,7 +52,7 @@ export const budgetReached = (source: string, day: string): string =>
   `source ${source} reached its daily budget for ${day}: skipped until the next UTC day`;
 
 const dailyBudgets = (env: Env, sources: Sources): Record<string, DailyBudget> => {
-  const configured: [CliSourceName, DailyBudget | undefined][] = [
+  const configured: [KnownSourceName, DailyBudget | undefined][] = [
     [
       'ensemble',
       env.ENSEMBLEDATA_DAILY_UNITS === undefined
@@ -76,28 +74,22 @@ const dailyBudgets = (env: Env, sources: Sources): Record<string, DailyBudget> =
   ];
   return Object.fromEntries(
     configured.filter(
-      (entry): entry is [CliSourceName, DailyBudget] =>
+      (entry): entry is [KnownSourceName, DailyBudget] =>
         entry[1] !== undefined && sources.has(entry[0]),
     ),
   );
 };
 
-const availableSources = (env: Env): Sources => {
-  const http = createHttpClient({ headers: () => ({}) });
-  const sources = new Map<CliSourceName, VerificationSource>([
-    ['scraper', scraperSource({ http, signer: sidecarSigner(http, env.TIKTOK_SIGNER_URL) })],
-  ]);
-  if (env.LAMATOK_ACCESS_KEY !== undefined) {
-    sources.set('lamatok', lamatokSource({ http, accessKey: env.LAMATOK_ACCESS_KEY }));
-  }
-  if (env.ENSEMBLEDATA_TOKEN !== undefined) {
-    sources.set('ensemble', ensembledataSource({ http, token: env.ENSEMBLEDATA_TOKEN }));
-  }
-  if (env.SCRAPTIK_RAPIDAPI_KEY !== undefined) {
-    sources.set('scraptik', scraptikSource({ http, rapidApiKey: env.SCRAPTIK_RAPIDAPI_KEY }));
-  }
-  return sources;
-};
+const availableSources = (env: Env): Sources =>
+  assembleSources(
+    {
+      signerUrl: env.TIKTOK_SIGNER_URL,
+      lamatokKey: env.LAMATOK_ACCESS_KEY,
+      ensembleToken: env.ENSEMBLEDATA_TOKEN,
+      scraptikKey: env.SCRAPTIK_RAPIDAPI_KEY,
+    },
+    createHttpClient({ headers: () => ({}) }),
+  );
 
 export const composeVerifier = (
   env: Env,
@@ -109,8 +101,8 @@ export const composeVerifier = (
   if (choice !== 'chain' && !sources.has(choice)) {
     return err(`source ${choice} has no credential configured`);
   }
-  const planned = planOrders(ordersFor(env, choice), new Set(sources.keys()));
-  if (!planned.ok) return planned;
+  const planned = planSourceOrders(ordersFor(env, choice), new Set(sources.keys()));
+  if (!planned.ok) return err(`no configured source left for ${planned.error.check} checks`);
   const verifier = createVerifier(
     {
       order: {
