@@ -18,6 +18,7 @@
     "@engagement-exchange/db": "workspace:*",
     "@engagement-exchange/social-accounts": "workspace:*",
     "@engagement-exchange/verification": "workspace:*",
+    "@fastify/rate-limit": "catalog:",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
     "@nestjs/platform-fastify": "catalog:",

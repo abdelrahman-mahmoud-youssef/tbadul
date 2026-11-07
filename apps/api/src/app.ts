@@ -12,6 +12,7 @@ import { mountAuth } from './auth.ts';
 import { composeApi, type Api, type ApiParts } from './compose.ts';
 import type { Env } from './config.ts';
 import { ErrorEnvelopeFilter, validationFailed } from './errors.ts';
+import { registerRateLimit } from './rate-limit.ts';
 
 export interface LogDestination {
   write(line: string): void;
@@ -86,6 +87,7 @@ export const createApp = async (
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   });
   fastify.addHook('onClose', () => api.database.close());
+  await registerRateLimit(fastify, { max: env.RATE_LIMIT_MAX, windowMs: env.RATE_LIMIT_WINDOW_MS });
   await mountAuth(fastify, api.auth, env.PUBLIC_WEB_ORIGIN);
   await app.init();
   await fastify.ready();

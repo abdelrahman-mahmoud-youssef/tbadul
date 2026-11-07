@@ -228,6 +228,7 @@ export default defineConfig(
                         '@engagement-exchange/db',
                         '@engagement-exchange/social-accounts',
                         '@engagement-exchange/verification',
+                        '@fastify/rate-limit',
                         '@nestjs/common',
                         '@nestjs/core',
                         '@nestjs/platform-fastify',

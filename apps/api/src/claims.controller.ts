@@ -24,6 +24,7 @@ import {
 import type { Api } from './compose.ts';
 import { ApiError, claimFailure, iso } from './errors.ts';
 import { presentClaim, presentPlatformAccounts } from './present.ts';
+import { RateLimited } from './rate-limit.ts';
 import { Caller, type Principal } from './session.ts';
 import { API } from './tokens.ts';
 
@@ -43,6 +44,7 @@ export class ClaimsController {
   }
 
   @Post('claims')
+  @RateLimited('start-claim')
   @SerializeOptions({ schema: claimResponse })
   async start(
     @Caller() caller: Principal,
@@ -77,6 +79,7 @@ export class ClaimsController {
 
   @Post('claims/:id/verify')
   @HttpCode(200)
+  @RateLimited('verify-claim')
   @SerializeOptions({ schema: verifyClaimResponse })
   async verify(
     @Caller() caller: Principal,

@@ -46,6 +46,8 @@ export const envSchema = z.object({
   LAMATOK_DAILY_REQUESTS: z.coerce.number().positive().optional(),
   OUTBOUND_TIMEOUT_MS: positiveInt.default(15_000),
   MEASUREMENT_HMAC_KEY: z.string().optional(),
+  RATE_LIMIT_MAX: positiveInt.default(10),
+  RATE_LIMIT_WINDOW_MS: positiveInt.default(60_000),
 });
 
 export type Env = z.infer<typeof envSchema>;
