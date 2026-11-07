@@ -17,8 +17,17 @@ import {
   verifyAccountClaimWith,
   type VerifyAccountClaim,
 } from './application/verify-account-claim.ts';
+import {
+  addVerificationAccountWith,
+  listVerificationAccountsWith,
+  setVerificationAccountActiveWith,
+  type AddVerificationAccount,
+  type ListVerificationAccounts,
+  type SetVerificationAccountActive,
+} from './application/verification-accounts.ts';
 import type { AccountClaimRepository } from './ports/account-claim-repository.ts';
 import type { IdGenerator } from './ports/id-generator.ts';
+import type { VerificationAccountAdmin } from './ports/verification-account-admin.ts';
 import type { VerificationAccountPool } from './ports/verification-account-pool.ts';
 
 const positiveInt = z.number().int().positive();
@@ -78,5 +87,32 @@ export const createSocialAccounts = (
     getAccountClaim: getAccountClaimWith(useCaseDeps),
     cancelAccountClaim: cancelAccountClaimWith(useCaseDeps),
     listLinkedAccounts: listLinkedAccountsWith(useCaseDeps),
+  };
+};
+
+export interface VerificationAccountAdminDeps {
+  readonly verifier: Verifier;
+  readonly accounts: VerificationAccountAdmin;
+  readonly clock?: Clock;
+}
+
+export interface VerificationAccounts {
+  readonly addVerificationAccount: AddVerificationAccount;
+  readonly listVerificationAccounts: ListVerificationAccounts;
+  readonly setVerificationAccountActive: SetVerificationAccountActive;
+}
+
+export const createVerificationAccounts = (
+  deps: VerificationAccountAdminDeps,
+): VerificationAccounts => {
+  const useCaseDeps = {
+    verifier: deps.verifier,
+    accounts: deps.accounts,
+    clock: deps.clock ?? systemClock,
+  };
+  return {
+    addVerificationAccount: addVerificationAccountWith(useCaseDeps),
+    listVerificationAccounts: listVerificationAccountsWith(useCaseDeps),
+    setVerificationAccountActive: setVerificationAccountActiveWith(useCaseDeps),
   };
 };

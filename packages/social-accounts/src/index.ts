@@ -1,15 +1,17 @@
 export { configVerificationAccountPool } from './adapters/config-verification-account-pool.ts';
 export { drizzleClaimRepository } from './adapters/drizzle/drizzle-claim-repository.ts';
-export {
-  drizzleVerificationAccountPool,
-  type DrizzleVerificationAccountPool,
-  type PooledAccount,
-} from './adapters/drizzle/drizzle-verification-account-pool.ts';
+export { drizzleVerificationAccountPool } from './adapters/drizzle/drizzle-verification-account-pool.ts';
 export { inMemoryClaimRepository } from './adapters/in-memory-claim-repository.ts';
 export { uuidIds } from './adapters/uuid-ids.ts';
 export type { CancelAccountClaim } from './application/cancel-account-claim.ts';
 export type { GetAccountClaim } from './application/get-account-claim.ts';
 export type { ListLinkedAccounts, PlatformAccounts } from './application/list-linked-accounts.ts';
+export type {
+  AddedVerificationAccount,
+  AddVerificationAccount,
+  ListVerificationAccounts,
+  SetVerificationAccountActive,
+} from './application/verification-accounts.ts';
 export type { ClaimRef } from './application/owned-claim.ts';
 export type { StartAccountClaim, StartClaimInput } from './application/start-account-claim.ts';
 export type {
@@ -19,10 +21,13 @@ export type {
 } from './application/verify-account-claim.ts';
 export {
   createSocialAccounts,
+  createVerificationAccounts,
   socialAccountsConfigSchema,
   type SocialAccounts,
   type SocialAccountsConfig,
   type SocialAccountsDeps,
+  type VerificationAccountAdminDeps,
+  type VerificationAccounts,
 } from './create-social-accounts.ts';
 export {
   claimStates,
@@ -55,7 +60,16 @@ export type {
   SaveClaimError,
   VerifyClaimError,
 } from './ports/account-claim-repository.ts';
+export type {
+  AddVerificationAccountError,
+  VerificationAccountNotFound,
+} from './domain/verification-account-error.ts';
 export type { IdGenerator } from './ports/id-generator.ts';
+export type {
+  PoolAddition,
+  PooledAccount,
+  VerificationAccountAdmin,
+} from './ports/verification-account-admin.ts';
 export type {
   VerificationAccountPool,
   VerificationCandidate,

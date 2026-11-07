@@ -1,25 +1,47 @@
 import { platformAccounts, verificationAccounts, type Database } from '@engagement-exchange/db';
-import type { AccountId, Handle, Platform } from '@engagement-exchange/verification';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import type { AccountId, Platform } from '@engagement-exchange/verification';
+import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import type {
-  VerificationAccountPool,
-  VerificationCandidate,
-} from '../../ports/verification-account-pool.ts';
+  PooledAccount,
+  VerificationAccountAdmin,
+} from '../../ports/verification-account-admin.ts';
+import type { VerificationAccountPool } from '../../ports/verification-account-pool.ts';
 import { accountOf, accountWithHandle, handleOf, sameAccount } from './rows.ts';
 
-export interface PooledAccount {
-  readonly accountId: AccountId;
-  readonly handle?: Handle;
-  readonly active: boolean;
-  readonly assignedCount: number;
-}
+const pooledAccounts = async (
+  db: Database,
+  platform: Platform,
+  where: SQL | undefined,
+): Promise<PooledAccount[]> => {
+  const rows = await db
+    .select({
+      handle: platformAccounts.handle,
+      externalId: platformAccounts.externalId,
+      numericId: platformAccounts.numericId,
+      active: verificationAccounts.active,
+      assignedCount: verificationAccounts.assignedCount,
+    })
+    .from(verificationAccounts)
+    .innerJoin(platformAccounts, eq(platformAccounts.id, verificationAccounts.platformAccountId))
+    .where(and(eq(platformAccounts.platform, platform), where))
+    .orderBy(asc(verificationAccounts.addedAt), asc(verificationAccounts.id));
+  return rows.map((row) => ({
+    accountId: accountOf(platform, row),
+    ...(row.handle !== null && { handle: handleOf(platform, row.handle) }),
+    active: row.active,
+    assignedCount: row.assignedCount,
+  }));
+};
 
-export interface DrizzleVerificationAccountPool extends VerificationAccountPool {
-  add(account: VerificationCandidate, seenAt: number): Promise<'added' | 'present' | 'inactive'>;
-  list(platform: Platform): Promise<readonly PooledAccount[]>;
-}
+const pooledEntry = (db: Database, account: AccountId) =>
+  inArray(
+    verificationAccounts.platformAccountId,
+    db.select({ id: platformAccounts.id }).from(platformAccounts).where(sameAccount(account)),
+  );
 
-export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificationAccountPool => ({
+export const drizzleVerificationAccountPool = (
+  db: Database,
+): VerificationAccountPool & VerificationAccountAdmin => ({
   candidates: async (platform) => {
     const rows = await db
       .select({
@@ -46,12 +68,7 @@ export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificatio
     await db
       .update(verificationAccounts)
       .set({ assignedCount: sql`${verificationAccounts.assignedCount} + 1` })
-      .where(
-        inArray(
-          verificationAccounts.platformAccountId,
-          db.select({ id: platformAccounts.id }).from(platformAccounts).where(sameAccount(account)),
-        ),
-      );
+      .where(pooledEntry(db, account));
   },
   add: (account, seenAt) =>
     db.transaction(async (tx) => {
@@ -73,24 +90,10 @@ export const drizzleVerificationAccountPool = (db: Database): DrizzleVerificatio
         .where(eq(verificationAccounts.platformAccountId, platformAccountId));
       return pooled?.active === true ? 'present' : 'inactive';
     }),
-  list: async (platform) => {
-    const rows = await db
-      .select({
-        handle: platformAccounts.handle,
-        externalId: platformAccounts.externalId,
-        numericId: platformAccounts.numericId,
-        active: verificationAccounts.active,
-        assignedCount: verificationAccounts.assignedCount,
-      })
-      .from(verificationAccounts)
-      .innerJoin(platformAccounts, eq(platformAccounts.id, verificationAccounts.platformAccountId))
-      .where(eq(platformAccounts.platform, platform))
-      .orderBy(asc(verificationAccounts.addedAt), asc(verificationAccounts.id));
-    return rows.map((row) => ({
-      accountId: accountOf(platform, row),
-      ...(row.handle !== null && { handle: handleOf(platform, row.handle) }),
-      active: row.active,
-      assignedCount: row.assignedCount,
-    }));
+  list: (platform) => pooledAccounts(db, platform, undefined),
+  setActive: async (account, active) => {
+    await db.update(verificationAccounts).set({ active }).where(pooledEntry(db, account));
+    const [pooled] = await pooledAccounts(db, account.platform, pooledEntry(db, account));
+    return pooled;
   },
 });

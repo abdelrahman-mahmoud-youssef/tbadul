@@ -289,6 +289,15 @@ describe.skipIf(databaseUrl === null)('the CLI on PostgreSQL', () => {
     expect(listed.out).toContain(`@${handle}  active  assigned 0`);
   });
 
+  it('names the profile outcome when pool add cannot read the account', async () => {
+    const handle = unique('missing');
+    const source = fakeSource('scraper', { profile: { outcome: 'not_found', cost } });
+
+    const result = await cli(['pool', 'add', handle], onDatabase, source);
+
+    expect(result).toMatchObject({ code: 3, err: [`profile @${handle}: not_found`] });
+  });
+
   it('fails pool add for an account that is pooled but inactive', async () => {
     const handle = unique('paused');
     await cli(['pool', 'add', handle], onDatabase);

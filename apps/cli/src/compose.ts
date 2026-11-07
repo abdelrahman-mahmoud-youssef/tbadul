@@ -1,9 +1,12 @@
 import {
   createSocialAccounts,
+  createVerificationAccounts,
   uuidIds,
   type AccountClaimRepository,
   type SocialAccounts,
+  type VerificationAccountAdmin,
   type VerificationAccountPool,
+  type VerificationAccounts,
 } from '@engagement-exchange/social-accounts';
 import {
   createHttpClient,
@@ -153,3 +156,8 @@ export const composeSocialAccounts = (
     { eligibility: {}, cooldown: {} },
     { verifier, repository, pool, ids: uuidIds },
   );
+
+export const composeVerificationAccounts = (
+  verifier: Verifier,
+  accounts: VerificationAccountAdmin,
+): VerificationAccounts => createVerificationAccounts({ verifier, accounts });

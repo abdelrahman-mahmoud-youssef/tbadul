@@ -16,7 +16,13 @@ import {
   type Verifier,
 } from '@engagement-exchange/verification';
 import { needsDatabase, parseCommand, type Command, type DatabaseCommand } from './command.ts';
-import { composeSocialAccounts, composeVerifier, type ListCheck, type Sources } from './compose.ts';
+import {
+  composeSocialAccounts,
+  composeVerificationAccounts,
+  composeVerifier,
+  type ListCheck,
+  type Sources,
+} from './compose.ts';
 import {
   databaseUserId,
   readEnv,
@@ -200,9 +206,9 @@ const databaseCommand = async (run: Run, db: Database, command: Command): Promis
     case 'user add':
       return userAdd(db, command.email, command.name);
     case 'pool add':
-      return poolAdd(run.verifier, pool, command.account);
+      return poolAdd(composeVerificationAccounts(run.verifier, pool), command.account);
     case 'pool list':
-      return poolList(pool);
+      return poolList(composeVerificationAccounts(run.verifier, pool));
     case 'link verify': {
       const user = await databaseUser(run, db);
       if (user === undefined) return usageError;

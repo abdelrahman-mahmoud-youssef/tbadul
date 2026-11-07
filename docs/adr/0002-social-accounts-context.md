@@ -36,6 +36,8 @@ ADR 0004 supersedes the original rule here. Ownership is exclusive at verify, no
 
 `AccountClaimRepository`, `VerificationAccountPool`, `IdGenerator`, and the `Clock` type from the Verification surface. The `Verifier` is a dependency of the composition root, not a port of this context: it is the other context's public use case, typed by that package.
 
+Added on 2026-11-07: `VerificationAccountAdmin` is the pool's operator side (`add`, `list`, `setActive`), kept apart from the claim side's `candidates` and `recordAssignment`. `createVerificationAccounts` wires it into three use cases, `addVerificationAccount`, `listVerificationAccounts` and `setVerificationAccountActive`, so every driver administers the pool through one path. Adding resolves the handle through the profile check and pools the account by its id; activation addresses the account by its id.
+
 ### Claim operations are scoped to their user
 
 Added on 2026-11-07. Every operation on an existing claim takes the user with the claim id: `verifyAccountClaim` and `getAccountClaim` take `{ userId, claimId }`. A claim that belongs to another user answers `claim_not_found`, the same answer as an unknown id, so a caller cannot learn that the claim exists. The check runs before anything else, so a foreign claim is never expired, saved or checked against a source.

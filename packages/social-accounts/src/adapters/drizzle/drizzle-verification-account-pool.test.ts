@@ -105,6 +105,38 @@ describe.skipIf(databaseUrl === null)('drizzleVerificationAccountPool', () => {
     await expect(pool.candidates('tiktok')).resolves.toContainEqual(account);
   });
 
+  it('deactivates and reactivates a pooled account by its account id', async () => {
+    const pool = drizzleVerificationAccountPool(client.db);
+    const account = {
+      handle: uniqueHandle('toggled'),
+      accountId: accountId('tiktok', randomUUID(), String(Date.now())),
+    };
+    await pool.add(account, Date.now());
+    await pool.recordAssignment(account.accountId);
+
+    await expect(pool.setActive(account.accountId, false)).resolves.toEqual({
+      ...account,
+      active: false,
+      assignedCount: 1,
+    });
+    await expect(pool.candidates('tiktok')).resolves.not.toContainEqual(account);
+    await expect(pool.add(account, Date.now())).resolves.toBe('inactive');
+
+    await expect(pool.setActive(account.accountId, true)).resolves.toMatchObject({ active: true });
+    await expect(pool.candidates('tiktok')).resolves.toContainEqual(account);
+  });
+
+  it('answers nothing when the account to activate is not pooled', async () => {
+    const pool = drizzleVerificationAccountPool(client.db);
+    const outside = accountId('tiktok', randomUUID());
+    await client.db
+      .insert(platformAccounts)
+      .values({ platform: 'tiktok', externalId: outside.value });
+
+    await expect(pool.setActive(outside, true)).resolves.toBeUndefined();
+    await expect(pool.setActive(accountId('tiktok', randomUUID()), true)).resolves.toBeUndefined();
+  });
+
   it('answers inactive for a deactivated pool account and keeps it out of the candidates', async () => {
     const pool = drizzleVerificationAccountPool(client.db);
     const account = { handle: uniqueHandle('off'), accountId: accountId('tiktok', randomUUID()) };
