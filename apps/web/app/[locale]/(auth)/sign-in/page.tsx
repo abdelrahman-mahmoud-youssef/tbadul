@@ -1,18 +1,19 @@
-import { LogIn } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { PageHeader } from '@/components/shell/page-header';
-import { EmptyState } from '@/components/states/empty-state';
+import { getTranslations } from 'next-intl/server';
+import { CredentialsPage } from '@/features/auth/credentials-page';
 
-export default function SignInPage() {
-  const t = useTranslations('signIn');
+export default async function SignInPage() {
+  const t = await getTranslations('signIn');
   return (
-    <>
-      <PageHeader title={t('title')} />
-      <EmptyState
-        icon={<LogIn aria-hidden="true" />}
-        title={t('emptyTitle')}
-        body={t('emptyBody')}
-      />
-    </>
+    <CredentialsPage
+      screen={{
+        mode: 'sign-in',
+        title: t('title'),
+        lead: t('lead'),
+        submit: t('submit'),
+        switchPrompt: t('switchPrompt'),
+        switchLink: t('switchLink'),
+        switchTo: '/sign-up',
+      }}
+    />
   );
 }
