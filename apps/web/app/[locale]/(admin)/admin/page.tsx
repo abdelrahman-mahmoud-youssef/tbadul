@@ -1,18 +1,13 @@
-import { ShieldCheck } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/shell/page-header';
-import { EmptyState } from '@/components/states/empty-state';
+import { AdminOverview } from '@/features/admin/admin-overview';
 
-export default function AdminPage() {
-  const t = useTranslations('admin');
+export default async function AdminPage() {
+  const t = await getTranslations('admin');
   return (
     <>
       <PageHeader title={t('title')} />
-      <EmptyState
-        icon={<ShieldCheck aria-hidden="true" />}
-        title={t('emptyTitle')}
-        body={t('emptyBody')}
-      />
+      <AdminOverview />
     </>
   );
 }
