@@ -12,6 +12,7 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "start": "turbo run build --filter=@engagement-exchange/api --filter=@engagement-exchange/web && pnpm --filter @engagement-exchange/db migrate && pnpm --parallel --filter @engagement-exchange/api --filter @engagement-exchange/web start",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test",
