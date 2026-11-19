@@ -288,8 +288,160 @@ describe('tokapiSource', () => {
     });
   });
 
-  it('supports follows only', () => {
-    expect([...source.supports]).toEqual(['follows']);
+  it('answers private for the recorded following list of a private account', async () => {
+    listFollowings(tiktok, recorded('followings-private-account.json'));
+    await expect(askFollows(source, byIds, context())).resolves.toEqual({
+      outcome: 'private',
+      cost: request(1),
+    });
+  });
+
+  it('supports profile and follows', () => {
+    expect([...source.supports].sort()).toEqual(['follows', 'profile']);
+  });
+
+  describe('profile', () => {
+    const profileCheck = { kind: 'profile', subject: handle('tiktok') } as const;
+    const latest = { ...profileCheck, latestPost: true } as const;
+    const tiktokPosts = '/v1/post/user/107955/posts';
+
+    const user = (username: string, reply: Fixture) =>
+      pool
+        .intercept({
+          path: (path: string) => {
+            const url = new URL(path, origin);
+            return url.pathname === '/v1/user/' && url.searchParams.get('username') === username;
+          },
+          method: 'GET',
+          headers: { 'x-rapidapi-key': rapidApiKey, 'x-rapidapi-host': host },
+        })
+        .reply(reply.status, JSON.stringify(reply.body), { headers: reply.headers });
+
+    const posts = (path: string, reply: Fixture) =>
+      pool
+        .intercept({
+          path: (requested: string) => {
+            const url = new URL(requested, origin);
+            return url.pathname === path && url.searchParams.get('count') === '10';
+          },
+          method: 'GET',
+        })
+        .reply(reply.status, JSON.stringify(reply.body), { headers: reply.headers });
+
+    const postsWith = (change: (list: Record<string, number>[]) => Record<string, number>[]) => {
+      const page = recorded('posts-tiktok.json');
+      const body = structuredClone(page.body) as { aweme_list: Record<string, number>[] };
+      return { ...page, body: { ...body, aweme_list: change(body.aweme_list) } };
+    };
+
+    it('reads the recorded profile and the newest post into evidence for two requests', async () => {
+      user('tiktok', recorded('user-tiktok.json'));
+      posts(tiktokPosts, recorded('posts-tiktok.json'));
+      await expect(source.answer(latest, context())).resolves.toEqual({
+        outcome: 'verified',
+        evidence: {
+          accountId: tiktok,
+          bio: 'Your next discovery is waiting on TikTok.',
+          isPrivate: false,
+          followingVisible: true,
+          followerCount: 96988597,
+          followingCount: 11,
+          videoCount: 1613,
+          avatarUrl: expect.stringMatching(/^https:\/\/[^?]+$/) as unknown,
+          latestPostAt: 1794753620000,
+        },
+        cost: request(2),
+      });
+    });
+
+    it('reads no posts and charges one request when the latest post is not asked', async () => {
+      user('tiktok', recorded('user-tiktok.json'));
+      const answer = await source.answer(profileCheck, context());
+      expect(answer).toMatchObject({ outcome: 'verified', cost: request(1) });
+      expect(answer.outcome === 'verified' && answer.evidence).not.toHaveProperty('latestPostAt');
+    });
+
+    it('takes the newest post that is not pinned', async () => {
+      user('tiktok', recorded('user-tiktok.json'));
+      posts(
+        tiktokPosts,
+        postsWith((list) =>
+          list.map((post, index) => (index === 0 ? { ...post, is_top: 1 } : post)),
+        ),
+      );
+      await expect(source.answer(latest, context())).resolves.toMatchObject({
+        evidence: { latestPostAt: 1794619464000 },
+      });
+    });
+
+    it.each([
+      ['fails', raw(500, { message: 'x' })],
+      ['has no posts', recorded('posts-private.json')],
+      ['carries another status_code', raw(200, { status_code: 10101, aweme_list: null })],
+    ])('keeps the profile without a post time when the posts read %s', async (_label, reply) => {
+      user('tiktok', recorded('user-tiktok.json'));
+      posts(tiktokPosts, reply);
+      const answer = await source.answer(latest, context());
+      expect(answer).toMatchObject({ outcome: 'verified', cost: request(2) });
+      expect(answer.outcome === 'verified' && answer.evidence).not.toHaveProperty('latestPostAt');
+    });
+
+    it('answers followingVisible false for the recorded hidden following list', async () => {
+      user('tiktok', recorded('user-following-hidden.json'));
+      await expect(source.answer(profileCheck, context())).resolves.toMatchObject({
+        outcome: 'verified',
+        evidence: { isPrivate: false, followingVisible: false },
+      });
+    });
+
+    it('answers a private account without reading its posts', async () => {
+      user('tiktok', recorded('user-private.json'));
+      await expect(source.answer(latest, context())).resolves.toMatchObject({
+        outcome: 'verified',
+        evidence: { isPrivate: true, accountId: { numericId: '7000000000000000201' } },
+        cost: request(1),
+      });
+    });
+
+    it('leaves following visibility out for an unmapped value', async () => {
+      const page = recorded('user-tiktok.json');
+      const body = structuredClone(page.body) as { user: Record<string, unknown> };
+      body.user['privacy_setting'] = { following_visibility: 7 };
+      user('tiktok', { ...page, body });
+      const answer = await source.answer(profileCheck, context());
+      expect(answer.outcome === 'verified' && answer.evidence).not.toHaveProperty(
+        'followingVisible',
+      );
+    });
+
+    it('answers not_found for the recorded unknown handle', async () => {
+      user('zq8v1k0x9m2nope', recorded('user-missing.json'));
+      await expect(
+        source.answer({ kind: 'profile', subject: handle('zq8v1k0x9m2nope') }, context()),
+      ).resolves.toEqual({ outcome: 'not_found', cost: request(1) });
+    });
+
+    it.each([
+      [
+        'a 404 with another body',
+        raw(404, { message: 'Not Found' }),
+        { kind: 'http', httpStatus: 404 },
+      ],
+      ['a 403', raw(403, { message: 'x' }), { kind: 'auth', httpStatus: 403 }],
+      [
+        'an unmapped status_code',
+        raw(200, { status_code: 10101 }),
+        { kind: 'unknown_status', providerStatus: 10101 },
+      ],
+      ['status 0 without a user', raw(200, { status_code: 0 }), { kind: 'parse' }],
+    ])('answers source_error for %s', async (_label, reply, error) => {
+      user('tiktok', reply);
+      await expect(source.answer(profileCheck, context())).resolves.toMatchObject({
+        outcome: 'source_error',
+        error,
+        cost: request(1),
+      });
+    });
   });
 
   it('forwards the caller signal and propagates an abort', async () => {

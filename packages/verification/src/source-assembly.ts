@@ -16,7 +16,7 @@ export type KnownSourceName = (typeof knownSourceNames)[number];
 export type SourceOrders = Readonly<Record<CheckKind, readonly KnownSourceName[]>>;
 
 export const defaultSourceOrders: SourceOrders = {
-  profile: ['ensemble', 'scraper'],
+  profile: ['tokapi', 'ensemble', 'scraper'],
   follows: ['scraper', 'tokapi', 'ensemble', 'scraptik'],
   liked: ['scraper', 'ensemble'],
 };

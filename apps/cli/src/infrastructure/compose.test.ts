@@ -45,7 +45,7 @@ describe('composeVerifier', () => {
   it('reports no confirmer when only the scraper can read a following list', () => {
     expect(composeVerifier(env({}))).toMatchObject({
       ok: true,
-      value: { leftOut: ['ensemble', 'tokapi', 'scraptik'], unconfirmed: ['follows', 'liked'] },
+      value: { leftOut: ['tokapi', 'ensemble', 'scraptik'], unconfirmed: ['follows', 'liked'] },
     });
   });
 

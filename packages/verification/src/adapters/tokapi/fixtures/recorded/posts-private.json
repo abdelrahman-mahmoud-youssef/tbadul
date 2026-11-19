@@ -1,0 +1,11 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "status_code": 0,
+    "status_msg": "",
+    "aweme_list": null
+  }
+}

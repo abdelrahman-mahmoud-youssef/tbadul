@@ -1,0 +1,28 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "status_code": 0,
+    "status_msg": "",
+    "user": {
+      "uid": "107955",
+      "sec_uid": "MS4wLjABAAAAv7iSuuXDJGDvJkmH_vz1qkDZYo1apxgzaxdBSeIuPiM",
+      "unique_id": "tiktok",
+      "signature": "Your next discovery is waiting on TikTok.",
+      "secret": 0,
+      "privacy_setting": {
+        "following_visibility": 1
+      },
+      "follower_count": 96988597,
+      "following_count": 11,
+      "aweme_count": 1613,
+      "avatar_thumb": {
+        "url_list": [
+          "https://p16-common-sign.tiktokcdn-eu.com/tos-maliva-avt-0068/ba67b11de451691939223e9d978e613a~tplv-tiktokx-cropcenter:100:100.webp"
+        ]
+      }
+    }
+  }
+}

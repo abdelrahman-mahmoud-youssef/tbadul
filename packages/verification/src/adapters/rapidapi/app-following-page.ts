@@ -14,7 +14,7 @@ export const appFollowingPageSchema = z.object({
 type AppFollowingPage = z.infer<typeof appFollowingPageSchema>;
 export type AppFollowingEntry = NonNullable<AppFollowingPage['followings']>[number];
 
-const listHidden = 3002060;
+export const listHidden = 3002060;
 const userNotFound = 3170;
 
 export const listedAccount = (entry: AppFollowingEntry): ListedAccount => ({
@@ -23,17 +23,16 @@ export const listedAccount = (entry: AppFollowingEntry): ListedAccount => ({
 });
 
 export const appFollowingPage =
-  (provider: string) =>
+  (provider: string, privateStatuses: readonly number[] = [listHidden]) =>
   (page: AppFollowingPage): PageRead<AppFollowingEntry> => {
     const missing = (field: string): SourceError => ({
       kind: 'parse',
       message: `${provider} ${field} missing`,
     });
+    if (privateStatuses.includes(page.status_code)) return { outcome: 'private' };
     switch (page.status_code) {
       case 0:
         break;
-      case listHidden:
-        return { outcome: 'private' };
       case userNotFound:
         return { outcome: 'not_found' };
       default:

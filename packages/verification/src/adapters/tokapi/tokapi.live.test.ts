@@ -39,4 +39,25 @@ describe.skipIf(keyName === undefined)('tokapi live', () => {
       cost: { unit: 'request', amount: 1 },
     });
   }, 35_000);
+
+  it('resolves @tiktok with its ids, following visibility and latest post in two calls', async () => {
+    const source = tokapiSource({ http: createHttpClient({ headers: () => ({}) }), rapidApiKey });
+    const answer = await source.answer(
+      { kind: 'profile', subject: handle('tiktok'), latestPost: true },
+      { signal: AbortSignal.timeout(30_000), pageCap: 1 },
+    );
+    expect(answer).toMatchObject({
+      outcome: 'verified',
+      evidence: {
+        accountId: {
+          value: 'MS4wLjABAAAAv7iSuuXDJGDvJkmH_vz1qkDZYo1apxgzaxdBSeIuPiM',
+          numericId: '107955',
+        },
+        isPrivate: false,
+        followingVisible: true,
+        latestPostAt: expect.any(Number) as unknown,
+      },
+      cost: { unit: 'request', amount: 2 },
+    });
+  }, 35_000);
 });

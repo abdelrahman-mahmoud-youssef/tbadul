@@ -1,0 +1,63 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "status_code": 0,
+    "status_msg": "",
+    "has_more": 1,
+    "aweme_list": [
+      {
+        "aweme_id": "7708408003065580831",
+        "create_time": 1794753620,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7707831843487354143",
+        "create_time": 1794619464,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7707787499359210782",
+        "create_time": 1794609141,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7707063215498399006",
+        "create_time": 1794440498,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7704834703446117662",
+        "create_time": 1793921629,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7704774145829063967",
+        "create_time": 1793907535,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7702947070604332319",
+        "create_time": 1793482137,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7700680369246358815",
+        "create_time": 1792954380,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7700009319382650142",
+        "create_time": 1792798142,
+        "is_top": 0
+      },
+      {
+        "aweme_id": "7698770783367171359",
+        "create_time": 1792509783,
+        "is_top": 0
+      }
+    ]
+  }
+}
