@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Sans_Arabic } from 'next/font/google';
 import { getTranslations } from 'next-intl/server';
+import { ErrorCopyProvider } from '@/components/states/error-copy';
+import { errorCopy } from '@/components/states/error-copy-server';
 import { DirectionProvider } from '@/components/ui/direction';
 import { ThemeScript } from '@/components/theme/theme-script';
 import { directions, routing, type Locale } from '@/i18n/routing';
@@ -26,13 +28,16 @@ export async function generateMetadata({ params }: LayoutProps<'/[locale]'>): Pr
 export default async function LocaleLayout({ children, params }: LayoutProps<'/[locale]'>) {
   const locale = (await params).locale as Locale;
   const dir = directions[locale];
+  const copy = await errorCopy();
   return (
     <html lang={locale} dir={dir} className={plexArabic.variable} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>
       <body>
-        <DirectionProvider dir={dir}>{children}</DirectionProvider>
+        <DirectionProvider dir={dir}>
+          <ErrorCopyProvider copy={copy}>{children}</ErrorCopyProvider>
+        </DirectionProvider>
       </body>
     </html>
   );
