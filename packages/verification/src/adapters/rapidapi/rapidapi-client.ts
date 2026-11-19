@@ -1,25 +1,28 @@
+import type { z } from 'zod';
 import type { SourceError } from '../../domain/outcome.ts';
 import { err, type Result } from '../../domain/result.ts';
 import { decodeJson, failureForStatus, type HttpClient } from '../http/http-client.ts';
-import { followingPageSchema, type FollowingPage } from './scraptik-schemas.ts';
 
-const host = 'scraptik.p.rapidapi.com';
-
-export interface ScraptikClient {
-  listFollowing(
-    query: Readonly<Record<string, string>>,
-    signal: AbortSignal,
-  ): Promise<Result<FollowingPage, SourceError>>;
-}
-
-export interface ScraptikDeps {
+export interface RapidApiDeps {
   readonly http: HttpClient;
   readonly rapidApiKey: string;
 }
 
-export const scraptikClient = ({ http, rapidApiKey }: ScraptikDeps): ScraptikClient => ({
-  listFollowing: async (query, signal) => {
-    const url = new URL('/list-following', `https://${host}`);
+export interface RapidApiClient {
+  get<T>(
+    path: string,
+    query: Readonly<Record<string, string>>,
+    schema: z.ZodType<T>,
+    signal: AbortSignal,
+  ): Promise<Result<T, SourceError>>;
+}
+
+export const rapidApiClient = (
+  { http, rapidApiKey }: RapidApiDeps,
+  host: string,
+): RapidApiClient => ({
+  get: async (path, query, schema, signal) => {
+    const url = new URL(path, `https://${host}`);
     url.search = new URLSearchParams(query).toString();
     const reply = await http.get(url.toString(), signal, {
       'x-rapidapi-key': rapidApiKey,
@@ -27,7 +30,7 @@ export const scraptikClient = ({ http, rapidApiKey }: ScraptikDeps): ScraptikCli
     });
     if (!reply.ok) return reply;
     return reply.value.status === 200
-      ? decodeJson(reply.value, followingPageSchema)
+      ? decodeJson(reply.value, schema)
       : err(failureForStatus(reply.value.status));
   },
 });

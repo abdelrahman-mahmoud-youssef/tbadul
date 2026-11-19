@@ -13,7 +13,7 @@ export type { LamatokDeps } from './adapters/lamatok/lamatok-client.ts';
 export { lamatokSource } from './adapters/lamatok/lamatok-source.ts';
 export { scraperSource, type ScraperDeps } from './adapters/scraper/scraper-source.ts';
 export { sidecarSigner } from './adapters/scraper/sidecar/sidecar-signer.ts';
-export type { ScraptikDeps } from './adapters/scraptik/scraptik-client.ts';
+export type { RapidApiDeps } from './adapters/rapidapi/rapidapi-client.ts';
 export { scraptikSource } from './adapters/scraptik/scraptik-source.ts';
 export type { ProfileCacheTtl } from './application/cached-profile.ts';
 export {
