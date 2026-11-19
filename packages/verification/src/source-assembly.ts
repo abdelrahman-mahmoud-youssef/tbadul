@@ -49,7 +49,7 @@ export const planSourceOrders = (
 export interface SourceCredentials {
   readonly signerUrl: string;
   readonly lamatokKey?: string | undefined;
-  readonly ensembleToken?: string | undefined;
+  readonly ensembleTokens?: readonly string[] | undefined;
   readonly scraptikKey?: string | undefined;
 }
 
@@ -65,8 +65,9 @@ export const assembleSources = (
   if (credentials.lamatokKey !== undefined) {
     sources.set('lamatok', lamatokSource({ http, accessKey: credentials.lamatokKey }));
   }
-  if (credentials.ensembleToken !== undefined) {
-    sources.set('ensemble', ensembledataSource({ http, token: credentials.ensembleToken }));
+  const [firstToken, ...otherTokens] = new Set(credentials.ensembleTokens);
+  if (firstToken !== undefined) {
+    sources.set('ensemble', ensembledataSource({ http, tokens: [firstToken, ...otherTokens] }));
   }
   if (credentials.scraptikKey !== undefined) {
     sources.set('scraptik', scraptikSource({ http, rapidApiKey: credentials.scraptikKey }));

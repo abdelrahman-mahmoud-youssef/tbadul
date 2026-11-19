@@ -30,6 +30,7 @@ export const envSchema = z.object({
   TIKTOK_SIGNER_URL: z.url().default('http://localhost:8080'),
   LAMATOK_ACCESS_KEY: z.string().optional(),
   ENSEMBLEDATA_TOKEN: z.string().optional(),
+  ENSEMBLEDATA_TOKENS: z.string().default('').transform(list),
   SCRAPTIK_RAPIDAPI_KEY: z.string().optional(),
   VERIFICATION_SOURCE_ORDER: order,
   VERIFICATION_SOURCE_ORDER_PROFILE: order,

@@ -88,8 +88,8 @@ export const missingSchema =
   'the database schema is missing or behind: run pnpm --filter @engagement-exchange/db migrate';
 
 const confirmerKeys: Readonly<Record<ListCheck, string>> = {
-  follows: 'ENSEMBLEDATA_TOKEN or SCRAPTIK_RAPIDAPI_KEY',
-  liked: 'ENSEMBLEDATA_TOKEN',
+  follows: 'ENSEMBLEDATA_TOKENS or SCRAPTIK_RAPIDAPI_KEY',
+  liked: 'ENSEMBLEDATA_TOKENS',
 };
 
 export const noConfirmer = (kind: ListCheck): string =>

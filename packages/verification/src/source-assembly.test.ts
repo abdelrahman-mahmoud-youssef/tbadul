@@ -17,7 +17,7 @@ describe('assembleSources', () => {
       {
         signerUrl: 'http://localhost:8080',
         lamatokKey: 'configured',
-        ensembleToken: 'configured',
+        ensembleTokens: ['configured'],
         scraptikKey: 'configured',
       },
       http,

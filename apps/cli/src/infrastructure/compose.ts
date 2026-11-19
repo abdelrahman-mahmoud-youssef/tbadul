@@ -85,7 +85,10 @@ const availableSources = (env: Env): Sources =>
     {
       signerUrl: env.TIKTOK_SIGNER_URL,
       lamatokKey: env.LAMATOK_ACCESS_KEY,
-      ensembleToken: env.ENSEMBLEDATA_TOKEN,
+      ensembleTokens: [
+        ...env.ENSEMBLEDATA_TOKENS,
+        ...(env.ENSEMBLEDATA_TOKEN === undefined ? [] : [env.ENSEMBLEDATA_TOKEN]),
+      ],
       scraptikKey: env.SCRAPTIK_RAPIDAPI_KEY,
     },
     createHttpClient({ headers: () => ({}) }),

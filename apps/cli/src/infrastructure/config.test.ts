@@ -17,11 +17,13 @@ describe('readEnv', () => {
       readEnv({
         TIKTOK_SIGNER_URL: 'http://localhost:8080',
         VERIFICATION_ACCOUNTS: ' verify.one, verify.two ',
+        ENSEMBLEDATA_TOKENS: 'first, second,',
       }),
     ).toEqual({
       ok: true,
       value: {
         TIKTOK_SIGNER_URL: 'http://localhost:8080',
+        ENSEMBLEDATA_TOKENS: ['first', 'second'],
         VERIFICATION_ACCOUNTS: ['verify.one', 'verify.two'],
         VERIFICATION_CONFIRM_NOT_FOLLOWING: true,
         OUTBOUND_TIMEOUT_MS: 15_000,

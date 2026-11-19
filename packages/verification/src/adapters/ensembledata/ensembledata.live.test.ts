@@ -11,7 +11,10 @@ console.log(`${keyName} ${configured ? 'found' : 'not found'}`);
 
 describe.skipIf(!configured)('ensembledata live', () => {
   it('reads the free used-units count in one call', async () => {
-    const client = ensembledataClient({ http: createHttpClient({ headers: () => ({}) }), token });
+    const client = ensembledataClient({
+      http: createHttpClient({ headers: () => ({}) }),
+      tokens: [token],
+    });
     const reply = await client.read(
       '/customer/get-used-units',
       { date: new Date().toISOString().slice(0, 10) },

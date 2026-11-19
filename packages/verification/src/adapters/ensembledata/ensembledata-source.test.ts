@@ -4,6 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { accountId } from '../../domain/account-id.ts';
 import { askFollows } from '../../testing/fake-source.ts';
 import { content, context, handle } from '../../testing/fixtures.ts';
+import { manualClock } from '../../testing/manual-clock.ts';
 import { createHttpClient } from '../http/http-client.ts';
 import { ensembledataSource } from './ensembledata-source.ts';
 
@@ -18,7 +19,7 @@ afterAll(async () => {
 
 const token = 'rePlay7oken9Qz4X';
 const http = createHttpClient({ headers: () => ({}) });
-const source = ensembledataSource({ http, token });
+const source = ensembledataSource({ http, tokens: [token] });
 
 interface Fixture {
   readonly status: number;
@@ -65,12 +66,12 @@ describe('ensembledataSource', () => {
   });
 
   const pathWith =
-    (pathname: string, query: Record<string, string | null> = {}) =>
+    (pathname: string, query: Record<string, string | null> = {}, expectedToken = token) =>
     (path: string) => {
       const url = new URL(path, origin);
       return (
         url.pathname === pathname &&
-        url.searchParams.get('token') === token &&
+        url.searchParams.get('token') === expectedToken &&
         Object.entries(query).every(([key, value]) => url.searchParams.get(key) === value)
       );
     };
@@ -591,6 +592,75 @@ describe('ensembledataSource', () => {
         error: { kind: 'parse' },
         cost: units(1),
       });
+    });
+  });
+
+  describe('with several tokens', () => {
+    const [first, second] = ['f1rstT0kenAbc', 's3condT0kenXyz'];
+    const infoFor = (tokenUsed: string, reply: Fixture | ReturnType<typeof raw>) =>
+      pool
+        .intercept({
+          path: pathWith('/apis/tt/user/info', { username: 'tiktok' }, tokenUsed),
+          method: 'GET',
+        })
+        .reply(
+          reply.status,
+          typeof reply.body === 'string' ? reply.body : JSON.stringify(reply.body),
+          { headers: reply.headers },
+        );
+    const tiktokProfile = { outcome: 'verified', cost: units(1) } as const;
+
+    it.each([491, 492, 493, 495])(
+      'answers from the next token when the first is rejected with %i',
+      async (status) => {
+        const rotating = ensembledataSource({ http, tokens: [first, second] });
+        infoFor(first, raw(status, '{"detail":"x"}'));
+        infoFor(second, recorded('info-tiktok.json'));
+        await expect(rotating.answer(profileCheck, context())).resolves.toMatchObject(
+          tiktokProfile,
+        );
+      },
+    );
+
+    it('skips a token rejected earlier the same day and retries it the next day', async () => {
+      const clock = manualClock(Date.UTC(2026, 10, 19, 9));
+      const rotating = ensembledataSource({ http, tokens: [first, second], clock });
+      infoFor(first, raw(493, '{"detail":"x"}'));
+      infoFor(second, recorded('info-tiktok.json'));
+      await rotating.answer(profileCheck, context());
+
+      infoFor(second, recorded('info-tiktok.json'));
+      await expect(rotating.answer(profileCheck, context())).resolves.toMatchObject(tiktokProfile);
+
+      clock.advance(15 * 3_600_000);
+      infoFor(first, recorded('info-tiktok.json'));
+      await expect(rotating.answer(profileCheck, context())).resolves.toMatchObject(tiktokProfile);
+    });
+
+    it('keeps the first token for answers that are not about the account', async () => {
+      const rotating = ensembledataSource({ http, tokens: [first, second] });
+      infoFor(first, raw(500, '{"detail":"x"}'));
+      await expect(rotating.answer(profileCheck, context())).resolves.toEqual({
+        outcome: 'source_error',
+        error: { kind: 'http', message: 'http 500', httpStatus: 500 },
+        cost: units(0),
+      });
+    });
+
+    it('answers the last rejection when every token is rejected, and tries them all again', async () => {
+      const rotating = ensembledataSource({ http, tokens: [first, second] });
+      const expired = {
+        outcome: 'source_error',
+        error: { kind: 'auth', message: 'ensembledata 493: subscription expired', httpStatus: 493 },
+        cost: units(0),
+      };
+      infoFor(first, raw(491, '{"detail":"x"}'));
+      infoFor(second, raw(493, '{"detail":"x"}'));
+      await expect(rotating.answer(profileCheck, context())).resolves.toEqual(expired);
+
+      infoFor(first, raw(493, '{"detail":"x"}'));
+      infoFor(second, raw(493, '{"detail":"x"}'));
+      await expect(rotating.answer(profileCheck, context())).resolves.toEqual(expired);
     });
   });
 });

@@ -25,7 +25,10 @@ const recorded = (name: string) =>
   ) as Recorded;
 
 const token = 'rePlay7oken9Qz4X';
-const client = ensembledataClient({ http: createHttpClient({ headers: () => ({}) }), token });
+const client = ensembledataClient({
+  http: createHttpClient({ headers: () => ({}) }),
+  tokens: [token],
+});
 
 const replayUsedUnits = (name: string) => {
   const { status, headers, body } = recorded(name);

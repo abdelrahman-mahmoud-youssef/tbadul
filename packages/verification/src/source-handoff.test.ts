@@ -133,7 +133,7 @@ describe('an ensembledata profile answer feeding a scraper list read', () => {
       },
       {
         sources: [
-          ensembledataSource({ http, token: 'rePlay7oken9Qz4X' }),
+          ensembledataSource({ http, tokens: ['rePlay7oken9Qz4X'] }),
           scraperSource({ http, signer: passThroughSigner }),
         ],
       },
@@ -220,7 +220,7 @@ describe('scraptik confirming a scraper not_following when ensembledata fails', 
       {
         sources: [
           scraperSource({ http, signer: passThroughSigner }),
-          ensembledataSource({ http, token: 'rePlay7oken9Qz4X' }),
+          ensembledataSource({ http, tokens: ['rePlay7oken9Qz4X'] }),
           scraptikSource({ http, rapidApiKey: 'replay-rapidapi-key' }),
         ],
       },
