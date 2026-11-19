@@ -18,6 +18,7 @@ export const signInAs = async (request: APIRequestContext, role: Role): Promise<
     const promoted = await fetch(`${controlOrigin}/admins`, {
       method: 'POST',
       body: JSON.stringify({ email }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!promoted.ok) throw new Error(`promotion answered ${promoted.status}`);
     await post(request, '/api/auth/sign-in/email', { email, password });

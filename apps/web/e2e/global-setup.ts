@@ -65,7 +65,12 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
 
   return async () => {
     web.kill();
-    await fetch(`${controlOrigin}/shutdown`, { method: 'POST' });
-    await once(api, 'exit');
+    const exited = once(api, 'exit');
+    await fetch(`${controlOrigin}/shutdown`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(5_000),
+    }).catch(() => api.kill());
+    await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 30_000))]);
+    if (api.exitCode === null) api.kill();
   };
 }
