@@ -1,0 +1,72 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "status_code": 0,
+    "status_msg": "",
+    "followings": [
+      {
+        "uid": "7000000000000000001",
+        "sec_uid": "MS4wLjABAAAA-placeholder-001",
+        "unique_id": "account_001"
+      },
+      {
+        "uid": "6551237489917432832",
+        "sec_uid": "MS4wLjABAAAAXqqA-cLDC0hfQPIrS5APYNsg04zkl-socWCkqkI3UIOaEe6_Qnokg0GcWpLnMNQP",
+        "unique_id": "tiktokcreators"
+      },
+      {
+        "uid": "7000000000000000002",
+        "sec_uid": "MS4wLjABAAAA-placeholder-002",
+        "unique_id": "account_002"
+      },
+      {
+        "uid": "7000000000000000003",
+        "sec_uid": "MS4wLjABAAAA-placeholder-003",
+        "unique_id": "account_003"
+      },
+      {
+        "uid": "7000000000000000004",
+        "sec_uid": "MS4wLjABAAAA-placeholder-004",
+        "unique_id": "account_004"
+      },
+      {
+        "uid": "7000000000000000005",
+        "sec_uid": "MS4wLjABAAAA-placeholder-005",
+        "unique_id": "account_005"
+      },
+      {
+        "uid": "7000000000000000006",
+        "sec_uid": "MS4wLjABAAAA-placeholder-006",
+        "unique_id": "account_006"
+      },
+      {
+        "uid": "7000000000000000007",
+        "sec_uid": "MS4wLjABAAAA-placeholder-007",
+        "unique_id": "account_007"
+      },
+      {
+        "uid": "7000000000000000008",
+        "sec_uid": "MS4wLjABAAAA-placeholder-008",
+        "unique_id": "account_008"
+      },
+      {
+        "uid": "7000000000000000009",
+        "sec_uid": "MS4wLjABAAAA-placeholder-009",
+        "unique_id": "account_009"
+      },
+      {
+        "uid": "7000000000000000010",
+        "sec_uid": "MS4wLjABAAAA-placeholder-010",
+        "unique_id": "account_010"
+      }
+    ],
+    "has_more": false,
+    "min_time": 1447292191,
+    "max_time": 1795130402,
+    "offset": 0,
+    "total": 11
+  }
+}

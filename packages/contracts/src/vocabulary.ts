@@ -55,7 +55,7 @@ export type UnavailableOutcome = z.infer<typeof unavailableOutcome>;
 export const userRole = z.enum(['user', 'admin']);
 export type UserRole = z.infer<typeof userRole>;
 
-export const sourceName = z.enum(['scraper', 'lamatok', 'ensemble', 'scraptik']);
+export const sourceName = z.enum(['scraper', 'lamatok', 'ensemble', 'scraptik', 'tokapi']);
 export type SourceName = z.infer<typeof sourceName>;
 
 export const poolAddition = z.enum(['added', 'present', 'inactive']);

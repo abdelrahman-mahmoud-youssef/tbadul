@@ -66,6 +66,12 @@ const dailyBudgets = (env: Env, sources: Sources): Record<string, DailyBudget> =
         : { unit: 'request', daily: env.SCRAPTIK_DAILY_REQUESTS },
     ],
     [
+      'tokapi',
+      env.TOKAPI_DAILY_REQUESTS === undefined
+        ? undefined
+        : { unit: 'request', daily: env.TOKAPI_DAILY_REQUESTS },
+    ],
+    [
       'lamatok',
       env.LAMATOK_DAILY_REQUESTS === undefined
         ? undefined
@@ -89,7 +95,7 @@ const availableSources = (env: Env): Sources =>
         ...env.ENSEMBLEDATA_TOKENS,
         ...(env.ENSEMBLEDATA_TOKEN === undefined ? [] : [env.ENSEMBLEDATA_TOKEN]),
       ],
-      scraptikKey: env.SCRAPTIK_RAPIDAPI_KEY,
+      rapidApiKey: env.RAPIDAPI_KEY ?? env.SCRAPTIK_RAPIDAPI_KEY,
     },
     createHttpClient({ headers: () => ({}) }),
   );

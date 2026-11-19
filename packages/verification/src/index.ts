@@ -15,6 +15,7 @@ export { scraperSource, type ScraperDeps } from './adapters/scraper/scraper-sour
 export { sidecarSigner } from './adapters/scraper/sidecar/sidecar-signer.ts';
 export type { RapidApiDeps } from './adapters/rapidapi/rapidapi-client.ts';
 export { scraptikSource } from './adapters/scraptik/scraptik-source.ts';
+export { tokapiSource } from './adapters/tokapi/tokapi-source.ts';
 export type { ProfileCacheTtl } from './application/cached-profile.ts';
 export {
   allSinks,

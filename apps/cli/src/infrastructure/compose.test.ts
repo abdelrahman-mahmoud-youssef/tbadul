@@ -14,29 +14,38 @@ describe('composeVerifier', () => {
   it('confirms follows with ensemble when its token is configured', () => {
     expect(composeVerifier(env({ ENSEMBLEDATA_TOKEN: 'configured' }))).toMatchObject({
       ok: true,
-      value: { leftOut: ['scraptik'], unconfirmed: [] },
+      value: { leftOut: ['tokapi', 'scraptik'], unconfirmed: [] },
     });
   });
 
-  it('confirms follows but not liked with scraptik alone, which answers follows only', () => {
-    expect(composeVerifier(env({ SCRAPTIK_RAPIDAPI_KEY: 'configured' }))).toMatchObject({
+  it('confirms follows but not liked with the RapidAPI sources alone, which answer follows only', () => {
+    expect(composeVerifier(env({ RAPIDAPI_KEY: 'configured' }))).toMatchObject({
       ok: true,
       value: { leftOut: ['ensemble'], unconfirmed: ['liked'] },
     });
   });
 
+  it.each([
+    ['the ScrapTik key name alone', { SCRAPTIK_RAPIDAPI_KEY: 'configured' }],
+    [
+      'the ScrapTik key name with an empty RAPIDAPI_KEY',
+      { RAPIDAPI_KEY: '', SCRAPTIK_RAPIDAPI_KEY: 'configured' },
+    ],
+  ])('assembles tokapi and scraptik from %s', (_label, keys) => {
+    expect(composeVerifier(env(keys), undefined, 'tokapi')).toMatchObject({ ok: true });
+    expect(composeVerifier(env(keys), undefined, 'scraptik')).toMatchObject({ ok: true });
+  });
+
   it('leaves no source out when every default credential is configured', () => {
     expect(
-      composeVerifier(
-        env({ ENSEMBLEDATA_TOKEN: 'configured', SCRAPTIK_RAPIDAPI_KEY: 'configured' }),
-      ),
+      composeVerifier(env({ ENSEMBLEDATA_TOKEN: 'configured', RAPIDAPI_KEY: 'configured' })),
     ).toMatchObject({ ok: true, value: { leftOut: [], unconfirmed: [] } });
   });
 
   it('reports no confirmer when only the scraper can read a following list', () => {
     expect(composeVerifier(env({}))).toMatchObject({
       ok: true,
-      value: { leftOut: ['ensemble', 'scraptik'], unconfirmed: ['follows', 'liked'] },
+      value: { leftOut: ['ensemble', 'tokapi', 'scraptik'], unconfirmed: ['follows', 'liked'] },
     });
   });
 

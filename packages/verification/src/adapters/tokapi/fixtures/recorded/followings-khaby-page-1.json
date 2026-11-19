@@ -1,0 +1,267 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "status_code": 0,
+    "status_msg": "",
+    "followings": [
+      {
+        "uid": "7000000000000000101",
+        "sec_uid": "MS4wLjABAAAA-placeholder-101",
+        "unique_id": "account_101"
+      },
+      {
+        "uid": "7000000000000000102",
+        "sec_uid": "MS4wLjABAAAA-placeholder-102",
+        "unique_id": "account_102"
+      },
+      {
+        "uid": "7000000000000000103",
+        "sec_uid": "MS4wLjABAAAA-placeholder-103",
+        "unique_id": "account_103"
+      },
+      {
+        "uid": "6551237489917432832",
+        "sec_uid": "MS4wLjABAAAAXqqA-cLDC0hfQPIrS5APYNsg04zkl-socWCkqkI3UIOaEe6_Qnokg0GcWpLnMNQP",
+        "unique_id": "tiktokcreators"
+      },
+      {
+        "uid": "7000000000000000104",
+        "sec_uid": "MS4wLjABAAAA-placeholder-104",
+        "unique_id": "account_104"
+      },
+      {
+        "uid": "7000000000000000105",
+        "sec_uid": "MS4wLjABAAAA-placeholder-105",
+        "unique_id": "account_105"
+      },
+      {
+        "uid": "7000000000000000106",
+        "sec_uid": "MS4wLjABAAAA-placeholder-106",
+        "unique_id": "account_106"
+      },
+      {
+        "uid": "7000000000000000107",
+        "sec_uid": "MS4wLjABAAAA-placeholder-107",
+        "unique_id": "account_107"
+      },
+      {
+        "uid": "7000000000000000108",
+        "sec_uid": "MS4wLjABAAAA-placeholder-108",
+        "unique_id": "account_108"
+      },
+      {
+        "uid": "7000000000000000109",
+        "sec_uid": "MS4wLjABAAAA-placeholder-109",
+        "unique_id": "account_109"
+      },
+      {
+        "uid": "7000000000000000110",
+        "sec_uid": "MS4wLjABAAAA-placeholder-110",
+        "unique_id": "account_110"
+      },
+      {
+        "uid": "7000000000000000111",
+        "sec_uid": "MS4wLjABAAAA-placeholder-111",
+        "unique_id": "account_111"
+      },
+      {
+        "uid": "7000000000000000112",
+        "sec_uid": "MS4wLjABAAAA-placeholder-112",
+        "unique_id": "account_112"
+      },
+      {
+        "uid": "7000000000000000113",
+        "sec_uid": "MS4wLjABAAAA-placeholder-113",
+        "unique_id": "account_113"
+      },
+      {
+        "uid": "7000000000000000114",
+        "sec_uid": "MS4wLjABAAAA-placeholder-114",
+        "unique_id": "account_114"
+      },
+      {
+        "uid": "7000000000000000115",
+        "sec_uid": "MS4wLjABAAAA-placeholder-115",
+        "unique_id": "account_115"
+      },
+      {
+        "uid": "7000000000000000116",
+        "sec_uid": "MS4wLjABAAAA-placeholder-116",
+        "unique_id": "account_116"
+      },
+      {
+        "uid": "7000000000000000117",
+        "sec_uid": "MS4wLjABAAAA-placeholder-117",
+        "unique_id": "account_117"
+      },
+      {
+        "uid": "7000000000000000118",
+        "sec_uid": "MS4wLjABAAAA-placeholder-118",
+        "unique_id": "account_118"
+      },
+      {
+        "uid": "7000000000000000119",
+        "sec_uid": "MS4wLjABAAAA-placeholder-119",
+        "unique_id": "account_119"
+      },
+      {
+        "uid": "7000000000000000120",
+        "sec_uid": "MS4wLjABAAAA-placeholder-120",
+        "unique_id": "account_120"
+      },
+      {
+        "uid": "7000000000000000121",
+        "sec_uid": "MS4wLjABAAAA-placeholder-121",
+        "unique_id": "account_121"
+      },
+      {
+        "uid": "7000000000000000122",
+        "sec_uid": "MS4wLjABAAAA-placeholder-122",
+        "unique_id": "account_122"
+      },
+      {
+        "uid": "7000000000000000123",
+        "sec_uid": "MS4wLjABAAAA-placeholder-123",
+        "unique_id": "account_123"
+      },
+      {
+        "uid": "7000000000000000124",
+        "sec_uid": "MS4wLjABAAAA-placeholder-124",
+        "unique_id": "account_124"
+      },
+      {
+        "uid": "7000000000000000125",
+        "sec_uid": "MS4wLjABAAAA-placeholder-125",
+        "unique_id": "account_125"
+      },
+      {
+        "uid": "7000000000000000126",
+        "sec_uid": "MS4wLjABAAAA-placeholder-126",
+        "unique_id": "account_126"
+      },
+      {
+        "uid": "7000000000000000127",
+        "sec_uid": "MS4wLjABAAAA-placeholder-127",
+        "unique_id": "account_127"
+      },
+      {
+        "uid": "7000000000000000128",
+        "sec_uid": "MS4wLjABAAAA-placeholder-128",
+        "unique_id": "account_128"
+      },
+      {
+        "uid": "7000000000000000129",
+        "sec_uid": "MS4wLjABAAAA-placeholder-129",
+        "unique_id": "account_129"
+      },
+      {
+        "uid": "7000000000000000130",
+        "sec_uid": "MS4wLjABAAAA-placeholder-130",
+        "unique_id": "account_130"
+      },
+      {
+        "uid": "7000000000000000131",
+        "sec_uid": "MS4wLjABAAAA-placeholder-131",
+        "unique_id": "account_131"
+      },
+      {
+        "uid": "7000000000000000132",
+        "sec_uid": "MS4wLjABAAAA-placeholder-132",
+        "unique_id": "account_132"
+      },
+      {
+        "uid": "7000000000000000133",
+        "sec_uid": "MS4wLjABAAAA-placeholder-133",
+        "unique_id": "account_133"
+      },
+      {
+        "uid": "7000000000000000134",
+        "sec_uid": "MS4wLjABAAAA-placeholder-134",
+        "unique_id": "account_134"
+      },
+      {
+        "uid": "7000000000000000135",
+        "sec_uid": "MS4wLjABAAAA-placeholder-135",
+        "unique_id": "account_135"
+      },
+      {
+        "uid": "7000000000000000136",
+        "sec_uid": "MS4wLjABAAAA-placeholder-136",
+        "unique_id": "account_136"
+      },
+      {
+        "uid": "7000000000000000137",
+        "sec_uid": "MS4wLjABAAAA-placeholder-137",
+        "unique_id": "account_137"
+      },
+      {
+        "uid": "7000000000000000138",
+        "sec_uid": "MS4wLjABAAAA-placeholder-138",
+        "unique_id": "account_138"
+      },
+      {
+        "uid": "7000000000000000139",
+        "sec_uid": "MS4wLjABAAAA-placeholder-139",
+        "unique_id": "account_139"
+      },
+      {
+        "uid": "7000000000000000140",
+        "sec_uid": "MS4wLjABAAAA-placeholder-140",
+        "unique_id": "account_140"
+      },
+      {
+        "uid": "7000000000000000141",
+        "sec_uid": "MS4wLjABAAAA-placeholder-141",
+        "unique_id": "account_141"
+      },
+      {
+        "uid": "7000000000000000142",
+        "sec_uid": "MS4wLjABAAAA-placeholder-142",
+        "unique_id": "account_142"
+      },
+      {
+        "uid": "7000000000000000143",
+        "sec_uid": "MS4wLjABAAAA-placeholder-143",
+        "unique_id": "account_143"
+      },
+      {
+        "uid": "7000000000000000144",
+        "sec_uid": "MS4wLjABAAAA-placeholder-144",
+        "unique_id": "account_144"
+      },
+      {
+        "uid": "7000000000000000145",
+        "sec_uid": "MS4wLjABAAAA-placeholder-145",
+        "unique_id": "account_145"
+      },
+      {
+        "uid": "7000000000000000146",
+        "sec_uid": "MS4wLjABAAAA-placeholder-146",
+        "unique_id": "account_146"
+      },
+      {
+        "uid": "7000000000000000147",
+        "sec_uid": "MS4wLjABAAAA-placeholder-147",
+        "unique_id": "account_147"
+      },
+      {
+        "uid": "7000000000000000148",
+        "sec_uid": "MS4wLjABAAAA-placeholder-148",
+        "unique_id": "account_148"
+      },
+      {
+        "uid": "7000000000000000149",
+        "sec_uid": "MS4wLjABAAAA-placeholder-149",
+        "unique_id": "account_149"
+      }
+    ],
+    "has_more": true,
+    "min_time": 1624209444,
+    "max_time": 1795130501,
+    "offset": 0,
+    "total": 83
+  }
+}

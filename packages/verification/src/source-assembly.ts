@@ -4,11 +4,12 @@ import { lamatokSource } from './adapters/lamatok/lamatok-source.ts';
 import { scraperSource } from './adapters/scraper/scraper-source.ts';
 import { sidecarSigner } from './adapters/scraper/sidecar/sidecar-signer.ts';
 import { scraptikSource } from './adapters/scraptik/scraptik-source.ts';
+import { tokapiSource } from './adapters/tokapi/tokapi-source.ts';
 import { checkKinds, type CheckKind } from './domain/check.ts';
 import { err, ok, type Result } from './domain/result.ts';
 import type { VerificationSource } from './ports/verification-source.ts';
 
-export const knownSourceNames = ['scraper', 'lamatok', 'ensemble', 'scraptik'] as const;
+export const knownSourceNames = ['scraper', 'lamatok', 'ensemble', 'scraptik', 'tokapi'] as const;
 
 export type KnownSourceName = (typeof knownSourceNames)[number];
 
@@ -16,7 +17,7 @@ export type SourceOrders = Readonly<Record<CheckKind, readonly KnownSourceName[]
 
 export const defaultSourceOrders: SourceOrders = {
   profile: ['ensemble', 'scraper'],
-  follows: ['scraper', 'ensemble', 'scraptik'],
+  follows: ['scraper', 'tokapi', 'ensemble', 'scraptik'],
   liked: ['scraper', 'ensemble'],
 };
 
@@ -50,7 +51,7 @@ export interface SourceCredentials {
   readonly signerUrl: string;
   readonly lamatokKey?: string | undefined;
   readonly ensembleTokens?: readonly string[] | undefined;
-  readonly scraptikKey?: string | undefined;
+  readonly rapidApiKey?: string | undefined;
 }
 
 export type AssembledSources = ReadonlyMap<KnownSourceName, VerificationSource>;
@@ -69,8 +70,10 @@ export const assembleSources = (
   if (firstToken !== undefined) {
     sources.set('ensemble', ensembledataSource({ http, tokens: [firstToken, ...otherTokens] }));
   }
-  if (credentials.scraptikKey !== undefined) {
-    sources.set('scraptik', scraptikSource({ http, rapidApiKey: credentials.scraptikKey }));
+  if (credentials.rapidApiKey !== undefined) {
+    const rapidApi = { http, rapidApiKey: credentials.rapidApiKey };
+    sources.set('tokapi', tokapiSource(rapidApi));
+    sources.set('scraptik', scraptikSource(rapidApi));
   }
   return sources;
 };

@@ -18,7 +18,7 @@ describe('assembleSources', () => {
         signerUrl: 'http://localhost:8080',
         lamatokKey: 'configured',
         ensembleTokens: ['configured'],
-        scraptikKey: 'configured',
+        rapidApiKey: 'configured',
       },
       http,
     );
@@ -27,6 +27,7 @@ describe('assembleSources', () => {
       ['scraper', 'scraper'],
       ['lamatok', 'lamatok'],
       ['ensemble', 'ensemble'],
+      ['tokapi', 'tokapi'],
       ['scraptik', 'scraptik'],
     ]);
   });
@@ -42,7 +43,7 @@ describe('planSourceOrders', () => {
           follows: ['scraper', 'ensemble'],
           liked: ['scraper', 'ensemble'],
         },
-        leftOut: ['scraptik'],
+        leftOut: ['tokapi', 'scraptik'],
       },
     });
   });

@@ -68,7 +68,7 @@ export const usage = [
   '  cli pool add <handle> [--source <name>]',
   '  cli pool list',
   '',
-  '  --source <name>                           scraper, lamatok, ensemble or scraptik for one',
+  '  --source <name>                           scraper, lamatok, ensemble, scraptik or tokapi for one',
   '                                            source, or chain for the per-kind orders (default)',
   '  --every <seconds>                         wait between watch runs (WATCH_INTERVAL_SECONDS, 60)',
   '  --times <n>                               stop after n runs; unbounded when absent',
@@ -88,7 +88,7 @@ export const missingSchema =
   'the database schema is missing or behind: run pnpm --filter @engagement-exchange/db migrate';
 
 const confirmerKeys: Readonly<Record<ListCheck, string>> = {
-  follows: 'ENSEMBLEDATA_TOKENS or SCRAPTIK_RAPIDAPI_KEY',
+  follows: 'ENSEMBLEDATA_TOKENS or RAPIDAPI_KEY',
   liked: 'ENSEMBLEDATA_TOKENS',
 };
 

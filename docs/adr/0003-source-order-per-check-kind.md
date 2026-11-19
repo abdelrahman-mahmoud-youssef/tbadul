@@ -17,13 +17,15 @@ The verifier takes one order per check kind: `{ profile, follows, liked }`. Each
 
 The defaults, set in configuration and not in code:
 
-| Check kind | Order                         | Reason                                                                      |
-| ---------- | ----------------------------- | --------------------------------------------------------------------------- |
-| `profile`  | `ensemble, scraper`           | Handle-to-id resolution through a paid source; the profile page last.       |
-| `follows`  | `scraper, ensemble, scraptik` | One signed list call by account id; paid sources confirm a `not_following`. |
-| `liked`    | `scraper, ensemble`           | Same as `follows`; ScrapTik answers follows only.                           |
+| Check kind | Order                                 | Reason                                                                                                  |
+| ---------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `profile`  | `ensemble, scraper`                   | Handle-to-id resolution through a paid source; the profile page last.                                   |
+| `follows`  | `scraper, tokapi, ensemble, scraptik` | One signed list call by account id; paid sources confirm a `not_following`, cheapest per request first. |
+| `liked`    | `scraper, ensemble`                   | Same as `follows`; Tokapi and ScrapTik answer follows only.                                             |
 
 Changed on 2026-11-06 from `lamatok, ensemble, scraper` for profile and `scraper, lamatok, ensemble` for follows and liked, after the provider evaluation in the plan's section 6.3: LamaTok is unfunded and its list shapes are unrecorded, so it leaves the defaults; ScrapTik joins follows as the backup confirmer.
+
+Changed on 2026-11-20 for follows, after the RapidAPI evaluation in the plan's section 6.5: Tokapi reads the same TikTok app list by account id for a fraction of EnsembleData's and ScrapTik's price per page, so it takes the first paid place and confirms the scraper's `not_following`.
 
 Callers that read a list resolve the performer through a profile check first and pass the resulting `AccountId` as `performerId`, so the scraper never loads a profile page on the list path. A profile page load can still happen when every paid source fails a profile check, because the scraper is the last profile source by design; that is a fallback, not part of the list path.
 
