@@ -15,7 +15,7 @@ const settings = z
 const host = '127.0.0.1';
 
 const database = await startTestDatabase();
-const world = createWorld();
+const world = createWorld(Date.now());
 const created = await createApp(
   worldEnv({ databaseUrl: database.connectionString, webOrigin: settings.E2E_WEB_ORIGIN }),
   { parts: { sources: sourcesOf(world), clock: world.clock } },

@@ -13,7 +13,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'e2e', testMatch: /screens\.spec\.ts|flows\.spec\.ts/ },
+    { name: 'e2e', testMatch: /screens\.spec\.ts|flows\.spec\.ts|auth\.spec\.ts|link\.spec\.ts/ },
     { name: 'budget', testMatch: /budget\.spec\.ts/ },
     { name: 'lighthouse', testMatch: /lighthouse\.spec\.ts/ },
   ],
