@@ -176,6 +176,7 @@ export const composeApi = (env: Env, warn: Warn, parts: ApiParts = {}): Result<A
     auth: createAuth(database.db, {
       secret: env.BETTER_AUTH_SECRET,
       publicOrigin: env.PUBLIC_WEB_ORIGIN,
+      credentialAttemptsPerMinute: env.AUTH_ATTEMPTS_PER_MINUTE,
     }),
     socialAccounts: createSocialAccounts(
       { eligibility: {}, cooldown: {} },

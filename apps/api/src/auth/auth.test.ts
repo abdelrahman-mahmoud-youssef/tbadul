@@ -50,6 +50,29 @@ describe.skipIf(databaseUrl === null)('sessions', () => {
     }
   });
 
+  it('answers 429 to sign-in attempts beyond the limit from one address', async () => {
+    const test = await startApi({ AUTH_ATTEMPTS_PER_MINUTE: '3' });
+    try {
+      const attempt = () =>
+        test.app.inject({
+          method: 'POST',
+          url: '/api/auth/sign-in/email',
+          headers: {
+            origin: webOrigin,
+            'content-type': 'application/json',
+            'x-forwarded-for': '203.0.113.7',
+          },
+          payload: { email: 'nobody@example.test', password: 'a wrong password' },
+        });
+      const statuses: number[] = [];
+      for (let count = 0; count < 5; count += 1) statuses.push((await attempt()).statusCode);
+
+      expect(statuses).toEqual([401, 401, 401, 429, 429]);
+    } finally {
+      await test.close();
+    }
+  });
+
   it('refuses every endpoint but health without a session', async () => {
     const test = await startApi();
     try {

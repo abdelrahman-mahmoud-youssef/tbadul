@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 export interface AuthSettings {
   readonly secret: string;
   readonly publicOrigin: string;
+  readonly credentialAttemptsPerMinute: number;
 }
 
 const authBasePath = '/api/auth';
@@ -17,6 +18,15 @@ export const createAuth = (db: Database, settings: AuthSettings) =>
     baseURL: settings.publicOrigin,
     basePath: authBasePath,
     trustedOrigins: [settings.publicOrigin],
+    rateLimit: {
+      enabled: true,
+      window: 60,
+      max: 100,
+      customRules: {
+        '/sign-in/email': { window: 60, max: settings.credentialAttemptsPerMinute },
+        '/sign-up/email': { window: 60, max: settings.credentialAttemptsPerMinute },
+      },
+    },
   });
 
 export type Auth = ReturnType<typeof createAuth>;

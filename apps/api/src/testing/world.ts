@@ -39,8 +39,8 @@ export const uniqueHandle = (prefix: string): string => `${prefix}_${randomUUID(
 
 export const idOf = (handle: string): AccountId => accountId('tiktok', `id-${handle}`);
 
-export const createWorld = (): World => ({
-  clock: manualClock(Date.UTC(2026, 10, 7)),
+export const createWorld = (startsAt = Date.UTC(2026, 10, 7)): World => ({
+  clock: manualClock(startsAt),
   profiles: new Map(),
   following: new Map(),
   followsEveryone: new Set(),
@@ -124,6 +124,7 @@ export const worldEnv = (settings: WorldEnvSettings, overrides: Record<string, s
     VERIFICATION_SOURCE_ORDER_FOLLOWS: 'ensemble,scraptik',
     VERIFICATION_SOURCE_ORDER_LIKED: 'ensemble',
     RATE_LIMIT_MAX: '1000',
+    AUTH_ATTEMPTS_PER_MINUTE: '1000',
     ...overrides,
   });
 
