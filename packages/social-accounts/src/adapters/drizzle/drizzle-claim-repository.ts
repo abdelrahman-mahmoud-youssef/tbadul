@@ -16,6 +16,7 @@ import { claimId, userId, type UserId } from '../../domain/ids.ts';
 import type {
   AccountClaimRepository,
   CreateClaimError,
+  SaveClaimError,
   VerifyClaimError,
 } from '../../ports/account-claim-repository.ts';
 import {
@@ -289,6 +290,15 @@ export const drizzleClaimRepository = (db: Database): AccountClaimRepository => 
     db.transaction(async (tx) =>
       (await update(tx, claim)) === undefined ? err('version_conflict') : ok(stored(claim)),
     ),
+  revoke: (claim, revokedAt) =>
+    db.transaction(async (tx): Promise<Result<AccountClaim, SaveClaimError>> => {
+      if ((await update(tx, claim)) === undefined) return err('version_conflict');
+      await tx
+        .update(linkedAccounts)
+        .set({ status: 'revoked', revokedAt: new Date(revokedAt) })
+        .where(and(eq(linkedAccounts.claimId, claim.id), eq(linkedAccounts.status, 'active')));
+      return ok(stored(claim));
+    }),
   verify: async (claim, linkedAt) => {
     try {
       return await db.transaction(async (tx): Promise<Result<AccountClaim, VerifyClaimError>> => {

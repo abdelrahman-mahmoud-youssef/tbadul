@@ -293,4 +293,27 @@ describe.skipIf(databaseUrl === null)('drizzleClaimRepository', () => {
     });
     await expect(repository.countHeld(mine.userId, 'tiktok', mine.expiresAt)).resolves.toBe(1);
   });
+
+  it('revokes a link, frees the account and the slot, and lets another user link it', async () => {
+    const mine = await own(repository, await claimOf());
+
+    const revoked = await repository.revoke(markCancelled(mine), now + 1);
+    expect(revoked).toMatchObject({ ok: true, value: { state: 'cancelled', version: 2 } });
+    await expect(repository.findOwner(mine.accountId)).resolves.toBeUndefined();
+    await expect(repository.listLinked(mine.userId, 'tiktok')).resolves.toEqual([]);
+    await expect(repository.countHeld(mine.userId, 'tiktok', now)).resolves.toBe(0);
+
+    const theirs = await seed(repository, { ...(await claimOf()), accountId: mine.accountId });
+    await expect(repository.verify(markVerified(theirs), now)).resolves.toMatchObject({ ok: true });
+  });
+
+  it('answers version_conflict when the claim changed before it was revoked', async () => {
+    const mine = await own(repository, await claimOf());
+
+    await expect(repository.revoke(markCancelled({ ...mine, version: 0 }), now)).resolves.toEqual({
+      ok: false,
+      error: 'version_conflict',
+    });
+    await expect(repository.findOwner(mine.accountId)).resolves.toBe(mine.userId);
+  });
 });

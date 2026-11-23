@@ -108,4 +108,18 @@ export class ClaimsController {
     if (!cancelled.ok) throw claimFailure(cancelled.error);
     return { claim: presentClaim(cancelled.value) };
   }
+
+  @Delete('linked-accounts/:id')
+  @SerializeOptions({ schema: claimResponse })
+  async removeLinked(
+    @Caller() caller: Principal,
+    @Param('id', { schema: claimIdParam }) id: string,
+  ): Promise<ClaimResponse> {
+    const removed = await this.social.removeLinkedAccount({
+      userId: caller.userId,
+      claimId: claimId(id),
+    });
+    if (!removed.ok) throw claimFailure(removed.error);
+    return { claim: presentClaim(removed.value) };
+  }
 }

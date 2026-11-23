@@ -10,6 +10,10 @@ import {
   type ListLinkedAccounts,
 } from './application/list-linked-accounts.ts';
 import {
+  removeLinkedAccountWith,
+  type RemoveLinkedAccount,
+} from './application/remove-linked-account.ts';
+import {
   startAccountClaimWith,
   type StartAccountClaim,
 } from './application/start-account-claim.ts';
@@ -63,6 +67,7 @@ export interface SocialAccounts {
   readonly verifyAccountClaim: VerifyAccountClaim;
   readonly getAccountClaim: GetAccountClaim;
   readonly cancelAccountClaim: CancelAccountClaim;
+  readonly removeLinkedAccount: RemoveLinkedAccount;
   readonly listLinkedAccounts: ListLinkedAccounts;
 }
 
@@ -86,6 +91,7 @@ export const createSocialAccounts = (
     verifyAccountClaim: verifyAccountClaimWith(useCaseDeps),
     getAccountClaim: getAccountClaimWith(useCaseDeps),
     cancelAccountClaim: cancelAccountClaimWith(useCaseDeps),
+    removeLinkedAccount: removeLinkedAccountWith(useCaseDeps),
     listLinkedAccounts: listLinkedAccountsWith(useCaseDeps),
   };
 };

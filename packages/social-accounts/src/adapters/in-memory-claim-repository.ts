@@ -85,6 +85,12 @@ export const inMemoryClaimRepository = (): AccountClaimRepository => {
     },
     save: (claim) =>
       Promise.resolve(current(claim) ? ok(store(claim)) : err('version_conflict' as const)),
+    revoke: (claim) => {
+      if (!current(claim)) return Promise.resolve(err('version_conflict'));
+      const index = links.findIndex((link) => link.claimId === claim.id);
+      if (index >= 0) links.splice(index, 1);
+      return Promise.resolve(ok(store(claim)));
+    },
     verify: (claim, linkedAt) => {
       if (!current(claim)) return Promise.resolve(err('version_conflict'));
       const owned = all().some(

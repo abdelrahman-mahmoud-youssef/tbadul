@@ -148,6 +148,47 @@ describe.skipIf(databaseUrl === null)('claims', () => {
     });
   });
 
+  it('removes a linked account, frees its slot and refuses to remove it twice', async () => {
+    const handle = uniqueHandle('creator');
+    const claim = await started(handle);
+    follow(test.world, handle, claim.verificationAccount?.handle ?? '');
+    await verifyClaim(test, user, claim.id);
+
+    const removed = await call(test.app, 'DELETE', `/api/linked-accounts/${claim.id}`, {
+      cookie: user.cookie,
+    });
+    const twice = await call(test.app, 'DELETE', `/api/linked-accounts/${claim.id}`, {
+      cookie: user.cookie,
+    });
+    const listed = await call(test.app, 'GET', '/api/linked-accounts', { cookie: user.cookie });
+
+    expect(parsed(claimResponse, removed).claim.state).toBe('cancelled');
+    expect(twice.status).toBe(409);
+    expect(errorOf(twice)).toEqual({
+      code: 'claim_not_cancellable',
+      details: { state: 'cancelled' },
+    });
+    expect(parsed(linkedAccountsResponse, listed).platforms[0]).toMatchObject({
+      used: 0,
+      accounts: [],
+    });
+  });
+
+  it('refuses to remove an account that is not linked yet or belongs to another user', async () => {
+    const open = await started(uniqueHandle('creator'));
+    const asOwner = await call(test.app, 'DELETE', `/api/linked-accounts/${open.id}`, {
+      cookie: user.cookie,
+    });
+    const asAnonymous = await call(test.app, 'DELETE', `/api/linked-accounts/${open.id}`);
+
+    expect(asOwner.status).toBe(409);
+    expect(errorOf(asOwner)).toEqual({
+      code: 'claim_not_cancellable',
+      details: { state: 'awaiting_follow' },
+    });
+    expect(asAnonymous.status).toBe(401);
+  });
+
   it('answers eligibility_failed with every rule and keeps the claim readable', async () => {
     const handle = uniqueHandle('small');
     test.world.profiles.set(handle, { followerCount: 1 });

@@ -6,6 +6,7 @@ export { uuidIds } from './adapters/uuid-ids.ts';
 export type { CancelAccountClaim } from './application/cancel-account-claim.ts';
 export type { GetAccountClaim } from './application/get-account-claim.ts';
 export type { ListLinkedAccounts, PlatformAccounts } from './application/list-linked-accounts.ts';
+export type { RemoveLinkedAccount } from './application/remove-linked-account.ts';
 export type {
   AddedVerificationAccount,
   AddVerificationAccount,

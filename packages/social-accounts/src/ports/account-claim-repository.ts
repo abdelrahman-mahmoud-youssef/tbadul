@@ -24,4 +24,5 @@ export interface AccountClaimRepository {
   create(claim: AccountClaim, limit: ClaimLimit): Promise<Result<AccountClaim, CreateClaimError>>;
   save(claim: AccountClaim): Promise<Result<AccountClaim, SaveClaimError>>;
   verify(claim: AccountClaim, linkedAt: number): Promise<Result<AccountClaim, VerifyClaimError>>;
+  revoke(claim: AccountClaim, revokedAt: number): Promise<Result<AccountClaim, SaveClaimError>>;
 }
