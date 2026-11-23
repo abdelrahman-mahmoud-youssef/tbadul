@@ -6,6 +6,7 @@ import { useState, useTransition, type ReactNode } from 'react';
 import { useErrorCopy } from '@/components/states/error-copy';
 import { Button } from '@/components/ui/button';
 import { ApiRequestError } from '@/lib/api-error';
+import { formatDateTime } from '@/lib/format';
 import { formatRemaining, useCountdown } from './use-countdown';
 
 type Notice =
@@ -26,6 +27,7 @@ export interface VerifyCopy {
   readonly verify: string;
   readonly pending: string;
   readonly waitLabel: string;
+  readonly nextAtLabel: string;
   readonly notices: Readonly<Record<Exclude<Notice, 'failed'>, NoticeCopy>>;
 }
 
@@ -141,6 +143,12 @@ export function VerifyPanel({ claimId, nextVerifyAt, copy }: VerifyPanelProps) {
           <span dir="ltr" className="font-bold tabular-nums">
             {formatRemaining(remaining)}
           </span>
+        </p>
+      )}
+      {remaining !== null && remaining > 0 && (
+        <p className="text-center text-sm text-muted-foreground">
+          {copy.nextAtLabel}{' '}
+          <span className="tabular-nums">{formatDateTime(new Date(readyAt))}</span>
         </p>
       )}
     </div>

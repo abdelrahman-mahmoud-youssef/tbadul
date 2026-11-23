@@ -1,8 +1,7 @@
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { PageHeader } from '@/components/shell/page-header';
 import { LocaleLink } from '@/i18n/locale-link';
 import type { AppPath } from '@/i18n/paths';
-import { localizedPath } from '@/i18n/paths';
 import { CredentialsForm, type CredentialsMode } from './credentials-form';
 
 export interface CredentialsScreen {
@@ -13,10 +12,11 @@ export interface CredentialsScreen {
   readonly switchPrompt: string;
   readonly switchLink: string;
   readonly switchTo: AppPath;
+  readonly destination: string;
 }
 
 export async function CredentialsPage({ screen }: { readonly screen: CredentialsScreen }) {
-  const [t, locale] = await Promise.all([getTranslations('credentials'), getLocale()]);
+  const t = await getTranslations('credentials');
   return (
     <>
       <div className="flex flex-col gap-2">
@@ -25,18 +25,20 @@ export async function CredentialsPage({ screen }: { readonly screen: Credentials
       </div>
       <CredentialsForm
         mode={screen.mode}
-        destination={localizedPath('/accounts', locale)}
+        destination={screen.destination}
         copy={{
           name: t('name'),
           email: t('email'),
           password: t('password'),
           passwordHint: t('passwordHint'),
+          confirmPassword: t('confirmPassword'),
           submit: screen.submit,
           pending: t('pending'),
           failures: {
             invalidCredentials: t('failures.invalidCredentials'),
             emailTaken: t('failures.emailTaken'),
             passwordTooShort: t('failures.passwordTooShort'),
+            passwordMismatch: t('failures.passwordMismatch'),
             rateLimited: t('failures.rateLimited'),
             unknown: t('failures.unknown'),
           },

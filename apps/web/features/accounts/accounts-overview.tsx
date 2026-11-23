@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { LocaleLink } from '@/i18n/locale-link';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { serverRequest } from '@/lib/server-api';
+import { RemoveLinkedButton } from './remove-linked-button';
 
 export async function AccountsOverview() {
   const [t, { platforms }] = await Promise.all([
@@ -111,6 +112,16 @@ export async function AccountsOverview() {
                     {t('linkedAt', { at: formatDateTime(account.linkedAt) })}
                   </span>
                 </span>
+                <RemoveLinkedButton
+                  claimId={account.claimId}
+                  handle={account.handle}
+                  copy={{
+                    remove: t('remove'),
+                    confirm: t('removeConfirm'),
+                    keep: t('removeKeep'),
+                    failed: t('removeFailed'),
+                  }}
+                />
               </li>
             ))}
           </ul>

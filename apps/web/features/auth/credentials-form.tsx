@@ -7,13 +7,19 @@ import { Button } from '@/components/ui/button';
 export type CredentialsMode = 'sign-in' | 'sign-up';
 
 export type CredentialsFailure =
-  'invalidCredentials' | 'emailTaken' | 'passwordTooShort' | 'rateLimited' | 'unknown';
+  | 'invalidCredentials'
+  | 'emailTaken'
+  | 'passwordTooShort'
+  | 'passwordMismatch'
+  | 'rateLimited'
+  | 'unknown';
 
 export interface CredentialsCopy {
   readonly name: string;
   readonly email: string;
   readonly password: string;
   readonly passwordHint: string;
+  readonly confirmPassword: string;
   readonly submit: string;
   readonly pending: string;
   readonly failures: Readonly<Record<CredentialsFailure, string>>;
@@ -56,6 +62,10 @@ export function CredentialsForm({ mode, copy, destination }: CredentialsFormProp
     const fields = new FormData(event.currentTarget);
     const email = text(fields, 'email');
     const password = text(fields, 'password');
+    if (mode === 'sign-up' && password !== text(fields, 'confirmPassword')) {
+      setFailure('passwordMismatch');
+      return;
+    }
     startTransition(async () => {
       const { authClient } = await import('@/lib/auth-client');
       const { error } =
@@ -130,6 +140,23 @@ export function CredentialsForm({ mode, copy, destination }: CredentialsFormProp
           </p>
         )}
       </div>
+      {mode === 'sign-up' && (
+        <div className="flex flex-col gap-2">
+          <label htmlFor={`${id}-confirm`} className="font-medium">
+            {copy.confirmPassword}
+          </label>
+          <input
+            id={`${id}-confirm`}
+            name="confirmPassword"
+            type="password"
+            dir="ltr"
+            autoComplete="new-password"
+            required
+            aria-invalid={failure === 'passwordMismatch'}
+            className={`${fieldClass} text-start`}
+          />
+        </div>
+      )}
       <p
         id={failureId}
         role="alert"

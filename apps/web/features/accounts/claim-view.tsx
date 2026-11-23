@@ -144,6 +144,7 @@ async function VerifySection({ claim }: { readonly claim: Claim }) {
           verify: t('action'),
           pending: t('pending'),
           waitLabel: t('waitLabel'),
+          nextAtLabel: t('nextAtLabel'),
           notices: {
             not_following: {
               title: t('notFollowing.title'),
