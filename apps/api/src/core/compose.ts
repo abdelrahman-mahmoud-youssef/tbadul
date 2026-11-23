@@ -150,6 +150,7 @@ export const composeApi = (env: Env, warn: Warn, parts: ApiParts = {}): Result<A
       timeoutMs: env.OUTBOUND_TIMEOUT_MS,
       pageCap,
       confirmNotFollowing: env.VERIFICATION_CONFIRM_NOT_FOLLOWING,
+      confirmNotFound: env.VERIFICATION_CONFIRM_NOT_FOUND,
       budgets: dailyBudgets(env, sources),
       concurrency: Object.fromEntries(
         [...sources.keys()].map((name) => [

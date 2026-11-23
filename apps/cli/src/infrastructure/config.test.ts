@@ -26,6 +26,7 @@ describe('readEnv', () => {
         ENSEMBLEDATA_TOKENS: ['first', 'second'],
         VERIFICATION_ACCOUNTS: ['verify.one', 'verify.two'],
         VERIFICATION_CONFIRM_NOT_FOLLOWING: true,
+        VERIFICATION_CONFIRM_NOT_FOUND: true,
         OUTBOUND_TIMEOUT_MS: 15_000,
         CLI_USER_ID: 'local',
         MEASUREMENT_LOG_FILE: 'measurements.jsonl',

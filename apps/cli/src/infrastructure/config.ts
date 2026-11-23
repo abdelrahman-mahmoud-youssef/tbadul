@@ -36,6 +36,10 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  VERIFICATION_CONFIRM_NOT_FOUND: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
   ENSEMBLEDATA_DAILY_UNITS: z.coerce.number().positive().optional(),
   SCRAPTIK_DAILY_REQUESTS: z.coerce.number().positive().optional(),
   TOKAPI_DAILY_REQUESTS: z.coerce.number().positive().optional(),

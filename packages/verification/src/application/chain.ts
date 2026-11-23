@@ -30,6 +30,7 @@ export interface ChainDeps {
   readonly measurements: MeasurementSink;
   readonly pageCap: number;
   readonly confirmNotFollowing: boolean;
+  readonly confirmNotFound?: boolean;
   readonly following?: FollowingCache;
 }
 
@@ -113,7 +114,10 @@ const awaitsConfirmation = (
   deps: ChainDeps,
   answer: Answer<CheckKind>,
   eligible: readonly VerificationSource[],
-): boolean => answer.outcome === 'not_following' && deps.confirmNotFollowing && eligible.length > 1;
+): boolean =>
+  eligible.length > 1 &&
+  ((answer.outcome === 'not_following' && deps.confirmNotFollowing) ||
+    (answer.outcome === 'not_found' && deps.confirmNotFound === true));
 
 const leastSettled = (answers: readonly Answer<'follows'>[]): Answer<'follows'> =>
   answers.reduce((least, answer) =>

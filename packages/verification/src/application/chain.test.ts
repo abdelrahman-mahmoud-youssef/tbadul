@@ -193,3 +193,66 @@ describe('verify with not_following confirmed by a later source', () => {
     expect(verdict).toMatchObject({ outcome: 'not_following', source: 's2' });
   });
 });
+
+describe('verify with not_found confirmed by a later source', () => {
+  const confirming = (confirmNotFound: boolean, ...sources: FakeAnswers[]) =>
+    verifyWith({
+      sources: everyKind(sources.map((answers, index) => fakeSource(`s${index}`, answers))),
+      clock: manualClock(),
+      measurements: recordingSink(),
+      pageCap: 3,
+      confirmNotFollowing: false,
+      confirmNotFound,
+    });
+
+  it('settles not_found once a later source confirms it', async () => {
+    const verdict = await confirming(
+      true,
+      { follows: notFound },
+      { follows: notFound },
+    )(followsCheck);
+    expect(verdict).toMatchObject({ outcome: 'not_found', source: 's1' });
+  });
+
+  it('lets a later source contradict not_found', async () => {
+    const verdict = await confirming(
+      true,
+      { follows: notFound },
+      { follows: verified },
+    )(followsCheck);
+    expect(verdict).toMatchObject({ outcome: 'verified', source: 's1' });
+  });
+
+  it('answers source_error when the confirming source fails', async () => {
+    const verdict = await confirming(
+      true,
+      { follows: notFound },
+      { follows: failed(timedOut) },
+    )(followsCheck);
+    expect(verdict.outcome).toBe('source_error');
+  });
+
+  it('confirms a liked not_found the same way', async () => {
+    const verdict = await confirming(
+      true,
+      { liked: notFound },
+      { liked: failed(timedOut) },
+    )(likedCheck);
+    expect(verdict.outcome).toBe('source_error');
+  });
+
+  it('keeps the first not_found when confirmation is off', async () => {
+    const verdict = await confirming(
+      false,
+      { follows: notFound },
+      { follows: verified },
+    )(followsCheck);
+    expect(verdict).toMatchObject({ outcome: 'not_found', source: 's0' });
+  });
+
+  it('lets a single source answer not_found', async () => {
+    await expect(confirming(true, { follows: notFound })(followsCheck)).resolves.toMatchObject({
+      outcome: 'not_found',
+    });
+  });
+});

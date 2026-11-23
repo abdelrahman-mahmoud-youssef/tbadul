@@ -41,6 +41,10 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  VERIFICATION_CONFIRM_NOT_FOUND: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
   VERIFICATION_CONCURRENCY: positiveInt.default(4),
   VERIFICATION_QUEUE: z.coerce.number().int().nonnegative().default(32),
   ENSEMBLEDATA_DAILY_UNITS: z.coerce.number().positive().optional(),

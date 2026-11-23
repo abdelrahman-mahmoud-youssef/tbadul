@@ -122,6 +122,7 @@ export const composeVerifier = (
       timeoutMs: env.OUTBOUND_TIMEOUT_MS,
       pageCap: 3,
       confirmNotFollowing: env.VERIFICATION_CONFIRM_NOT_FOLLOWING,
+      confirmNotFound: env.VERIFICATION_CONFIRM_NOT_FOUND,
       budgets: dailyBudgets(env, sources),
     },
     {

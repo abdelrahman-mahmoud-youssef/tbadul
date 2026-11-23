@@ -29,6 +29,7 @@ export const verifierConfigSchema = z.object({
   timeoutMs: z.number().int().positive(),
   pageCap: z.number().int().positive(),
   confirmNotFollowing: z.boolean().default(true),
+  confirmNotFound: z.boolean().default(true),
   listCacheTtlMs: z.number().int().nonnegative().default(30_000),
   budgets: z
     .record(z.string().min(1), z.object({ unit: z.enum(costUnits), daily: z.number().positive() }))
@@ -77,6 +78,7 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
     timeoutMs,
     pageCap,
     confirmNotFollowing,
+    confirmNotFound,
     listCacheTtlMs,
     budgets,
     concurrency,
@@ -124,6 +126,7 @@ export const createVerifier = (config: VerifierConfig, deps: VerifierDeps): Veri
     measurements,
     pageCap,
     confirmNotFollowing,
+    confirmNotFound,
     ...(listCacheTtlMs > 0 && { following: followingCache(listCacheTtlMs, clock) }),
   };
   const chain = verifyWith(chainDeps);
