@@ -5,7 +5,7 @@ import { signInAs } from './session';
 test('sends a visitor without a session from the app to sign-in', async ({ page }) => {
   await page.goto('/accounts');
 
-  await expect(page).toHaveURL('/sign-in');
+  await expect(page).toHaveURL('/sign-in?next=%2Faccounts');
 });
 
 test('hides the administration from a user without the admin role', async ({ page }) => {
@@ -57,5 +57,5 @@ test('signs out back to the landing page', async ({ page }) => {
 
   await expect(page).toHaveURL('/');
   await page.goto('/accounts');
-  await expect(page).toHaveURL('/sign-in');
+  await expect(page).toHaveURL('/sign-in?next=%2Faccounts');
 });

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import messages from '../messages/ar.json' with { type: 'json' };
 import { audit } from './audit';
-import { control, ensurePool, poolHandle } from './control';
+import { control, ensurePool, poolHandle, syncClock } from './control';
 import { signInAs } from './session';
 
 const handleOf = (): string => `creator_${randomUUID().slice(0, 8)}`;
@@ -31,6 +31,7 @@ test('shows an empty accounts page with five free slots and a link button', asyn
 });
 
 test('links an eligible account: not found yet, cooldown, then verified', async ({ page }) => {
+  await syncClock();
   await page.clock.install();
   await signInAs(page.request, 'user');
   const handle = handleOf();
