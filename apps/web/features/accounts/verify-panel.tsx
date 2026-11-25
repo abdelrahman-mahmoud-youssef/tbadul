@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useErrorCopy } from '@/components/states/error-copy';
 import { Button } from '@/components/ui/button';
-import { ApiRequestError } from '@/lib/api-error';
+import { ApiRequestError, isTimeout } from '@/lib/api-error';
 import { formatDateTime } from '@/lib/format';
 import { formatRemaining, useCooldown } from './use-cooldown';
 import { useSlowHint } from './use-slow-hint';
@@ -80,7 +80,7 @@ export function VerifyPanel({ claimId, waitMs, copy }: VerifyPanelProps) {
 
   const verify = () => {
     startTransition(async () => {
-      const [{ apiRequest }, { verifyClaimResponse }] = await Promise.all([
+      const [{ apiRequest, slowCallTimeoutMs }, { verifyClaimResponse }] = await Promise.all([
         import('@/lib/api-client'),
         import('@engagement-exchange/contracts'),
       ]);
@@ -88,6 +88,7 @@ export function VerifyPanel({ claimId, waitMs, copy }: VerifyPanelProps) {
       try {
         const result = await apiRequest(verifyClaimResponse, `/claims/${claimId}/verify`, {
           method: 'POST',
+          timeoutMs: slowCallTimeoutMs,
           onServerTime: (serverMs) => {
             serverOffset = serverMs - Date.now();
           },
@@ -105,7 +106,11 @@ export function VerifyPanel({ claimId, waitMs, copy }: VerifyPanelProps) {
         });
       } catch (error) {
         if (!(error instanceof ApiRequestError)) {
-          setNotice({ kind: 'failed', text: errors.codes.internal });
+          setNotice(
+            isTimeout(error)
+              ? { kind: 'source_unavailable' }
+              : { kind: 'failed', text: errors.codes.internal },
+          );
           return;
         }
         const failure = error.error;

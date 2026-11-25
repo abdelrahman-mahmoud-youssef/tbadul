@@ -78,6 +78,16 @@ describe('apiRequest', () => {
     });
   });
 
+  it('gives the request the timeout it asks for', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+    reply(200, me);
+
+    await apiRequest(meResponse, '/me', { timeoutMs: 30_000 });
+
+    expect(timeout).toHaveBeenCalledWith(30_000);
+    timeout.mockRestore();
+  });
+
   it('refuses a success body that breaks the contract', async () => {
     reply(200, { user: { id: 'not-a-uuid' } });
 

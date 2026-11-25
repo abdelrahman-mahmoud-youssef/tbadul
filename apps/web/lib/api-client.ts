@@ -2,7 +2,9 @@ import { errorEnvelope } from '@engagement-exchange/contracts';
 import type { z } from 'zod';
 import { ApiRequestError } from './api-error';
 
-const timeoutMs = 10_000;
+const defaultTimeoutMs = 10_000;
+
+export const slowCallTimeoutMs = 30_000;
 
 export interface ApiRequestOptions {
   readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -10,6 +12,7 @@ export interface ApiRequestOptions {
   readonly origin?: string;
   readonly headers?: Readonly<Record<string, string>>;
   readonly onServerTime?: (serverMs: number) => void;
+  readonly timeoutMs?: number;
 }
 
 export const apiRequest = async <T>(
@@ -25,7 +28,7 @@ export const apiRequest = async <T>(
     },
     ...(options.body !== undefined && { body: JSON.stringify(options.body) }),
     cache: 'no-store',
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: AbortSignal.timeout(options.timeoutMs ?? defaultTimeoutMs),
   });
   const serverTime = Date.parse(response.headers.get('date') ?? '');
   if (!Number.isNaN(serverTime)) options.onServerTime?.(serverTime);

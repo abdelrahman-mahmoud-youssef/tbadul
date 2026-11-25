@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition, type SubmitEvent } from 'react';
 import { useErrorCopy } from '@/components/states/error-copy';
 import { Button } from '@/components/ui/button';
-import { ApiRequestError } from '@/lib/api-error';
+import { ApiRequestError, isTimeout } from '@/lib/api-error';
 import { useSlowHint } from './use-slow-hint';
 
 export interface LinkStartCopy {
@@ -36,7 +36,7 @@ export function LinkStartForm({ platform, copy, claimPath }: LinkStartFormProps)
     const value = new FormData(event.currentTarget).get('account');
     const account = typeof value === 'string' ? value : '';
     startTransition(async () => {
-      const [{ apiRequest }, { claimResponse }] = await Promise.all([
+      const [{ apiRequest, slowCallTimeoutMs }, { claimResponse }] = await Promise.all([
         import('@/lib/api-client'),
         import('@engagement-exchange/contracts'),
       ]);
@@ -44,11 +44,12 @@ export function LinkStartForm({ platform, copy, claimPath }: LinkStartFormProps)
         const { claim } = await apiRequest(claimResponse, '/claims', {
           method: 'POST',
           body: { platform, account },
+          timeoutMs: slowCallTimeoutMs,
         });
         router.push(`${claimPath}/${claim.id}`);
       } catch (error) {
         if (!(error instanceof ApiRequestError)) {
-          setFailure('internal');
+          setFailure(isTimeout(error) ? 'source_unavailable' : 'internal');
           return;
         }
         if (error.error.code === 'eligibility_failed') {
