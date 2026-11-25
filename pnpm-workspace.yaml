@@ -57,6 +57,7 @@ catalog:
   reflect-metadata: ^0.2.2
   rxjs: ^7.8.2
   shadcn: ^4.23.0
+  simple-icons: ^16.38.1
   tailwindcss: ^4.3.4
   testcontainers: ^12.2.1
   turbo: ^2.11.10
