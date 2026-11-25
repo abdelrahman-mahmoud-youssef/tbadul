@@ -6,6 +6,7 @@ import { LocaleLink } from '@/i18n/locale-link';
 import { localizedPath } from '@/i18n/paths';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { serverRequest } from '@/lib/server-api';
+import { millisecondsUntil } from '@/lib/wait';
 import { CancelClaimButton } from './cancel-claim-button';
 import { EligibilityReport } from './eligibility-report';
 import { LinkSteps } from './link-steps';
@@ -139,10 +140,11 @@ async function VerifySection({ claim }: { readonly claim: Claim }) {
       </div>
       <VerifyPanel
         claimId={claim.id}
-        nextVerifyAt={claim.nextVerifyAt}
+        waitMs={millisecondsUntil(claim.nextVerifyAt)}
         copy={{
           verify: t('action'),
           pending: t('pending'),
+          slow: t('slow'),
           waitLabel: t('waitLabel'),
           nextAtLabel: t('nextAtLabel'),
           notices: {

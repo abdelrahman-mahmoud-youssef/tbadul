@@ -35,6 +35,7 @@ export default async function LinkAccountPage({ searchParams }: LinkAccountPageP
             hint: platforms(`${platform}.accountHint`),
             submit: t('start'),
             pending: t('checking'),
+            slow: t('slow'),
           }}
         />
       </section>

@@ -9,6 +9,7 @@ export interface ApiRequestOptions {
   readonly body?: unknown;
   readonly origin?: string;
   readonly headers?: Readonly<Record<string, string>>;
+  readonly onServerTime?: (serverMs: number) => void;
 }
 
 export const apiRequest = async <T>(
@@ -26,6 +27,8 @@ export const apiRequest = async <T>(
     cache: 'no-store',
     signal: AbortSignal.timeout(timeoutMs),
   });
+  const serverTime = Date.parse(response.headers.get('date') ?? '');
+  if (!Number.isNaN(serverTime)) options.onServerTime?.(serverTime);
   const payload: unknown = response.status === 204 ? undefined : await response.json();
   if (!response.ok) throw new ApiRequestError(errorEnvelope.parse(payload).error, response.status);
   return schema.parse(payload);

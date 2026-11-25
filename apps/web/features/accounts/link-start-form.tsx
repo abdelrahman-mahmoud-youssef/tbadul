@@ -1,17 +1,20 @@
 'use client';
 
 import type { ErrorCode, Platform } from '@engagement-exchange/contracts';
+import { RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition, type SubmitEvent } from 'react';
 import { useErrorCopy } from '@/components/states/error-copy';
 import { Button } from '@/components/ui/button';
 import { ApiRequestError } from '@/lib/api-error';
+import { useSlowHint } from './use-slow-hint';
 
 export interface LinkStartCopy {
   readonly label: string;
   readonly hint: string;
   readonly submit: string;
   readonly pending: string;
+  readonly slow: string;
 }
 
 interface LinkStartFormProps {
@@ -26,6 +29,7 @@ export function LinkStartForm({ platform, copy, claimPath }: LinkStartFormProps)
   const id = useId();
   const [failure, setFailure] = useState<ErrorCode | null>(null);
   const [pending, startTransition] = useTransition();
+  const slow = useSlowHint(pending, 4000);
 
   const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -83,9 +87,19 @@ export function LinkStartForm({ platform, copy, claimPath }: LinkStartFormProps)
       <p id={`${id}-failure`} role="alert" className="text-destructive empty:hidden">
         {failure === null ? '' : errors.codes[failure]}
       </p>
-      <Button type="submit" size="lg" disabled={pending}>
-        {pending ? copy.pending : copy.submit}
+      <Button type="submit" size="lg" disabled={pending} aria-busy={pending}>
+        {pending ? (
+          <>
+            <RefreshCw aria-hidden="true" className="motion-safe:animate-spin" />
+            {copy.pending}
+          </>
+        ) : (
+          copy.submit
+        )}
       </Button>
+      <p role="status" className="text-center text-sm text-muted-foreground empty:hidden">
+        {slow ? copy.slow : ''}
+      </p>
     </form>
   );
 }

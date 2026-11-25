@@ -52,6 +52,20 @@ describe('apiRequest', () => {
     );
   });
 
+  it('reports the server time from the date header', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof globalThis.fetch>(() =>
+        Promise.resolve(Response.json(me, { headers: { date: 'Wed, 25 Nov 2026 15:57:24 GMT' } })),
+      ),
+    );
+    const onServerTime = vi.fn<(serverMs: number) => void>();
+
+    await apiRequest(meResponse, '/me', { onServerTime });
+
+    expect(onServerTime).toHaveBeenCalledWith(Date.parse('2026-11-25T15:57:24Z'));
+  });
+
   it('turns the error envelope into a typed error with its code and details', async () => {
     reply(429, { error: { code: 'rate_limited', details: { retryAfterSeconds: 12 } } });
 
