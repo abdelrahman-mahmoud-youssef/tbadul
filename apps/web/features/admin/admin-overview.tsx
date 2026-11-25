@@ -61,9 +61,11 @@ export async function AdminOverview() {
               >
                 <div className="flex flex-col gap-3 @sm:flex-row @sm:items-center">
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <bdi dir="ltr" className="truncate text-start font-bold">
-                      {account.handle === undefined ? account.accountId : `@${account.handle}`}
-                    </bdi>
+                    <span className="truncate text-start font-bold">
+                      <bdi dir="ltr">
+                        {account.handle === undefined ? account.accountId : `@${account.handle}`}
+                      </bdi>
+                    </span>
                     <span className="text-sm text-muted-foreground">
                       {account.active ? t('active') : t('inactive')}
                       {' · '}

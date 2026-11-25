@@ -1,6 +1,7 @@
 import { BadgeCheck, Link2, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { BrandMark } from '@/components/brand/brand-mark';
+import { UpcomingPlatforms } from '@/components/platform/upcoming-platforms';
 import { buttonVariants } from '@/components/ui/button';
 import { LocaleLink } from '@/i18n/locale-link';
 import { formatNumber } from '@/lib/format';
@@ -64,6 +65,7 @@ export default function LandingPage() {
           ))}
         </ol>
       </section>
+      <UpcomingPlatforms title={t('landing.platformsTitle')} body={t('landing.platformsBody')} />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ErrorCode } from '@engagement-exchange/contracts';
+import type { ErrorCode, Platform } from '@engagement-exchange/contracts';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition, type SubmitEvent } from 'react';
 import { useErrorCopy } from '@/components/states/error-copy';
@@ -15,11 +15,12 @@ export interface LinkStartCopy {
 }
 
 interface LinkStartFormProps {
+  readonly platform: Platform;
   readonly copy: LinkStartCopy;
   readonly claimPath: string;
 }
 
-export function LinkStartForm({ copy, claimPath }: LinkStartFormProps) {
+export function LinkStartForm({ platform, copy, claimPath }: LinkStartFormProps) {
   const router = useRouter();
   const errors = useErrorCopy();
   const id = useId();
@@ -38,7 +39,7 @@ export function LinkStartForm({ copy, claimPath }: LinkStartFormProps) {
       try {
         const { claim } = await apiRequest(claimResponse, '/claims', {
           method: 'POST',
-          body: { platform: 'tiktok', account },
+          body: { platform, account },
         });
         router.push(`${claimPath}/${claim.id}`);
       } catch (error) {
